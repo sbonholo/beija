@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
+
 export default defineConfig({
+  base: '/beija/',
   plugins: [
     react(),
     VitePWA({
@@ -34,6 +36,3 @@ export default defineConfig({
       '/api': { target: 'http://localhost:4000', changeOrigin: true },
       '/uploads': { target: 'http://localhost:4000', changeOrigin: true },
       '/socket.io': { target: 'http://localhost:4000', ws: true, changeOrigin: true },
-    },
-  },
-});
