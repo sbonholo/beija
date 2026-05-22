@@ -7,12 +7,12 @@ export const MOCK_TOKEN = 'dev_bypass_token';
 export const mockUser: User = {
   id: 'mock-user-1',
   phone: '00000000000',
-  nickname: 'Você',
-  gender: 'man',
+  nickname: null,
+  gender: null,
   seeking: ['woman', 'non-binary'],
-  bio: 'Testando o Beija 🎉',
+  bio: null,
   photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&q=80',
-  birthdate: '1995-06-15',
+  birthdate: null,
   currentEventId: 'mock-event-1',
   lastActive: Date.now(),
 };
