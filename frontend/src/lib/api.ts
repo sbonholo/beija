@@ -119,6 +119,6 @@ export const mockedApi = {
     isMock() ? { messages: mockMessages } : _api.listMessages(matchId),
   sendMessage: async (matchId: string, text: string) =>
     isMock()
-      ? { message: { id: 'msg-new', matchId, senderId: 'mock-user-1', text, createdAt: Date.now() } }
+      ? { message: { id: `msg-${Date.now()}`, fromUserId: 'mock-user-1', text, createdAt: Date.now() } }
       : _api.sendMessage(matchId, text),
 };

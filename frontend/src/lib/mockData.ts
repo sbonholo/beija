@@ -1,4 +1,4 @@
-import type { User, EventItem, PersonAtEvent } from '../types';
+import type { User, EventItem, PersonAtEvent, MatchSummary, ChatMessage } from '../types';
 
 export const MOCK_PHONE = '00000000000';
 export const MOCK_OTP = '000000';
@@ -65,23 +65,37 @@ export const mockPeople: PersonAtEvent[] = [
   },
 ];
 
-export const mockMatches = [
+const carlosUser: User = {
+  id: 'mock-user-3',
+  nickname: 'Carlos',
+  gender: 'man',
+  seeking: ['woman', 'non-binary'],
+  bio: 'Curtindo a noite carioca',
+  photoUrl: null,
+  birthdate: '1993-11-08',
+  currentEventId: 'mock-event-1',
+  lastActive: Date.now() - 120000,
+};
+
+export const mockMatches: MatchSummary[] = [
   {
     id: 'mock-match-1',
-    userId: 'mock-user-3',
-    nickname: 'Carlos',
-    photoUrl: null,
-    lastMessage: 'Oi! Vi que você curtiu o show também 😄',
-    unreadCount: 1,
-    updatedAt: Date.now() - 300000,
+    eventId: 'mock-event-1',
+    eventName: 'Show do Seu Jorge — Lapa',
+    eventVenue: 'Circo Voador',
+    createdAt: Date.now() - 600000,
+    lastMessage: {
+      text: 'Oi! Vi que você curtiu o show também 😄',
+      createdAt: Date.now() - 300000,
+    },
+    otherUser: carlosUser,
   },
 ];
 
-export const mockMessages = [
+export const mockMessages: ChatMessage[] = [
   {
     id: 'msg-1',
-    matchId: 'mock-match-1',
-    senderId: 'mock-user-3',
+    fromUserId: 'mock-user-3',
     text: 'Oi! Vi que você curtiu o show também 😄',
     createdAt: Date.now() - 300000,
   },
