@@ -14,7 +14,7 @@ export function Login() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.requestOtp(phone);
+      const res = await api.requestOtp(digitsOnly(phone));
       const params = new URLSearchParams({ phone: res.phone });
       if (res.devCode) params.set('hint', res.devCode);
       nav(`/verify?${params.toString()}`);
@@ -41,8 +41,12 @@ export function Login() {
           inputMode="tel"
           autoComplete="tel"
           placeholder="(11) 98765-4321"
-          value={formatPhone(phone)}
-          onChange={(e) => setPhone(digitsOnly(e.target.value))}
+          maxLength={15}
+          value={phone}
+          onChange={(e) => {
+            const raw = digitsOnly(e.target.value);
+            setPhone(formatPhone(raw));
+          }}
           required
         />
         {error && <p style={{ color: 'var(--danger)', marginTop: 8, fontSize: 13 }}>{error}</p>}
