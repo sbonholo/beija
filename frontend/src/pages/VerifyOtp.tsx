@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { api, ApiError } from '../lib/api';
+import { mockedApi as api, ApiError } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 
 export function VerifyOtp() {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { mockedApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { Gender } from '../types';
 

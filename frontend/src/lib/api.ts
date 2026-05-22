@@ -75,3 +75,50 @@ export const api = {
   sendMessage: (matchId: string, text: string) =>
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
 };
+
+import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvent, mockPeople, mockMatches, mockMessages } from './mockData';
+
+function isMock() { return getToken() === MOCK_TOKEN; }
+
+const _api = api;
+export const mockedApi = {
+  ...api,
+  requestOtp: async (phone: string) => {
+    if (phone === '00000000000') {
+      return { ok: true as const, phone, devCode: MOCK_OTP };
+    }
+    return _api.requestOtp(phone);
+  },
+  verifyOtp: async (phone: string, code: string) => {
+    if (phone === '00000000000' && code === MOCK_OTP) {
+      setToken(MOCK_TOKEN);
+      return { token: MOCK_TOKEN, user: mockUser, isNew: false, needsProfile: false };
+    }
+    return _api.verifyOtp(phone, code);
+  },
+  getMe: async () => (isMock() ? { user: mockUser } : _api.getMe()),
+  updateMe: async (patch: Record<string, unknown>) =>
+    isMock() ? { user: { ...mockUser, ...patch } } : _api.updateMe(patch),
+  uploadPhoto: async (file: File) =>
+    isMock() ? { photoUrl: URL.createObjectURL(file) } : _api.uploadPhoto(file),
+  listEvents: async (lat?: number | null, lng?: number | null) =>
+    isMock() ? { events: [mockEvent] } : _api.listEvents(lat, lng),
+  getEvent: async (_id: string) => (isMock() ? { event: mockEvent } : _api.getEvent(_id)),
+  checkIn: async (id: string) => (isMock() ? { ok: true as const } : _api.checkIn(id)),
+  checkOut: async (id: string) => (isMock() ? { ok: true as const } : _api.checkOut(id)),
+  listPeople: async (id: string) => (isMock() ? { people: mockPeople } : _api.listPeople(id)),
+  sendReaction: async (toUserId: string, eventId: string, type: string) =>
+    isMock()
+      ? { ok: true as const, reaction: type, match: null }
+      : _api.sendReaction(toUserId, eventId, type),
+  removeReaction: async (toUserId: string, eventId: string) =>
+    isMock() ? { ok: true as const } : _api.removeReaction(toUserId, eventId),
+  listMatches: async (): Promise<{ matches: any[] }> =>
+    isMock() ? { matches: mockMatches } : _api.listMatches(),
+  listMessages: async (matchId: string): Promise<{ messages: any[] }> =>
+    isMock() ? { messages: mockMessages } : _api.listMessages(matchId),
+  sendMessage: async (matchId: string, text: string) =>
+    isMock()
+      ? { message: { id: 'msg-new', matchId, senderId: 'mock-user-1', text, createdAt: Date.now() } }
+      : _api.sendMessage(matchId, text),
+};

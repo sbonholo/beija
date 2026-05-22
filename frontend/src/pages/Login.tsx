@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, ApiError } from '../lib/api';
+import { mockedApi as api, ApiError } from '../lib/api';
 import { digitsOnly, formatPhone } from '../lib/phone';
 
 export function Login() {
@@ -55,6 +55,11 @@ export function Login() {
           }}
           required
         />
+        {import.meta.env.DEV && (
+          <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
+            Demo: use (00) 00000-0000 + código 000000
+          </p>
+        )}
         {error && <p style={{ color: 'var(--danger)', marginTop: 8, fontSize: 13 }}>{error}</p>}
         <button className="btn" style={{ marginTop: 18 }} disabled={loading || !phone}>
           {loading ? 'Enviando...' : 'Receber código 💋'}

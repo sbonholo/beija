@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { api, setToken, getToken } from '../lib/api';
+import { mockedApi as api, setToken, getToken } from '../lib/api';
 import { refreshSocketAuth, closeSocket } from '../lib/socket';
 import type { User } from '../types';
 
