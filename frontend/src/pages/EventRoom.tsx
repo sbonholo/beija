@@ -25,6 +25,8 @@ export function EventRoom() {
   const [selected, setSelected] = useState<PersonAtEvent | null>(null);
   const [checkedIn, setCheckedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{ matchId: string; other: User } | null>(null);
 
   const refreshPeople = useCallback(async () => {
@@ -32,6 +34,19 @@ export function EventRoom() {
     setPeople(people);
     setSelected((prev) => (prev ? people.find((p: PersonAtEvent) => p.id === prev.id) || null : null));
   }, [eventId]);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { event } = await api.getEvent(eventId);
+      setEvent(event);
+      await refreshPeople();
+    } catch {
+      /* keep current data on transient refresh failure */
+    } finally {
+      setRefreshing(false);
+    }
+  }, [eventId, refreshPeople]);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +60,7 @@ export function EventRoom() {
         setCheckedIn(true);
         await refreshPeople();
       } catch {
-        nav('/events', { replace: true });
+        if (!cancelled) setLoadError('Não foi possível carregar este rolê.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -101,13 +116,44 @@ export function EventRoom() {
     return <div className="screen"><p className="muted">Entrando no rolê...</p></div>;
   }
 
+  if (loadError) {
+    return (
+      <div className="screen" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <div style={{ margin: 'auto 0' }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>😕</div>
+          <h2 style={{ margin: '0 0 8px' }}>Ops, algo deu errado</h2>
+          <p className="muted" style={{ marginTop: 0 }}>{loadError}</p>
+          <button
+            className="btn"
+            style={{ marginTop: 18, maxWidth: 240 }}
+            onClick={() => nav('/events')}
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="screen">
       <div className="header">
         <button onClick={checkOut} className="chip">← Sair</button>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 700 }}>{event?.name}</div>
-          <div className="muted" style={{ fontSize: 12 }}>{event?.venue}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 700 }}>{event?.name}</div>
+            <div className="muted" style={{ fontSize: 12 }}>{event?.venue}</div>
+          </div>
+          <button
+            type="button"
+            className="chip"
+            aria-label="Atualizar"
+            disabled={refreshing}
+            onClick={refreshAll}
+            style={{ minWidth: 40, justifyContent: 'center' }}
+          >
+            {refreshing ? '…' : '↻'}
+          </button>
         </div>
       </div>
 

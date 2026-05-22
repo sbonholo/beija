@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
+import { digitsOnly, formatPhone } from '../lib/phone';
 
 export function Login() {
   const nav = useNavigate();
@@ -40,8 +41,8 @@ export function Login() {
           inputMode="tel"
           autoComplete="tel"
           placeholder="(11) 98765-4321"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          value={formatPhone(phone)}
+          onChange={(e) => setPhone(digitsOnly(e.target.value))}
           required
         />
         {error && <p style={{ color: 'var(--danger)', marginTop: 8, fontSize: 13 }}>{error}</p>}

@@ -21,7 +21,14 @@ export function Onboarding() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(user?.photoUrl || null);
   const [bio, setBio] = useState(user?.bio || '');
+  const [birthdate, setBirthdate] = useState(user?.birthdate || '');
   const [saving, setSaving] = useState(false);
+
+  const maxBirthdate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().slice(0, 10);
+  })();
 
   function toggleSeeking(g: Gender) {
     setSeeking((s) => (s.includes(g) ? s.filter((x) => x !== g) : [...s, g]));
@@ -34,11 +41,13 @@ export function Onboarding() {
     setPhotoPreview(URL.createObjectURL(f));
   }
 
-  async function finish() {
+  async function finish(withBirthdate: string | null) {
     if (!nickname || !gender) return;
     setSaving(true);
     try {
-      const { user } = await api.updateMe({ nickname, gender, seeking, bio });
+      const patch: Record<string, unknown> = { nickname, gender, seeking, bio };
+      if (withBirthdate) patch.birthdate = withBirthdate;
+      const { user } = await api.updateMe(patch);
       if (photo) {
         const { photoUrl } = await api.uploadPhoto(photo);
         user.photoUrl = photoUrl;
@@ -53,7 +62,7 @@ export function Onboarding() {
   return (
     <div className="screen">
       <h2 style={{ marginTop: 12, marginBottom: 4 }}>Vamos te conhecer</h2>
-      <p className="muted" style={{ marginBottom: 22 }}>Passo {step + 1} de 4</p>
+      <p className="muted" style={{ marginBottom: 22 }}>Passo {step + 1} de 5</p>
 
       {step === 0 && (
         <>
@@ -152,8 +161,41 @@ export function Onboarding() {
             rows={3}
             onChange={(e) => setBio(e.target.value)}
           />
-          <button className="btn" style={{ marginTop: 22 }} disabled={saving} onClick={finish}>
+          <button className="btn" style={{ marginTop: 22 }} onClick={() => setStep(4)}>
+            Próximo
+          </button>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <label className="muted" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>
+            Quando você nasceu?
+          </label>
+          <p className="muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 12 }}>
+            Isso nos ajuda a encontrar pessoas compatíveis
+          </p>
+          <input
+            type="date"
+            max={maxBirthdate}
+            value={birthdate}
+            onChange={(e) => setBirthdate(e.target.value)}
+          />
+          <button
+            className="btn"
+            style={{ marginTop: 22 }}
+            disabled={saving || !birthdate}
+            onClick={() => finish(birthdate)}
+          >
             {saving ? 'Salvando...' : 'Bora! 🔥'}
+          </button>
+          <button
+            className="btn ghost"
+            style={{ marginTop: 12 }}
+            disabled={saving}
+            onClick={() => finish(null)}
+          >
+            Pular
           </button>
         </>
       )}

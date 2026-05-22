@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './state/AuthContext';
+import { useUnread } from './state/UnreadContext';
 import { ToastProvider, useToast } from './components/Toast';
 import { Login } from './pages/Login';
 import { VerifyOtp } from './pages/VerifyOtp';
@@ -20,8 +21,15 @@ const LABEL: Record<ReactionType, string> = { kiss: 'beijo', heart: 'curtida', f
 function GlobalSocketListeners() {
   const toast = useToast();
   const { user } = useAuth();
+  const { bump, clear } = useUnread();
   const location = useLocation();
   const nav = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === '/matches' || location.pathname.startsWith('/chat/')) {
+      clear();
+    }
+  }, [location.pathname, clear]);
 
   useEffect(() => {
     if (!user) return;
@@ -34,11 +42,13 @@ function GlobalSocketListeners() {
     const onMatch = (payload: { otherUser: User; matchId: string }) => {
       if (location.pathname.startsWith(`/chat/${payload.matchId}`)) return;
       hapticSuccess();
+      bump();
       toast({ kind: 'match', text: `Match com ${payload.otherUser.nickname || 'alguém'} ✨` });
     };
     const onMessage = (payload: { fromUserId: string; matchId: string; text: string }) => {
       if (payload.fromUserId === user.id) return;
       if (location.pathname.startsWith(`/chat/${payload.matchId}`)) return;
+      bump();
       toast({ kind: 'info', text: `Nova mensagem 💬` });
     };
 
@@ -51,7 +61,7 @@ function GlobalSocketListeners() {
       sock.off('match:new', onMatch);
       sock.off('message:new', onMessage);
     };
-  }, [user, toast, location.pathname, nav]);
+  }, [user, toast, location.pathname, nav, bump]);
 
   useEffect(() => {
     if (!user) closeSocket();

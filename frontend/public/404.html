@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Beija</title>
+    <script>
+      (function () {
+        var repo = '/beija/';
+        var loc = window.location;
+        var path = loc.pathname;
+        var idx = path.indexOf(repo);
+        var rest = idx >= 0 ? path.slice(idx + repo.length) : path.replace(/^\//, '');
+        sessionStorage.setItem('beija_spa_redirect', '/' + rest + loc.search + loc.hash);
+        loc.replace(loc.origin + repo + '?p=1');
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

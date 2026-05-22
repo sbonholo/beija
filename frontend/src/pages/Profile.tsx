@@ -10,6 +10,7 @@ export function Profile() {
   const [bio, setBio] = useState(user?.bio || '');
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [saving, setSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   async function save() {
     setSaving(true);
@@ -24,15 +25,32 @@ export function Profile() {
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const { photoUrl } = await api.uploadPhoto(f);
-    if (user) setUser({ ...user, photoUrl });
+    setIsUploading(true);
+    try {
+      const { photoUrl } = await api.uploadPhoto(f);
+      if (user) setUser({ ...user, photoUrl });
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
     <div className="screen">
       <div className="header"><h2>Seu perfil</h2></div>
 
-      <div className="card" style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 18 }}>
+      <div
+        className="card"
+        style={{
+          display: 'flex',
+          gap: 14,
+          alignItems: 'center',
+          marginBottom: 18,
+          position: 'relative',
+          opacity: isUploading ? 0.5 : 1,
+          pointerEvents: isUploading ? 'none' : 'auto',
+          transition: 'opacity 0.15s ease',
+        }}
+      >
         <div
           className="avatar"
           style={{ width: 80, height: 80, backgroundImage: user?.photoUrl ? `url("${user.photoUrl}")` : undefined }}
@@ -45,6 +63,24 @@ export function Profile() {
             <input type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
           </label>
         </div>
+        {isUploading && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(10, 0, 20, 0.55)',
+              borderRadius: 'var(--radius)',
+              fontWeight: 700,
+              color: 'var(--text)',
+              pointerEvents: 'auto',
+            }}
+          >
+            Enviando…
+          </div>
+        )}
       </div>
 
       <label className="muted" style={{ fontSize: 13 }}>Apelido</label>

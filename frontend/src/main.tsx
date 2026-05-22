@@ -1,15 +1,27 @@
+const ROUTER_BASENAME = import.meta.env.PROD ? '/beija' : '/';
+
+const spaRedirect = sessionStorage.getItem('beija_spa_redirect');
+if (spaRedirect) {
+  sessionStorage.removeItem('beija_spa_redirect');
+  const base = ROUTER_BASENAME.replace(/\/$/, '');
+  window.history.replaceState(null, '', base + spaRedirect);
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthProvider } from './state/AuthContext';
+import { UnreadProvider } from './state/UnreadContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <AuthProvider>
-        <App />
+        <UnreadProvider>
+          <App />
+        </UnreadProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

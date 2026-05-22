@@ -5,6 +5,29 @@ import { useAuth } from '../state/AuthContext';
 import type { ChatMessage, MatchSummary } from '../types';
 import { getSocket } from '../lib/socket';
 
+function messageTime(ts: number): number {
+  return Number.isFinite(ts) && ts > 0 ? ts : Date.now();
+}
+
+function formatHM(ts: number): string {
+  return new Date(messageTime(ts)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function startOfDay(ts: number): number {
+  const d = new Date(messageTime(ts));
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function daySeparatorLabel(ts: number): string {
+  const day = startOfDay(ts);
+  const today = startOfDay(Date.now());
+  const dayMs = 24 * 60 * 60 * 1000;
+  if (day === today) return 'Hoje';
+  if (day === today - dayMs) return 'Ontem';
+  return new Date(day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
 export function Chat() {
   const { matchId } = useParams<{ matchId: string }>();
   const nav = useNavigate();
@@ -82,11 +105,23 @@ export function Chat() {
             É match! Manda a primeira 💋
           </p>
         )}
-        {messages.map((m) => (
-          <div key={m.id} className={`chat-message ${m.fromUserId === user?.id ? 'mine' : 'theirs'}`}>
-            {m.text}
-          </div>
-        ))}
+        {messages.map((m, i) => {
+          const ts = messageTime(m.createdAt);
+          const prevTs = i > 0 ? messageTime(messages[i - 1].createdAt) : 0;
+          const showDay = i === 0 || startOfDay(prevTs) !== startOfDay(ts);
+          const mine = m.fromUserId === user?.id;
+          return (
+            <div key={m.id} style={{ display: 'contents' }}>
+              {showDay && (
+                <div className="chat-day-sep">{daySeparatorLabel(ts)}</div>
+              )}
+              <div className={`chat-message ${mine ? 'mine' : 'theirs'}`}>
+                {m.text}
+              </div>
+              <div className={`chat-time ${mine ? 'mine' : 'theirs'}`}>{formatHM(ts)}</div>
+            </div>
+          );
+        })}
       </div>
 
       <form onSubmit={send} className="chat-input">
