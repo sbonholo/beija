@@ -76,9 +76,13 @@ export const api = {
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
 };
 
-import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvent, mockPeople, mockMatches, mockMessages } from './mockData';
+import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages } from './mockData';
 
 function isMock() { return getToken() === MOCK_TOKEN; }
+
+function findMockEvent(id: string) {
+  return mockEvents.find((e) => e.id === id) ?? mockEvent1;
+}
 
 const _api = api;
 export const mockedApi = {
@@ -102,11 +106,14 @@ export const mockedApi = {
   uploadPhoto: async (file: File) =>
     isMock() ? { photoUrl: URL.createObjectURL(file) } : _api.uploadPhoto(file),
   listEvents: async (lat?: number | null, lng?: number | null) =>
-    isMock() ? { events: [mockEvent] } : _api.listEvents(lat, lng),
-  getEvent: async (_id: string) => (isMock() ? { event: mockEvent } : _api.getEvent(_id)),
+    isMock() ? { events: mockEvents } : _api.listEvents(lat, lng),
+  getEvent: async (id: string) => (isMock() ? { event: findMockEvent(id) } : _api.getEvent(id)),
   checkIn: async (id: string) => (isMock() ? { ok: true as const } : _api.checkIn(id)),
   checkOut: async (id: string) => (isMock() ? { ok: true as const } : _api.checkOut(id)),
-  listPeople: async (id: string) => (isMock() ? { people: mockPeople } : _api.listPeople(id)),
+  listPeople: async (id: string) =>
+    isMock()
+      ? { people: mockPeople.filter((p) => p.currentEventId === id) }
+      : _api.listPeople(id),
   sendReaction: async (toUserId: string, eventId: string, type: string) =>
     isMock()
       ? { ok: true as const, reaction: type, match: null }
@@ -116,7 +123,9 @@ export const mockedApi = {
   listMatches: async (): Promise<{ matches: any[] }> =>
     isMock() ? { matches: mockMatches } : _api.listMatches(),
   listMessages: async (matchId: string): Promise<{ messages: any[] }> =>
-    isMock() ? { messages: mockMessages } : _api.listMessages(matchId),
+    isMock()
+      ? { messages: matchId === 'mock-match-1' ? mockMessages : [] }
+      : _api.listMessages(matchId),
   sendMessage: async (matchId: string, text: string) =>
     isMock()
       ? { message: { id: `msg-${Date.now()}`, fromUserId: 'mock-user-1', text, createdAt: Date.now() } }
