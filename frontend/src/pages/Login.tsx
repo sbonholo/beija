@@ -19,7 +19,13 @@ export function Login() {
       if (res.devCode) params.set('hint', res.devCode);
       nav(`/verify?${params.toString()}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.code : 'Erro ao enviar código');
+      const code = err instanceof ApiError ? err.code : '';
+      const msg: Record<string, string> = {
+        request_failed: 'Serviço indisponível. Tente novamente mais tarde.',
+        invalid_phone: 'Número de telefone inválido.',
+        too_many_requests: 'Muitas tentativas. Aguarde alguns minutos.',
+      };
+      setError(msg[code] ?? 'Erro ao enviar código. Tente novamente.');
     } finally {
       setLoading(false);
     }

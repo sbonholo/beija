@@ -22,7 +22,13 @@ export function VerifyOtp() {
       signIn(res.token, res.user);
       nav(res.needsProfile ? '/onboarding' : '/events', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.code : 'Código inválido');
+      const code = err instanceof ApiError ? err.code : '';
+      const msg: Record<string, string> = {
+        invalid_otp: 'Código inválido. Confira e tente de novo.',
+        otp_expired: 'Código expirado. Peça um novo.',
+        request_failed: 'Serviço indisponível. Tente novamente mais tarde.',
+      };
+      setError(msg[code] ?? 'Não foi possível verificar o código. Tente novamente.');
     } finally {
       setLoading(false);
     }
