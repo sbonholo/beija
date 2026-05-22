@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { mockedApi as api, ApiError } from '../lib/api';
 import { digitsOnly, formatPhone } from '../lib/phone';
 
+const authScreenStyle: React.CSSProperties = {
+  minHeight: '100svh',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  padding: '40px 24px',
+  boxSizing: 'border-box',
+};
+
 export function Login() {
   const nav = useNavigate();
   const [phone, setPhone] = useState('');
@@ -15,9 +24,7 @@ export function Login() {
     setLoading(true);
     try {
       const res = await api.requestOtp(digitsOnly(phone));
-      const params = new URLSearchParams({ phone: res.phone });
-      if (res.devCode) params.set('hint', res.devCode);
-      nav(`/verify?${params.toString()}`);
+      nav('/verify', { state: { phone: res.phone, hint: res.devCode ?? null } });
     } catch (err) {
       const code = err instanceof ApiError ? err.code : '';
       const msg: Record<string, string> = {
@@ -32,8 +39,8 @@ export function Login() {
   }
 
   return (
-    <div className="screen">
-      <div style={{ marginTop: '12vh', marginBottom: 32 }}>
+    <div style={authScreenStyle}>
+      <div style={{ marginBottom: 32 }}>
         <h1 className="brand-title">Beija</h1>
         <p className="brand-sub">Conexões reais em eventos. Quem tá com você agora?</p>
       </div>
@@ -66,7 +73,9 @@ export function Login() {
         </button>
       </form>
       <p className="muted" style={{ marginTop: 24, fontSize: 12, textAlign: 'center' }}>
-        Ao continuar você concorda com os termos e confirma ter 18+.
+        Ao continuar você concorda com os{' '}
+        <a href="#" style={{ color: 'var(--pink)', textDecoration: 'none' }}>termos</a>
+        {' '}e confirma ter 18+.
       </p>
     </div>
   );

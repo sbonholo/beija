@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockedApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
@@ -27,18 +27,25 @@ export function Events() {
   const nav = useNavigate();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const pos = await getCurrentPosition();
+      const { events } = await api.listEvents(pos?.lat ?? null, pos?.lng ?? null);
+      setEvents(events);
+    } catch {
+      setError('Não foi possível carregar eventos. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      const pos = await getCurrentPosition();
-      try {
-        const { events } = await api.listEvents(pos?.lat ?? null, pos?.lng ?? null);
-        setEvents(events);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    void load();
+  }, [load]);
 
   return (
     <div className="screen">
@@ -50,7 +57,18 @@ export function Events() {
       </div>
 
       {loading && <p className="muted">Buscando rolês...</p>}
-      {!loading && events.length === 0 && (
+
+      {!loading && error && (
+        <div className="empty">
+          <div className="big">⚠️</div>
+          <p>{error}</p>
+          <button className="btn" style={{ marginTop: 16, maxWidth: 240 }} onClick={() => void load()}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && events.length === 0 && (
         <div className="empty">
           <div className="big">🎉</div>
           <p>Nenhum evento por perto agora.</p>

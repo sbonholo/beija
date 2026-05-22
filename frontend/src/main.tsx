@@ -13,16 +13,19 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthProvider } from './state/AuthContext';
 import { UnreadProvider } from './state/UnreadContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter basename={ROUTER_BASENAME}>
-      <AuthProvider>
-        <UnreadProvider>
-          <App />
-        </UnreadProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter basename={ROUTER_BASENAME}>
+        <AuthProvider>
+          <UnreadProvider>
+            <App />
+          </UnreadProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

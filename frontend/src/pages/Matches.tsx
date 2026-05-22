@@ -32,14 +32,25 @@ export function Matches() {
       }
     };
     load();
-    const sock = getSocket();
     const onMatchOrMsg = () => load();
-    sock.on('match:new', onMatchOrMsg);
-    sock.on('message:new', onMatchOrMsg);
+    let sock: ReturnType<typeof getSocket> | null = null;
+    try {
+      sock = getSocket();
+      sock.on('match:new', onMatchOrMsg);
+      sock.on('message:new', onMatchOrMsg);
+    } catch (err) {
+      console.warn('socket connection failed:', err);
+    }
     return () => {
       cancelled = true;
-      sock.off('match:new', onMatchOrMsg);
-      sock.off('message:new', onMatchOrMsg);
+      if (sock) {
+        try {
+          sock.off('match:new', onMatchOrMsg);
+          sock.off('message:new', onMatchOrMsg);
+        } catch {
+          /* socket already torn down */
+        }
+      }
     };
   }, []);
 

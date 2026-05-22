@@ -179,6 +179,7 @@ a { color: var(--pink-glow); }
   outline-offset: -3px;
   box-shadow: 0 0 0 6px rgba(255, 213, 74, 0.18), 0 0 30px rgba(255, 213, 74, 0.55);
   animation: matchGlow 2.5s ease-in-out infinite;
+  will-change: box-shadow;
 }
 @keyframes matchGlow {
   0%, 100% { box-shadow: 0 0 0 6px rgba(255, 213, 74, 0.18), 0 0 24px rgba(255, 213, 74, 0.45); }
@@ -286,8 +287,11 @@ a { color: var(--pink-glow); }
 .chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 10px 16px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 999px;
   background: var(--bg-elev);
   border: 1px solid rgba(255,255,255,0.1);
@@ -327,6 +331,7 @@ a { color: var(--pink-glow); }
   color: transparent;
   margin: 0 0 6px;
   animation: pulse 1.4s ease-in-out infinite;
+  will-change: transform;
 }
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
@@ -372,6 +377,7 @@ a { color: var(--pink-glow); }
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 8px 0;
 }
 
@@ -396,6 +402,7 @@ a { color: var(--pink-glow); }
   display: flex;
   gap: 8px;
   padding: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
   position: sticky;
   bottom: 0;
   background: rgba(10,0,20,0.92);

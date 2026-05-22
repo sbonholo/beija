@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { mockedApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import { BottomNav } from '../components/BottomNav';
+import type { Gender } from '../types';
+
+const genderLabel: Record<Gender, string> = {
+  woman: 'Mulher',
+  man: 'Homem',
+  'non-binary': 'Não-binário/a',
+  other: 'Outro',
+};
+
+const seekingLabel: Record<Gender, string> = {
+  woman: 'Mulheres',
+  man: 'Homens',
+  'non-binary': 'Não-binárias',
+  other: 'Outros',
+};
 
 export function Profile() {
   const { user, setUser, signOut } = useAuth();
@@ -88,6 +103,19 @@ export function Profile() {
 
       <label className="muted" style={{ fontSize: 13, marginTop: 12, display: 'block' }}>Bio</label>
       <textarea value={bio} maxLength={200} rows={3} onChange={(e) => setBio(e.target.value)} />
+
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Gênero: <span style={{ color: 'var(--text)' }}>{user?.gender ? genderLabel[user.gender] : '—'}</span>
+        </div>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Procurando: <span style={{ color: 'var(--text)' }}>
+            {user?.seeking && user.seeking.length > 0
+              ? user.seeking.map((g) => seekingLabel[g]).join(', ')
+              : '—'}
+          </span>
+        </div>
+      </div>
 
       <button className="btn" style={{ marginTop: 16 }} disabled={saving} onClick={save}>
         {saving ? 'Salvando...' : 'Salvar'}

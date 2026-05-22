@@ -45,8 +45,17 @@ export function PhotoGate() {
   }
 
   return (
-    <div className="screen">
-      <div style={{ marginTop: '8vh', marginBottom: 28 }}>
+    <div
+      style={{
+        minHeight: '100svh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        boxSizing: 'border-box',
+      }}
+    >
+      <div style={{ marginBottom: 28 }}>
         <h1 className="brand-title">Beija</h1>
       </div>
 
