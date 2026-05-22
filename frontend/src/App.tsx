@@ -11,6 +11,7 @@ import { EventRoom } from './pages/EventRoom';
 import { Matches } from './pages/Matches';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
+import { PhotoGate } from './pages/PhotoGate';
 import { getSocket, closeSocket } from './lib/socket';
 import type { ReactionType, User } from './types';
 import { hapticSuccess } from './platform/haptics';
@@ -75,6 +76,7 @@ function Protected({ children }: { children: React.ReactNode }) {
   if (loading) return <div className="screen"><p className="muted">Carregando...</p></div>;
   if (!user) return <Navigate to="/" replace />;
   if (!user.nickname || !user.gender) return <Navigate to="/onboarding" replace />;
+  if (!user.photoUrl) return <Navigate to="/photo" replace />;
   return <>{children}</>;
 }
 
@@ -89,6 +91,7 @@ export function App() {
           <Route path="/" element={user && !loading ? <Navigate to="/events" replace /> : <Login />} />
           <Route path="/verify" element={<VerifyOtp />} />
           <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/" replace />} />
+          <Route path="/photo" element={user ? <PhotoGate /> : <Navigate to="/" replace />} />
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
