@@ -9,7 +9,7 @@ export const mockUser: User = {
   phone: '00000000000',
   nickname: 'Demo User',
   gender: 'man',
-  seeking: ['woman'],
+  seeking: [],
   bio: 'Testando o Beija 🎉',
   photoUrl: null,
   birthdate: '1995-06-15',

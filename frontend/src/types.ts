@@ -6,7 +6,7 @@ export interface User {
   phone?: string;
   nickname: string | null;
   gender: Gender | null;
-  seeking: Gender[];
+  seeking: Gender[] | null;
   bio: string | null;
   photoUrl: string | null;
   birthdate: string | null;

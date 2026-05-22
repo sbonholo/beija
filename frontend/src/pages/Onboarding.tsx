@@ -4,11 +4,22 @@ import { mockedApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { Gender } from '../types';
 
-const genders: { value: Gender; label: string; icon: string }[] = [
+const identityOptions: { value: Gender; label: string; icon: string }[] = [
   { value: 'woman', label: 'Mulher', icon: '♀️' },
   { value: 'man', label: 'Homem', icon: '♂️' },
-  { value: 'non-binary', label: 'Não-binário', icon: '⚧️' },
+  { value: 'non-binary', label: 'Não-binário/a', icon: '⚧️' },
   { value: 'other', label: 'Outro', icon: '✨' },
+];
+
+const ALL_GENDERS: Gender[] = ['woman', 'man', 'non-binary', 'other'];
+
+type SeekingChip = Gender | 'everyone';
+
+const seekingOptions: { value: SeekingChip; label: string; icon: string }[] = [
+  { value: 'woman', label: 'Mulheres', icon: '♀️' },
+  { value: 'man', label: 'Homens', icon: '♂️' },
+  { value: 'non-binary', label: 'Não-binárias', icon: '⚧️' },
+  { value: 'everyone', label: 'Qualquer pessoa', icon: '💫' },
 ];
 
 export function Onboarding() {
@@ -16,7 +27,8 @@ export function Onboarding() {
   const { user, setUser } = useAuth();
   const [step, setStep] = useState(0);
   const [nickname, setNickname] = useState(user?.nickname || '');
-  const [gender, setGender] = useState<Gender | null>(user?.gender || null);
+  const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
+  const [seeking, setSeeking] = useState<Gender[]>(user?.seeking ?? []);
   const [birthdate, setBirthdate] = useState(user?.birthdate || '');
   const [saving, setSaving] = useState(false);
 
@@ -26,11 +38,28 @@ export function Onboarding() {
     return d.toISOString().slice(0, 10);
   })();
 
+  const everyoneSelected = ALL_GENDERS.every((g) => seeking.includes(g));
+
+  function toggleSeeking(value: SeekingChip) {
+    if (value === 'everyone') {
+      setSeeking(everyoneSelected ? [] : [...ALL_GENDERS]);
+      return;
+    }
+    setSeeking((cur) =>
+      cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value],
+    );
+  }
+
+  function isChipSelected(value: SeekingChip): boolean {
+    if (value === 'everyone') return everyoneSelected;
+    return seeking.includes(value);
+  }
+
   async function finish(withBirthdate: string | null) {
-    if (!nickname || !gender) return;
+    if (!nickname || !gender || seeking.length === 0) return;
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = { nickname, gender };
+      const patch: Record<string, unknown> = { nickname, gender, seeking };
       if (withBirthdate) patch.birthdate = withBirthdate;
       const { user } = await api.updateMe(patch);
       setUser(user);
@@ -64,10 +93,10 @@ export function Onboarding() {
       {step === 1 && (
         <>
           <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
-            Você se identifica como
+            Como você se identifica?
           </label>
           <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-            {genders.map((g) => (
+            {identityOptions.map((g) => (
               <button
                 key={g.value}
                 type="button"
@@ -78,7 +107,31 @@ export function Onboarding() {
               </button>
             ))}
           </div>
-          <button className="btn" style={{ marginTop: 22 }} disabled={!gender} onClick={() => setStep(2)}>
+
+          <div style={{ height: 16 }} />
+
+          <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+            Quem você quer conhecer?
+          </label>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+            {seekingOptions.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                className={`chip ${isChipSelected(s.value) ? 'selected' : ''}`}
+                onClick={() => toggleSeeking(s.value)}
+              >
+                <span aria-hidden>{s.icon}</span> {s.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            className="btn"
+            style={{ marginTop: 22 }}
+            disabled={!gender || seeking.length === 0}
+            onClick={() => setStep(2)}
+          >
             Próximo
           </button>
         </>
