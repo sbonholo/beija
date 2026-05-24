@@ -137,7 +137,22 @@ export function MatchesList() {
     return (
       <div className="screen">
         <div className="header"><h2>Matches</h2></div>
-        <p className="muted">Carregando…</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="card row center"
+              style={{ gap: 12, padding: 12 }}
+              aria-hidden
+            >
+              <div className="skeleton circle" style={{ width: 56, height: 56 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="skeleton" style={{ height: 14, width: '40%' }} />
+                <div className="skeleton" style={{ height: 12, width: '70%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

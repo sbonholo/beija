@@ -229,8 +229,33 @@ export function ChatScreen() {
 
   if (loading) {
     return (
-      <div className="screen">
-        <p className="muted">Carregando conversa...</p>
+      <div
+        className="screen"
+        style={{ paddingBottom: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}
+      >
+        <div className="header">
+          <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+          <div className="row center" style={{ gap: 10, flex: 1, justifyContent: 'center' }}>
+            <div className="skeleton circle" style={{ width: 36, height: 36 }} />
+            <div className="skeleton" style={{ width: 110, height: 16 }} />
+          </div>
+          <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+        </div>
+        <div className="chat-list" style={{ padding: '8px 14px', gap: 10, display: 'flex', flexDirection: 'column' }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="skeleton"
+              style={{
+                alignSelf: i % 2 === 0 ? 'flex-start' : 'flex-end',
+                width: `${50 + (i * 7) % 30}%`,
+                height: 38,
+                borderRadius: 18,
+              }}
+              aria-hidden
+            />
+          ))}
+        </div>
       </div>
     );
   }

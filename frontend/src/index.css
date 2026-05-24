@@ -337,6 +337,25 @@ a { color: var(--pink-glow); }
   font-weight: 700;
 }
 
+/* Skeletons — pulse on the background-position to fake a shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.10) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+.skeleton.card { border-radius: var(--radius); }
+.skeleton.circle { border-radius: 50%; }
+@keyframes skeleton-pulse {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
 .markdown-body h1 { font-size: 24px; margin: 16px 0 12px; }
 .markdown-body h2 { font-size: 20px; margin: 18px 0 10px; color: var(--pink-glow); }
 .markdown-body h3 { font-size: 16px; margin: 14px 0 8px; }

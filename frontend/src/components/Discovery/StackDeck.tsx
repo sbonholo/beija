@@ -145,22 +145,20 @@ export function StackDeck() {
   if (loading) {
     return (
       <div className="screen">
+        <div className="header" style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Discover</h2>
+          <div className="skeleton" style={{ width: 78, height: 32 }} aria-hidden />
+        </div>
         <div
+          className="skeleton card"
           style={{
-            position: 'relative',
             width: '100%',
             maxWidth: 440,
             aspectRatio: '3 / 4',
             margin: '0 auto',
-            borderRadius: 'var(--radius)',
-            background: 'linear-gradient(160deg, #2a0036, #1c0a2b)',
-            opacity: 0.6,
           }}
           aria-label="Carregando perfis"
         />
-        <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>
-          Procurando pessoas perto…
-        </p>
       </div>
     );
   }
