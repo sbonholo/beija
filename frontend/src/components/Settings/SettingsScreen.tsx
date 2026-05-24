@@ -1,28 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { setAnalyticsConsent, track } from '../../lib/analytics';
 import { useToast } from '../Toast';
-import {
-  APP_VERSION,
-  STR_DELETE_ACCOUNT,
-  STR_HIDE_DISTANCE,
-  STR_MUTE_NOTIFICATIONS,
-  STR_PRIVACY_POLICY,
-  STR_SETTINGS_ABOUT,
-  STR_SETTINGS_ACCOUNT,
-  STR_SETTINGS_NOTIFICATIONS,
-  STR_SETTINGS_PRIVACY,
-  STR_SETTINGS_TITLE,
-  STR_SHOW_AGE,
-  STR_TERMS,
-} from '../../lib/constants';
+import { APP_VERSION } from '../../lib/constants';
+import { SUPPORTED_LOCALES, changeLocale, type SupportedLocale } from '../../i18n';
 
 interface Prefs {
   mute_notifications: boolean;
   hide_distance: boolean;
   show_age: boolean;
   allow_analytics: boolean;
+  locale: SupportedLocale;
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -30,11 +20,13 @@ const DEFAULT_PREFS: Prefs = {
   hide_distance: false,
   show_age: true,
   allow_analytics: true,
+  locale: 'pt-BR',
 };
 
 export default function SettingsScreen() {
   const nav = useNavigate();
   const toast = useToast();
+  const { t, i18n: i18nInstance } = useTranslation('settings');
   const [userId, setUserId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
@@ -51,16 +43,22 @@ export default function SettingsScreen() {
       }
       const { data } = await supabase
         .from('profiles')
-        .select('mute_notifications, hide_distance, show_age, allow_analytics')
+        .select('mute_notifications, hide_distance, show_age, allow_analytics, locale')
         .eq('id', me)
         .maybeSingle();
       if (cancelled) return;
       setUserId(me);
+      const dbLocale = (data?.locale as SupportedLocale | undefined) ?? null;
+      const effectiveLocale: SupportedLocale =
+        dbLocale && SUPPORTED_LOCALES.includes(dbLocale)
+          ? dbLocale
+          : ((i18nInstance.resolvedLanguage as SupportedLocale | undefined) ?? 'pt-BR');
       setPrefs({
         mute_notifications: !!data?.mute_notifications,
         hide_distance: !!data?.hide_distance,
         show_age: data?.show_age !== false,
         allow_analytics: data?.allow_analytics !== false,
+        locale: effectiveLocale,
       });
       track('settings_opened');
       setLoading(false);
@@ -68,10 +66,10 @@ export default function SettingsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [nav]);
+  }, [nav, i18nInstance]);
 
   const update = useCallback(
-    async (key: keyof Prefs, value: boolean) => {
+    async <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
       if (!userId) return;
       const prev = prefs[key];
       setPrefs((p) => ({ ...p, [key]: value }));
@@ -84,21 +82,26 @@ export default function SettingsScreen() {
         if (error) throw error;
         // Track BEFORE flipping consent so the opt-out itself gets recorded.
         track('settings_changed', { setting_name: key, value });
-        if (key === 'allow_analytics') setAnalyticsConsent(value);
+        if (key === 'allow_analytics' && typeof value === 'boolean') {
+          setAnalyticsConsent(value);
+        }
+        if (key === 'locale' && typeof value === 'string') {
+          changeLocale(value as SupportedLocale);
+        }
       } catch (e) {
         setPrefs((p) => ({ ...p, [key]: prev }));
-        toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao salvar' });
+        toast({ kind: 'info', text: e instanceof Error ? e.message : t('save_error') });
       } finally {
         setSaving(null);
       }
     },
-    [userId, prefs, toast],
+    [userId, prefs, toast, t],
   );
 
   if (loading) {
     return (
       <div className="screen">
-        <div className="header"><h2>{STR_SETTINGS_TITLE}</h2></div>
+        <div className="header"><h2>{t('title')}</h2></div>
         <div className="skeleton" style={{ height: 56, marginBottom: 12 }} />
         <div className="skeleton" style={{ height: 56, marginBottom: 12 }} />
         <div className="skeleton" style={{ height: 56 }} />
@@ -108,60 +111,112 @@ export default function SettingsScreen() {
 
   return (
     <div className="screen" style={{ paddingBottom: 120 }}>
-      <div className="header"><h2>{STR_SETTINGS_TITLE}</h2></div>
+      <div className="header"><h2>{t('title')}</h2></div>
 
-      <Section title={STR_SETTINGS_NOTIFICATIONS}>
+      <Section title={t('sections.notifications')}>
         <Toggle
-          label={STR_MUTE_NOTIFICATIONS}
+          label={t('toggles.mute_notifications')}
           checked={prefs.mute_notifications}
           saving={saving === 'mute_notifications'}
           onChange={(v) => void update('mute_notifications', v)}
-          hint="Não recebe push de match nem mensagem nova."
+          hint={t('toggles.mute_notifications_hint')}
         />
       </Section>
 
-      <Section title={STR_SETTINGS_PRIVACY}>
+      <Section title={t('sections.privacy')}>
         <Toggle
-          label={STR_HIDE_DISTANCE}
+          label={t('toggles.hide_distance')}
           checked={prefs.hide_distance}
           saving={saving === 'hide_distance'}
           onChange={(v) => void update('hide_distance', v)}
-          hint="Outros usuários não veem sua distância no card."
+          hint={t('toggles.hide_distance_hint')}
         />
         <Toggle
-          label={STR_SHOW_AGE}
+          label={t('toggles.show_age')}
           checked={prefs.show_age}
           saving={saving === 'show_age'}
           onChange={(v) => void update('show_age', v)}
-          hint="Mostra sua idade no card do Discover."
+          hint={t('toggles.show_age_hint')}
         />
         <Toggle
-          label="Compartilhar dados anônimos para melhorias"
+          label={t('toggles.allow_analytics')}
           checked={prefs.allow_analytics}
           saving={saving === 'allow_analytics'}
           onChange={(v) => void update('allow_analytics', v)}
-          hint="Eventos de uso (sem nome, foto ou conteúdo de chat). Pode desligar a qualquer momento."
+          hint={t('toggles.allow_analytics_hint')}
         />
         <Link to="/privacy" className="settings-link">
-          {STR_PRIVACY_POLICY} →
+          {t('links.privacy_policy')} →
         </Link>
       </Section>
 
-      <Section title={STR_SETTINGS_ACCOUNT}>
+      <Section title={t('sections.language')}>
+        <LanguagePicker
+          value={prefs.locale}
+          onChange={(loc) => void update('locale', loc)}
+          saving={saving === 'locale'}
+        />
+      </Section>
+
+      <Section title={t('sections.account')}>
         <Link to="/settings/delete" className="settings-link" style={{ color: '#ff8585' }}>
-          {STR_DELETE_ACCOUNT} →
+          {t('links.delete_account')} →
         </Link>
       </Section>
 
-      <Section title={STR_SETTINGS_ABOUT}>
+      <Section title={t('sections.about')}>
         <Link to="/terms" className="settings-link">
-          {STR_TERMS} →
+          {t('links.terms')} →
         </Link>
         <p className="muted" style={{ fontSize: 12, marginTop: 8, padding: '0 4px' }}>
-          Beija v{APP_VERSION}
+          {t('version', { version: APP_VERSION })}
         </p>
       </Section>
     </div>
+  );
+}
+
+function LanguagePicker({
+  value,
+  onChange,
+  saving,
+}: {
+  value: SupportedLocale;
+  onChange: (next: SupportedLocale) => void;
+  saving: boolean;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '14px 16px',
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ flex: 1 }}>Idioma / Language</span>
+      <select
+        value={value}
+        disabled={saving}
+        onChange={(e) => onChange(e.target.value as SupportedLocale)}
+        aria-label="Idioma / Language"
+        style={{
+          width: 'auto',
+          minWidth: 160,
+          padding: '8px 12px',
+          fontSize: 14,
+        }}
+      >
+        {SUPPORTED_LOCALES.map((loc) => (
+          <option key={loc} value={loc}>
+            {t(`languages.${loc}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

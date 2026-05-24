@@ -1,0 +1,21 @@
+{
+  "title": "Matches",
+  "empty": {
+    "title": "No matches yet. Back to swiping!",
+    "cta": "Go to Discover"
+  },
+  "load_error": "Couldn't load right now.",
+  "show_archived_one": "Show archived ({{count}})",
+  "show_archived_other": "Show archived ({{count}})",
+  "hide_archived": "Hide archived",
+  "archived_only_empty": "No active matches. Tap above to see archived.",
+  "new_match_preview": "New match ✨",
+  "you_prefix": "You: ",
+  "time": {
+    "now": "now",
+    "min": "{{value}}min",
+    "hour": "{{value}}h",
+    "day": "{{value}}d"
+  },
+  "unread_badge_overflow": "99+"
+}

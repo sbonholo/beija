@@ -1,0 +1,27 @@
+{
+  "title": "Configurações",
+  "sections": {
+    "notifications": "Notificações",
+    "privacy": "Privacidade",
+    "account": "Conta",
+    "about": "Sobre",
+    "language": "Idioma"
+  },
+  "toggles": {
+    "mute_notifications": "Silenciar notificações push",
+    "mute_notifications_hint": "Não recebe push de match nem mensagem nova.",
+    "hide_distance": "Esconder minha distância",
+    "hide_distance_hint": "Outros usuários não veem sua distância no card.",
+    "show_age": "Mostrar minha idade",
+    "show_age_hint": "Mostra sua idade no card do Discover.",
+    "allow_analytics": "Compartilhar dados anônimos para melhorias",
+    "allow_analytics_hint": "Eventos de uso (sem nome, foto ou conteúdo de chat). Pode desligar a qualquer momento."
+  },
+  "links": {
+    "delete_account": "Deletar conta",
+    "privacy_policy": "Política de privacidade",
+    "terms": "Termos de uso"
+  },
+  "version": "Beija v{{version}}",
+  "save_error": "Erro ao salvar"
+}

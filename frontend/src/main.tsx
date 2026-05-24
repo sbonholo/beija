@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { initSentry } from './lib/sentry';
 import { initAnalytics, track } from './lib/analytics';
 import { startWebVitals } from './lib/vitals';
+import './i18n';
 import './index.css';
 
 // Boot observability before anything React-related so initial errors are

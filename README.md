@@ -215,6 +215,22 @@ Style conventions:
 
 ---
 
+## Internationalization
+
+`react-i18next` com PT-BR como source-of-truth + EN placeholder traduzido.
+9 namespaces (`common`, `auth`, `swipe`, `matches`, `chat`, `settings`,
+`profile`, `moderation`, `errors`) em `src/i18n/locales/{pt-BR,en}/*.json`.
+Detecção localStorage → navigator → fallback `pt-BR`.
+
+Language picker em Settings → Idioma. Persiste em `profiles.locale` (DB) +
+`localStorage` (instant). Edge functions futuras lêem `profiles.locale`
+pra notificações localizadas.
+
+Setup, convenções de chave, status de migração das strings, como adicionar
+novo idioma: **[docs/I18N.md](docs/I18N.md)**.
+
+---
+
 ## Accessibility
 
 WCAG AA validado via `eslint-plugin-jsx-a11y` (0 warnings) + axe-core smoke

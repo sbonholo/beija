@@ -1,0 +1,15 @@
+{
+  "send_placeholder": "Diz algo legal...",
+  "send_aria": "Enviar mensagem",
+  "more_options": "Mais opções",
+  "menu": {
+    "view_profile": "Ver perfil",
+    "report": "Reportar",
+    "block": "Bloquear",
+    "unmatch": "Desfazer match"
+  },
+  "typing": "digitando…",
+  "online": "online",
+  "deleted_message": "Mensagem apagada",
+  "first_message_hint": "É match! Manda a primeira 💋"
+}

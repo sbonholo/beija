@@ -1,0 +1,15 @@
+{
+  "send_placeholder": "Say something nice...",
+  "send_aria": "Send message",
+  "more_options": "More options",
+  "menu": {
+    "view_profile": "View profile",
+    "report": "Report",
+    "block": "Block",
+    "unmatch": "Unmatch"
+  },
+  "typing": "typing…",
+  "online": "online",
+  "deleted_message": "Message deleted",
+  "first_message_hint": "It's a match! Send the first 💋"
+}

@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import type { Gender } from '../types';
 
 export const genderLabel: Record<Gender, string> = {
@@ -50,7 +51,7 @@ export function isOnline(iso: string | null | undefined): boolean {
 
 export function formatDistanceKm(km: number | null | undefined): string | null {
   if (km == null || !Number.isFinite(km)) return null;
-  if (km < 1) return 'pertinho';
-  if (km < 100) return `${km} km`;
-  return '100+ km';
+  if (km < 1) return i18n.t('swipe:distance.near');
+  if (km < 100) return i18n.t('swipe:distance.km', { km });
+  return i18n.t('swipe:distance.far');
 }

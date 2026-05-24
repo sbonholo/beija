@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '../../lib/supabase';
 import { ReportModal } from '../Moderation/ReportModal';
 import { useToast } from '../Toast';
-import { STR_PROFILE_DETAIL_BLOCK, STR_PROFILE_DETAIL_CLOSE, STR_PROFILE_DETAIL_MORE, STR_PROFILE_DETAIL_REPORT, STR_PASS, STR_LIKE } from '../../lib/constants';
 import { formatDistanceKm } from '../../lib/labels';
 import { track } from '../../lib/analytics';
 
@@ -28,6 +28,8 @@ export default function ProfileDetailModal() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation('profile');
+  const { t: tSwipe } = useTranslation('swipe');
   const [me, setMe] = useState<{ id: string; lat: number | null; lng: number | null } | null>(
     null,
   );
@@ -98,17 +100,17 @@ export default function ProfileDetailModal() {
         setMe({ id: myId, ...myCoords });
 
         const photos = (photosRes.data ?? []).map((p) => p.url as string);
-        const t = theirData;
+        const td = theirData;
         setProfile({
-          id: t.id as string,
-          name: t.name ?? null,
-          birthdate: t.birthdate ?? null,
-          gender: t.gender ?? null,
-          bio: t.bio ?? null,
+          id: td.id as string,
+          name: td.name ?? null,
+          birthdate: td.birthdate ?? null,
+          gender: td.gender ?? null,
+          bio: td.bio ?? null,
           location: null,
-          city: t.city ?? null,
-          interested_in: t.interested_in ?? null,
-          interests: Array.isArray(t.interests) ? t.interests : [],
+          city: td.city ?? null,
+          interested_in: td.interested_in ?? null,
+          interests: Array.isArray(td.interests) ? td.interests : [],
           min_age: null,
           max_age: null,
           max_distance_km: null,
@@ -116,10 +118,11 @@ export default function ProfileDetailModal() {
           last_active_at: null,
           is_inactive: false,
           mute_notifications: false,
-          hide_distance: !!t.hide_distance,
-          show_age: t.show_age !== false,
+          hide_distance: !!td.hide_distance,
+          show_age: td.show_age !== false,
           deleted_at: null,
           created_at: '',
+          locale: 'pt-BR',
           photos,
           distance_km: null,
         });
@@ -236,7 +239,7 @@ export default function ProfileDetailModal() {
           type="button"
           ref={closeBtnRef}
           onClick={close}
-          aria-label={STR_PROFILE_DETAIL_CLOSE}
+          aria-label={t('detail.close')}
           className="icon-btn"
           style={iconBtnStyle}
         >
@@ -258,7 +261,7 @@ export default function ProfileDetailModal() {
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          aria-label={STR_PROFILE_DETAIL_MORE}
+          aria-label={t('detail.more')}
           aria-expanded={menuOpen}
           className="icon-btn"
           style={iconBtnStyle}
@@ -290,7 +293,7 @@ export default function ProfileDetailModal() {
               }}
               style={menuItemStyle}
             >
-              {STR_PROFILE_DETAIL_REPORT}
+              {t('detail.report')}
             </button>
             <button
               type="button"
@@ -299,7 +302,7 @@ export default function ProfileDetailModal() {
               onClick={() => void doBlock()}
               style={{ ...menuItemStyle, color: '#ff8585' }}
             >
-              {STR_PROFILE_DETAIL_BLOCK}
+              {t('detail.block')}
             </button>
           </div>
         )}
@@ -411,7 +414,7 @@ export default function ProfileDetailModal() {
             <button
               type="button"
               onClick={() => void doSwipe('left')}
-              aria-label={STR_PASS}
+              aria-label={tSwipe('actions.pass')}
               disabled={acting}
               style={{ ...actionBtnStyle, color: '#ff5b5b' }}
             >
@@ -420,7 +423,7 @@ export default function ProfileDetailModal() {
             <button
               type="button"
               onClick={() => void doSwipe('right')}
-              aria-label={STR_LIKE}
+              aria-label={tSwipe('actions.like')}
               disabled={acting}
               style={{ ...actionBtnStyle, color: '#4ade80' }}
             >

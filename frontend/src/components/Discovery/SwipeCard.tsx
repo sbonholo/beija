@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Profile } from '../../lib/supabase';
 import {
   LONG_PRESS_MS,
@@ -7,7 +8,6 @@ import {
   SWIPE_EXIT_MS,
   SWIPE_THRESHOLD_PCT,
   SWIPE_UP_THRESHOLD_PX,
-  STR_OPEN_PROFILE,
   TAP_TOLERANCE_PX,
 } from '../../lib/constants';
 import { ageFromBirthdate, formatDistanceKm, formatLastActive, isOnline } from '../../lib/labels';
@@ -40,6 +40,7 @@ function SwipeCardImpl({
   onOpenDetail,
   enterFrom = null,
 }: Props) {
+  const { t } = useTranslation('swipe');
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -366,7 +367,7 @@ function SwipeCardImpl({
             openDetail();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label={STR_OPEN_PROFILE}
+          aria-label={t('actions.open_profile')}
           className="icon-btn"
           style={{
             position: 'absolute',
@@ -407,11 +408,11 @@ function SwipeCardImpl({
             whiteSpace: 'nowrap',
           }}
         >
-          <button type="button" onClick={() => triggerExit('left')} aria-label={`Recusar ${profile.name ?? 'perfil'}`}>
-            Recusar
+          <button type="button" onClick={() => triggerExit('left')} aria-label={`${t('actions.pass')} ${profile.name ?? ''}`}>
+            {t('actions.pass')}
           </button>
-          <button type="button" onClick={() => triggerExit('right')} aria-label={`Curtir ${profile.name ?? 'perfil'}`}>
-            Curtir
+          <button type="button" onClick={() => triggerExit('right')} aria-label={`${t('actions.like')} ${profile.name ?? ''}`}>
+            {t('actions.like')}
           </button>
         </div>
       )}

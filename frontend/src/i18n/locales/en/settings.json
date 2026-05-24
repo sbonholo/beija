@@ -1,0 +1,27 @@
+{
+  "title": "Settings",
+  "sections": {
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "account": "Account",
+    "about": "About",
+    "language": "Language"
+  },
+  "toggles": {
+    "mute_notifications": "Mute push notifications",
+    "mute_notifications_hint": "You won't receive match or message pushes.",
+    "hide_distance": "Hide my distance",
+    "hide_distance_hint": "Other users won't see your distance on the card.",
+    "show_age": "Show my age",
+    "show_age_hint": "Show your age on the Discover card.",
+    "allow_analytics": "Share anonymous data for improvements",
+    "allow_analytics_hint": "Usage events (no name, photo, or chat content). Turn off any time."
+  },
+  "links": {
+    "delete_account": "Delete account",
+    "privacy_policy": "Privacy policy",
+    "terms": "Terms of use"
+  },
+  "version": "Beija v{{version}}",
+  "save_error": "Failed to save"
+}

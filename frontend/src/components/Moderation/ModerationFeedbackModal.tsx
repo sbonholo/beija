@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { labelReason } from '../../lib/moderation';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
  * Focus trap + ESC close required by Apple's accessibility review.
  */
 export default function ModerationFeedbackModal({ reasons, onClose }: Props) {
+  const { t } = useTranslation('moderation');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -81,10 +83,10 @@ export default function ModerationFeedbackModal({ reasons, onClose }: Props) {
         }}
       >
         <h2 id="moderation-modal-title" style={{ marginTop: 0 }}>
-          Não conseguimos publicar esta foto
+          {t('modal_title')}
         </h2>
         <p id="moderation-modal-desc" className="muted" style={{ marginTop: 6 }}>
-          A imagem violou nossas diretrizes de comunidade. Tente outra foto.
+          {t('modal_description')}
         </p>
 
         {unique.length > 0 && (
@@ -110,7 +112,7 @@ export default function ModerationFeedbackModal({ reasons, onClose }: Props) {
             style={{ textDecoration: 'none' }}
             onClick={onClose}
           >
-            Ver diretrizes
+            {t('view_guidelines')}
           </Link>
           <button
             type="button"
@@ -119,7 +121,7 @@ export default function ModerationFeedbackModal({ reasons, onClose }: Props) {
             onClick={onClose}
             style={{ minWidth: 140 }}
           >
-            Entendi
+            {t('understood')}
           </button>
         </div>
       </div>

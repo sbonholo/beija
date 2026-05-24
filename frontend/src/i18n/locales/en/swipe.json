@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "pass": "Pass",
+    "like": "Like",
+    "super": "Super like",
+    "rewind": "Undo last swipe",
+    "open_profile": "See full profile",
+    "filters": "Filters"
+  },
+  "distance": {
+    "near": "nearby",
+    "km": "{{km}} km",
+    "far": "100+ km"
+  },
+  "announce": {
+    "passed": "You passed on {{name}}",
+    "liked": "You liked {{name}}",
+    "super_sent": "Super like sent to {{name}}",
+    "match": "It's a match! You matched with {{name}}"
+  },
+  "rewind_limit_reached": "Daily limit of 3 undos reached.",
+  "rewind_empty": "No swipe to undo.",
+  "rewind_failed": "Rewind failed",
+  "header": "Discover",
+  "empty": {
+    "title": "No new profiles here",
+    "subtitle": "Come back later — or widen your distance in profile to see more people.",
+    "likes_you_cta_one": "See {{count}} like 💋",
+    "likes_you_cta_other": "See {{count}} likes 💋"
+  },
+  "load_error": {
+    "title": "Couldn't load profiles"
+  },
+  "likes_you_chip_aria": "{{count}} likes"
+}

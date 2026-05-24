@@ -1,0 +1,35 @@
+{
+  "actions": {
+    "pass": "Recusar",
+    "like": "Curtir",
+    "super": "Super like",
+    "rewind": "Voltar último swipe",
+    "open_profile": "Ver perfil completo",
+    "filters": "Filtros"
+  },
+  "distance": {
+    "near": "pertinho",
+    "km": "{{km}} km",
+    "far": "100+ km"
+  },
+  "announce": {
+    "passed": "Você passou {{name}}",
+    "liked": "Você curtiu {{name}}",
+    "super_sent": "Super like enviado para {{name}}",
+    "match": "É beijo na boca! Você deu match com {{name}}"
+  },
+  "rewind_limit_reached": "Limite diário de 3 voltas atingido.",
+  "rewind_empty": "Sem swipe pra voltar.",
+  "rewind_failed": "Falha no rewind",
+  "header": "Discover",
+  "empty": {
+    "title": "Sem perfis novos por aqui",
+    "subtitle": "Volta mais tarde — ou aumenta a distância no seu perfil pra ver mais gente.",
+    "likes_you_cta_one": "Ver {{count}} curtida 💋",
+    "likes_you_cta_other": "Ver {{count}} curtidas 💋"
+  },
+  "load_error": {
+    "title": "Não conseguimos carregar perfis"
+  },
+  "likes_you_chip_aria": "{{count}} curtidas"
+}

@@ -62,25 +62,7 @@ export const REWIND_ENTER_MS = 320;
 // Kept here just for the constants for buckets if a future module wants them.
 export const DISTANCE_FAR_KM = 50;
 
-// ---- PT-BR strings (centralized for future i18n) ----
-export const STR_REWIND_LABEL = 'Voltar último swipe';
-export const STR_REWIND_LIMIT_REACHED = 'Limite diário de 3 voltas atingido.';
-export const STR_REWIND_EMPTY = 'Sem swipe pra voltar.';
-export const STR_OPEN_PROFILE = 'Ver perfil completo';
-export const STR_SETTINGS_TITLE = 'Configurações';
-export const STR_SETTINGS_NOTIFICATIONS = 'Notificações';
-export const STR_SETTINGS_PRIVACY = 'Privacidade';
-export const STR_SETTINGS_ACCOUNT = 'Conta';
-export const STR_SETTINGS_ABOUT = 'Sobre';
-export const STR_MUTE_NOTIFICATIONS = 'Silenciar notificações push';
-export const STR_HIDE_DISTANCE = 'Esconder minha distância';
-export const STR_SHOW_AGE = 'Mostrar minha idade';
-export const STR_DELETE_ACCOUNT = 'Deletar conta';
-export const STR_PRIVACY_POLICY = 'Política de privacidade';
-export const STR_TERMS = 'Termos de uso';
-export const STR_PROFILE_DETAIL_CLOSE = 'Fechar';
-export const STR_PROFILE_DETAIL_MORE = 'Mais ações';
-export const STR_PROFILE_DETAIL_REPORT = 'Reportar perfil';
-export const STR_PROFILE_DETAIL_BLOCK = 'Bloquear perfil';
-export const STR_PASS = 'Recusar';
-export const STR_LIKE = 'Curtir';
+// ---- PT-BR strings ----
+// All user-facing copy lives in src/i18n/locales/<lang>/*.json now.
+// Use `useTranslation()` in components and `i18n.t()` in libs.
+// See docs/I18N.md.

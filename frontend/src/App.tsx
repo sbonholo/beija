@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from './state/AuthContext';
 import { ToastProvider } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -121,11 +122,12 @@ function TabLayout() {
 }
 
 export function App() {
+  const { t } = useTranslation('common');
   return (
     <ToastProvider>
       <RouteMemory />
       <a href="#beija-main" className="skip-link">
-        Pular para o conteúdo principal
+        {t('nav.skip_to_main')}
       </a>
       <div className="app" id="beija-main">
         <Routes>

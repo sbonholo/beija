@@ -1,0 +1,24 @@
+{
+  "title": "Seu perfil",
+  "settings_link": "Configurações",
+  "photos_label": "Fotos ({{count}}/{{total}})",
+  "bio_label": "Bio",
+  "interests_label": "Interesses",
+  "min_age_label": "Idade mínima",
+  "max_age_label": "Idade máxima",
+  "max_distance_label": "Distância máxima",
+  "max_distance_value": "{{km}} km",
+  "saved": "Perfil atualizado.",
+  "save_error": "Erro ao salvar",
+  "remove_photo_confirm": "Remover essa foto?",
+  "upload_error": "Erro ao enviar foto",
+  "remove_error": "Erro ao remover foto",
+  "detail": {
+    "close": "Fechar",
+    "more": "Mais ações",
+    "report": "Reportar perfil",
+    "block": "Bloquear perfil",
+    "no_photos": "Sem fotos",
+    "not_available": "Perfil indisponível."
+  }
+}

@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import i18n from '../i18n';
 import { captureSentryException } from '../lib/sentry';
 import { track } from '../lib/analytics';
 
@@ -43,16 +44,16 @@ export class ErrorBoundary extends Component<Props, State> {
         }}
       >
         <div style={{ fontSize: 56 }}>😔</div>
-        <h2 style={{ margin: 0 }}>Algo deu errado</h2>
+        <h2 style={{ margin: 0 }}>{i18n.t('errors:boundary.title')}</h2>
         <p className="muted" style={{ margin: 0, maxWidth: 320 }}>
-          Encontramos um problema inesperado. Tente recarregar a página.
+          {i18n.t('errors:boundary.subtitle')}
         </p>
         <button
           className="btn"
           style={{ maxWidth: 260 }}
           onClick={() => window.location.reload()}
         >
-          Recarregar
+          {i18n.t('errors:boundary.action')}
         </button>
       </div>
     );

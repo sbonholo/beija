@@ -1,0 +1,24 @@
+{
+  "title": "Your profile",
+  "settings_link": "Settings",
+  "photos_label": "Photos ({{count}}/{{total}})",
+  "bio_label": "Bio",
+  "interests_label": "Interests",
+  "min_age_label": "Min age",
+  "max_age_label": "Max age",
+  "max_distance_label": "Max distance",
+  "max_distance_value": "{{km}} km",
+  "saved": "Profile updated.",
+  "save_error": "Failed to save",
+  "remove_photo_confirm": "Remove this photo?",
+  "upload_error": "Photo upload failed",
+  "remove_error": "Photo remove failed",
+  "detail": {
+    "close": "Close",
+    "more": "More actions",
+    "report": "Report profile",
+    "block": "Block profile",
+    "no_photos": "No photos",
+    "not_available": "Profile unavailable."
+  }
+}

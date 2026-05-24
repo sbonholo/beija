@@ -1,0 +1,24 @@
+{
+  "modal_title": "We couldn't publish this photo",
+  "modal_description": "The image violated our community guidelines. Try another photo.",
+  "view_guidelines": "See guidelines",
+  "understood": "Got it",
+  "reasons": {
+    "nudity_sexual_activity": "Nudity or explicit sexual act",
+    "nudity_sexual_display": "Explicit sexual content",
+    "nudity_erotica": "Erotic content",
+    "minor": "Possible minor in the image",
+    "gore": "Graphic violence",
+    "weapon": "Weapons prominent",
+    "drug": "Drug use",
+    "scam": "Possible scam or fraud",
+    "offensive_nazi": "Nazi symbols",
+    "offensive_supremacist": "Supremacist symbols",
+    "offensive_terrorist": "Terrorist symbols",
+    "offensive_middle_finger": "Offensive gesture",
+    "offensive_confederate": "Confederate symbols",
+    "offensive_generic": "Offensive content",
+    "rate_limited": "Too many photo attempts in a short period. Wait a minute.",
+    "provider_error": "Couldn't validate the photo right now. Try again."
+  }
+}

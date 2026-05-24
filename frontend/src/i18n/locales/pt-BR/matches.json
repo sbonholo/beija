@@ -1,0 +1,21 @@
+{
+  "title": "Matches",
+  "empty": {
+    "title": "Você ainda não tem matches. Volta pro swipe!",
+    "cta": "Ir pro swipe"
+  },
+  "load_error": "Não conseguimos carregar agora.",
+  "show_archived_one": "Mostrar arquivados ({{count}})",
+  "show_archived_other": "Mostrar arquivados ({{count}})",
+  "hide_archived": "Esconder arquivados",
+  "archived_only_empty": "Sem matches ativos. Toque acima pra ver arquivados.",
+  "new_match_preview": "Match novo ✨",
+  "you_prefix": "Você: ",
+  "time": {
+    "now": "agora",
+    "min": "{{value}}min",
+    "hour": "{{value}}h",
+    "day": "{{value}}d"
+  },
+  "unread_badge_overflow": "99+"
+}

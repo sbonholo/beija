@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "Beija",
+    "tagline": "Conexões reais. Sem joguinhos."
+  },
+  "actions": {
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Avançar",
+    "retry": "Tentar de novo",
+    "ok": "OK",
+    "loading": "Carregando..."
+  },
+  "nav": {
+    "discover": "Discover",
+    "matches": "Matches",
+    "profile": "Perfil",
+    "settings": "Ajustes",
+    "skip_to_main": "Pular para o conteúdo principal"
+  },
+  "loading": "Carregando…",
+  "error_generic": "Algo deu errado",
+  "try_again": "Tentar de novo",
+  "languages": {
+    "pt-BR": "Português (Brasil)",
+    "en": "English"
+  }
+}

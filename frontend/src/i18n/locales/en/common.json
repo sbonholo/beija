@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "Beija",
+    "tagline": "Real connections. No games."
+  },
+  "actions": {
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "retry": "Try again",
+    "ok": "OK",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "discover": "Discover",
+    "matches": "Matches",
+    "profile": "Profile",
+    "settings": "Settings",
+    "skip_to_main": "Skip to main content"
+  },
+  "loading": "Loading…",
+  "error_generic": "Something went wrong",
+  "try_again": "Try again",
+  "languages": {
+    "pt-BR": "Portuguese (Brazil)",
+    "en": "English"
+  }
+}

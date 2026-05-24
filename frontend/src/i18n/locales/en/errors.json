@@ -1,0 +1,10 @@
+{
+  "boundary": {
+    "title": "Something went wrong",
+    "subtitle": "We hit an unexpected problem. Try reloading.",
+    "action": "Reload"
+  },
+  "not_authenticated": "Session expired. Please sign in again.",
+  "load_failed": "Failed to load.",
+  "network": "No connection. Check your internet."
+}

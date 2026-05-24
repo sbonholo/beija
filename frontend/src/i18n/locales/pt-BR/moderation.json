@@ -1,0 +1,24 @@
+{
+  "modal_title": "Não conseguimos publicar esta foto",
+  "modal_description": "A imagem violou nossas diretrizes de comunidade. Tente outra foto.",
+  "view_guidelines": "Ver diretrizes",
+  "understood": "Entendi",
+  "reasons": {
+    "nudity_sexual_activity": "Nudez ou ato sexual explícito",
+    "nudity_sexual_display": "Conteúdo sexual explícito",
+    "nudity_erotica": "Conteúdo erótico",
+    "minor": "Suspeita de menor de idade na imagem",
+    "gore": "Violência gráfica",
+    "weapon": "Armas em destaque",
+    "drug": "Uso de drogas",
+    "scam": "Possível golpe ou fraude",
+    "offensive_nazi": "Símbolos nazistas",
+    "offensive_supremacist": "Símbolos supremacistas",
+    "offensive_terrorist": "Símbolos terroristas",
+    "offensive_middle_finger": "Gesto ofensivo",
+    "offensive_confederate": "Símbolos confederados",
+    "offensive_generic": "Conteúdo ofensivo",
+    "rate_limited": "Você tentou enviar fotos demais em pouco tempo. Aguarde um minuto.",
+    "provider_error": "Não conseguimos validar a foto agora. Tente de novo."
+  }
+}

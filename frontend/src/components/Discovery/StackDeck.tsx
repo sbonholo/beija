@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '../../lib/supabase';
 import { SwipeCard, type SwipeCardProfile, type SwipeDirection } from './SwipeCard';
 import { MatchModal } from './MatchModal';
@@ -11,9 +12,6 @@ import {
   REWIND_DAILY_LIMIT,
   REWIND_HISTORY_LIMIT,
   REWIND_STORAGE_KEY,
-  STR_REWIND_EMPTY,
-  STR_REWIND_LABEL,
-  STR_REWIND_LIMIT_REACHED,
 } from '../../lib/constants';
 
 const BATCH_SIZE = 10;
@@ -79,6 +77,7 @@ interface RewindEntry {
 export function StackDeck() {
   const nav = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation('swipe');
   const [userId, setUserId] = useState<string | null>(null);
   const [deck, setDeck] = useState<ProfileWithMedia[]>([]);
   const [history, setHistory] = useState<RewindEntry[]>([]);
@@ -193,13 +192,13 @@ export function StackDeck() {
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
     track(`swipe_${direction}`, { card_index: history.length });
-    const name = target.name ?? 'perfil';
+    const name = target.name ?? '';
     setLiveAnnouncement(
       direction === 'left'
-        ? `Você passou ${name}`
+        ? t('announce.passed', { name })
         : direction === 'super'
-          ? `Super like enviado para ${name}`
-          : `Você curtiu ${name}`,
+          ? t('announce.super_sent', { name })
+          : t('announce.liked', { name }),
     );
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
     void bumpLastActive(userId);
@@ -231,7 +230,7 @@ export function StackDeck() {
           if (Date.now() - created < 5000) {
             matchedId = matchRow.id as string;
             track('match_created', { direction });
-            setLiveAnnouncement(`É beijo na boca! Você deu match com ${target.name ?? 'alguém'}`);
+            setLiveAnnouncement(t('announce.match', { name: target.name ?? '' }));
             setMatch({ matchId: matchRow.id as string, other: target });
             try {
               await supabase.functions.invoke('notify_match', {
@@ -260,11 +259,11 @@ export function StackDeck() {
     if (!userId || rewinding) return;
     const last = history[0];
     if (!last) {
-      toast({ kind: 'info', text: STR_REWIND_EMPTY });
+      toast({ kind: 'info', text: t('rewind_empty') });
       return;
     }
     if (rewindCount >= REWIND_DAILY_LIMIT) {
-      toast({ kind: 'info', text: STR_REWIND_LIMIT_REACHED });
+      toast({ kind: 'info', text: t('rewind_limit_reached') });
       return;
     }
     setRewinding(true);
@@ -286,7 +285,7 @@ export function StackDeck() {
       void refreshLikesYou();
     } catch (e) {
       console.warn('[StackDeck] rewind failed:', e);
-      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Falha no rewind' });
+      toast({ kind: 'info', text: e instanceof Error ? e.message : t('rewind_failed') });
     } finally {
       setRewinding(false);
     }
@@ -330,10 +329,10 @@ export function StackDeck() {
     return (
       <div className="screen" style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginTop: '20vh' }}>⚠️</div>
-        <h2 style={{ marginTop: 10 }}>Não conseguimos carregar perfis</h2>
+        <h2 style={{ marginTop: 10 }}>{t('load_error.title')}</h2>
         <p className="muted">{error}</p>
         <button className="btn" style={{ marginTop: 16, maxWidth: 260 }} onClick={() => void loadMore()}>
-          Tentar de novo
+          {t('common:actions.retry', { defaultValue: 'Tentar de novo' })}
         </button>
       </div>
     );
@@ -343,8 +342,8 @@ export function StackDeck() {
     return (
       <div className="screen" style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 56, marginTop: '18vh' }}>🌙</div>
-        <h2 style={{ marginTop: 8 }}>Sem perfis novos por aqui</h2>
-        <p className="muted">Volta mais tarde — ou aumenta a distância no seu perfil pra ver mais gente.</p>
+        <h2 style={{ marginTop: 8 }}>{t('empty.title')}</h2>
+        <p className="muted">{t('empty.subtitle')}</p>
         {likesYouCount > 0 && (
           <button
             className="btn"
@@ -354,7 +353,7 @@ export function StackDeck() {
               nav('/likes-you');
             }}
           >
-            Ver {likesYouCount} {likesYouCount === 1 ? 'curtida' : 'curtidas'} 💋
+            {t('empty.likes_you_cta', { count: likesYouCount })}
           </button>
         )}
       </div>
@@ -374,7 +373,7 @@ export function StackDeck() {
         {liveAnnouncement}
       </div>
       <div className="header" style={{ marginBottom: 12, gap: 8 }}>
-        <h2 style={{ margin: 0 }}>Discover</h2>
+        <h2 style={{ margin: 0 }}>{t('header')}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           {likesYouCount > 0 && (
             <button
@@ -384,7 +383,7 @@ export function StackDeck() {
               track('likes_you_viewed', { source: 'discover_chip' });
               nav('/likes-you');
             }}
-              aria-label={`${likesYouCount} curtidas`}
+              aria-label={t('likes_you_chip_aria', { count: likesYouCount })}
               style={{
                 background: 'linear-gradient(120deg, var(--pink), var(--hot))',
                 borderColor: 'transparent',
@@ -399,9 +398,9 @@ export function StackDeck() {
             type="button"
             className="chip"
             onClick={() => setFiltersOpen(true)}
-            aria-label="Filtros"
+            aria-label={t('actions.filters')}
           >
-            ⚙︎ Filtros
+            ⚙︎ {t('actions.filters')}
           </button>
         </div>
       </div>
@@ -435,7 +434,7 @@ export function StackDeck() {
       <button
         type="button"
         onClick={() => void handleRewind()}
-        aria-label={STR_REWIND_LABEL}
+        aria-label={t('actions.rewind')}
         disabled={!rewindAvailable}
         style={{
           position: 'fixed',
@@ -476,7 +475,7 @@ export function StackDeck() {
         <button
           type="button"
           onClick={() => trigger('left')}
-          aria-label="Passar"
+          aria-label={t('actions.pass')}
           style={{ ...circleBtn, color: '#ff5b5b', pointerEvents: 'auto' }}
         >
           ✕
@@ -484,7 +483,7 @@ export function StackDeck() {
         <button
           type="button"
           onClick={() => trigger('super')}
-          aria-label="Super like"
+          aria-label={t('actions.super')}
           style={{ ...circleBtn, color: '#3aa8ff', pointerEvents: 'auto', width: 54, height: 54, fontSize: 24 }}
         >
           ⭐
@@ -492,7 +491,7 @@ export function StackDeck() {
         <button
           type="button"
           onClick={() => trigger('right')}
-          aria-label="Curtir"
+          aria-label={t('actions.like')}
           style={{ ...circleBtn, color: '#4ade80', pointerEvents: 'auto' }}
         >
           ♥

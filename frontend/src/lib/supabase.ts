@@ -52,6 +52,7 @@ export interface Profile {
   mute_notifications: boolean;
   hide_distance: boolean;
   show_age: boolean;
+  locale: 'pt-BR' | 'en';
   deleted_at: string | null;
   created_at: string;
 }

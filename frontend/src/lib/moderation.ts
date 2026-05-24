@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import i18n from '../i18n';
 
 /** Decision returned by the moderate_photo edge function. */
 export interface ModerationDecision {
@@ -85,5 +86,10 @@ export const MODERATION_REASON_LABELS_PT: Record<string, string> = {
 };
 
 export function labelReason(reason: string): string {
+  // Prefer the i18n catalog (moderation.reasons.<key>) and fall back to the
+  // hardcoded PT-BR map if a key is missing from the catalog (defensive).
+  const key = `moderation:reasons.${reason}`;
+  const translated = i18n.t(key);
+  if (typeof translated === 'string' && translated !== key) return translated;
   return MODERATION_REASON_LABELS_PT[reason] ?? reason;
 }
