@@ -138,7 +138,7 @@ export function ProfileSetup() {
           min_age: minAge,
           max_age: maxAge,
           max_distance_km: maxDistance,
-          last_active: new Date().toISOString(),
+          last_active_at: new Date().toISOString(),
         })
         .eq('id', userId);
       if (error) throw error;

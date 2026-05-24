@@ -7,6 +7,22 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 
 const BATCH_SIZE = 10;
 const STACK_VISIBLE = 3;
+const LAST_ACTIVE_BUMP_KEY = 'beija_last_active_bump';
+const LAST_ACTIVE_BUMP_INTERVAL_MS = 60 * 60 * 1000; // 1h
+
+async function bumpLastActive(userId: string) {
+  try {
+    const last = Number(localStorage.getItem(LAST_ACTIVE_BUMP_KEY) ?? '0');
+    if (Date.now() - last < LAST_ACTIVE_BUMP_INTERVAL_MS) return;
+    localStorage.setItem(LAST_ACTIVE_BUMP_KEY, String(Date.now()));
+    await supabase
+      .from('profiles')
+      .update({ last_active_at: new Date().toISOString(), is_inactive: false })
+      .eq('id', userId);
+  } catch {
+    /* best-effort */
+  }
+}
 
 interface ProfileWithMedia extends Profile {
   photos: string[];
@@ -101,6 +117,7 @@ export function StackDeck() {
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
+    void bumpLastActive(userId);
 
     if (deck.length <= STACK_VISIBLE + 1) {
       void loadMore();

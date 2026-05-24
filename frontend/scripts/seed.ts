@@ -315,7 +315,7 @@ async function main() {
       min_age: minAge,
       max_age: maxAge,
       max_distance_km: 50,
-      last_active: new Date(Date.now() - Math.floor(rand() * 7 * 24 * 3600 * 1000))
+      last_active_at: new Date(Date.now() - Math.floor(rand() * 7 * 24 * 3600 * 1000))
         .toISOString(),
     };
 

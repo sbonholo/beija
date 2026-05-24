@@ -10,6 +10,8 @@ interface MatchRow {
   createdAt: string;
   lastMessage: { content: string; createdAt: string; senderIsMe: boolean } | null;
   unread: number;
+  isStale: boolean;
+  isArchived: boolean;
 }
 
 function relTime(iso: string): string {
@@ -30,6 +32,7 @@ export function MatchesList() {
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,7 +47,7 @@ export function MatchesList() {
 
       const { data: matches, error: mErr } = await supabase
         .from('matches')
-        .select('id, user1_id, user2_id, created_at, last_message_at')
+        .select('id, user1_id, user2_id, created_at, last_message_at, is_stale, is_archived')
         .or(`user1_id.eq.${me},user2_id.eq.${me}`)
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -119,6 +122,8 @@ export function MatchesList() {
           createdAt: m.created_at,
           lastMessage: lastByMatch.get(m.id) ?? null,
           unread: unreadByMatch.get(m.id) ?? 0,
+          isStale: !!m.is_stale,
+          isArchived: !!m.is_archived,
         };
       });
       setRows(built);
@@ -169,6 +174,9 @@ export function MatchesList() {
     );
   }
 
+  const archivedCount = rows.filter((r) => r.isArchived).length;
+  const visibleRows = showArchived ? rows : rows.filter((r) => !r.isArchived);
+
   if (rows.length === 0) {
     return (
       <div className="screen">
@@ -191,8 +199,23 @@ export function MatchesList() {
   return (
     <div className="screen">
       <div className="header"><h2>Matches</h2></div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {rows.map((r) => (
+      {archivedCount > 0 && (
+        <button
+          type="button"
+          className="chip"
+          style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+          onClick={() => setShowArchived((v) => !v)}
+        >
+          {showArchived ? 'Esconder arquivados' : `Mostrar arquivados (${archivedCount})`}
+        </button>
+      )}
+      {visibleRows.length === 0 ? (
+        <div className="empty">
+          <p className="muted">Sem matches ativos. Toque acima pra ver arquivados.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {visibleRows.map((r) => (
           <button
             key={r.matchId}
             className="card row center"
@@ -249,8 +272,9 @@ export function MatchesList() {
               </div>
             </div>
           </button>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -47,7 +47,9 @@ export interface Profile {
   max_age: number | null;
   max_distance_km: number | null;
   push_token: string | null;
-  last_active: string | null;
+  last_active_at: string | null;
+  is_inactive: boolean;
+  mute_notifications: boolean;
   deleted_at: string | null;
   created_at: string;
 }
@@ -58,6 +60,8 @@ export interface Match {
   user2_id: string;
   created_at: string;
   last_message_at: string | null;
+  is_stale: boolean;
+  is_archived: boolean;
 }
 
 export interface Message {

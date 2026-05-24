@@ -99,7 +99,7 @@ export function OnboardingFlow() {
         gender: dbGender,
         interested_in: seekingToArray(seeking),
         bio: bio.trim() || null,
-        last_active: new Date().toISOString(),
+        last_active_at: new Date().toISOString(),
       });
       if (profileErr) throw profileErr;
 
