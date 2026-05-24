@@ -1,4 +1,8 @@
-const ROUTER_BASENAME = import.meta.env.PROD ? '/beija' : '/';
+// Base path under which the app is served. Vercel root deploys use '/'
+// (default). GitHub Pages serves at '/beija' — set VITE_BASE_PATH=/beija
+// in the Pages workflow env. Trailing slash trimmed for consistency.
+const RAW_BASE = (import.meta.env.VITE_BASE_PATH as string | undefined) ?? '/';
+const ROUTER_BASENAME = RAW_BASE === '/' ? '/' : RAW_BASE.replace(/\/$/, '');
 
 const spaRedirect = sessionStorage.getItem('beija_spa_redirect');
 if (spaRedirect) {
@@ -14,6 +18,8 @@ import { App } from './App';
 import { AuthProvider } from './state/AuthContext';
 import { UnreadProvider } from './state/UnreadContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { MissingConfigScreen } from './components/MissingConfigScreen';
+import { SUPABASE_CONFIGURED } from './lib/supabase';
 import { initSentry } from './lib/sentry';
 import { initAnalytics, track } from './lib/analytics';
 import { startWebVitals } from './lib/vitals';
@@ -39,13 +45,17 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter basename={ROUTER_BASENAME}>
-        <AuthProvider>
-          <UnreadProvider>
-            <App />
-          </UnreadProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      {SUPABASE_CONFIGURED ? (
+        <BrowserRouter basename={ROUTER_BASENAME}>
+          <AuthProvider>
+            <UnreadProvider>
+              <App />
+            </UnreadProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      ) : (
+        <MissingConfigScreen />
+      )}
     </ErrorBoundary>
   </React.StrictMode>
 );

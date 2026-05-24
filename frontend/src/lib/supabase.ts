@@ -3,17 +3,31 @@ import { createClient, type User } from '@supabase/supabase-js';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn('[supabase] missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
+/**
+ * True when both Supabase env vars are present at build time. The app shell
+ * checks this and renders a "setup required" screen instead of crashing —
+ * see `src/components/MissingConfigScreen.tsx`.
+ */
+export const SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+if (!SUPABASE_CONFIGURED) {
+  console.warn('[supabase] missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY — running in setup-required mode');
 }
 
-export const supabase = createClient(SUPABASE_URL ?? '', SUPABASE_ANON_KEY ?? '', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
+// Always create a client (even with placeholder URL) so imports don't fail.
+// Calls will error at runtime in setup-required mode — the missing-config
+// screen blocks the user before they can hit them.
+export const supabase = createClient(
+  SUPABASE_URL || 'https://placeholder.supabase.co',
+  SUPABASE_ANON_KEY || 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
   },
-});
+);
 
 export async function getCurrentUser(): Promise<User | null> {
   const { data, error } = await supabase.auth.getUser();

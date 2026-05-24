@@ -7,8 +7,14 @@ const pkg = JSON.parse(
   readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'),
 ) as { version: string };
 
+// Base path is set via `VITE_BASE_PATH` env at build time:
+//   • Vercel (root):     VITE_BASE_PATH=/   (default)
+//   • GitHub Pages:      VITE_BASE_PATH=/beija
+// Falls back to './' so file://-served dev builds also work.
+const BASE_PATH = process.env.VITE_BASE_PATH ?? './';
+
 export default defineConfig({
-  base: './',
+  base: BASE_PATH,
   plugins: [react()],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),

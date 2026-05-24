@@ -114,6 +114,23 @@ Don't forget to enable the **Apple** and **Google** auth providers in the Supaba
 
 ---
 
+## Deploy web (testing)
+
+Para gerar uma URL pública (smoke test no celular antes do app nativo):
+**[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+Caminhos:
+- **Vercel** (recomendado): `.github/workflows/deploy-vercel.yml` —
+  setup em 5min, preview URL por PR, SSL automático. Sem deploy se
+  faltarem secrets — não quebra CI.
+- **GitHub Pages** (backup): `.github/workflows/deploy-pages.yml` —
+  já roda automático em push pra `main`. URL em `/beija/`.
+
+Sem Supabase configurado, o app renderiza `MissingConfigScreen` com
+instruções amigáveis em vez de tela branca.
+
+---
+
 ## Native build (iOS / Android)
 
 ```bash
