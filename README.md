@@ -215,6 +215,30 @@ Style conventions:
 
 ---
 
+## Compliance
+
+App Store / Google Play exigem tooling de moderação pra apps com
+user-generated content (Apple Guideline 1.2, equivalente Google).
+
+**Pipeline two-stage de moderação de fotos**:
+- **Pre-upload** (client → edge fn `moderate_photo`) via **Sightengine**.
+  Bloqueia nudez explícita, suspeita de menor, gore, armas, drogas,
+  golpes e símbolos de ódio antes de o arquivo chegar ao storage.
+- **Post-upload** (storage webhook → edge fn `photo_moderation_hook`)
+  via **OpenAI omni-moderation**. Quarentena + report automático.
+
+Detalhes técnicos + thresholds + roteiro de teste pro Apple Review:
+**[docs/PHOTO_MODERATION.md](docs/PHOTO_MODERATION.md)**.
+
+Diretrizes públicas exibidas no app (rota `/community-guidelines`):
+[`frontend/src/pages/CommunityGuidelines.md`](frontend/src/pages/CommunityGuidelines.md).
+
+Outras superfícies de safety: **report** (`ReportModal`), **block**
+(`BlockButton`), **delete account com janela de 30 dias** (`DeleteAccountFlow`
++ cron `process_pending_deletions`).
+
+---
+
 ## License
 
 Proprietary. © 2026 Beija Tecnologia Ltda. All rights reserved.

@@ -1,5 +1,6 @@
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { supabase } from './supabase';
+import { ModerationError, moderatePhotoPreUpload } from './moderation';
 
 const BUCKET = 'profile-photos';
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -61,6 +62,14 @@ export async function uploadProfilePhoto(
 
   blob = await validateAndResize(blob);
 
+  // Pre-upload moderation (Apple Guideline 1.2). Fails OPEN on provider
+  // errors — server-side photo_moderation_hook is the backstop.
+  const resizedBase64 = await blobToBase64(blob);
+  const decision = await moderatePhotoPreUpload(resizedBase64, blob.type);
+  if (!decision.approved) {
+    throw new ModerationError(decision.reasons, decision.scores);
+  }
+
   const path = `${userId}/${slot}.jpg`;
   const { error } = await supabase.storage
     .from(BUCKET)
@@ -106,6 +115,21 @@ function inferMimeFromBase64(base64: string): AllowedMime {
   if (base64.startsWith('iVBORw0KGgo')) return 'image/png';
   if (base64.startsWith('UklGR')) return 'image/webp';
   return 'image/jpeg';
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') return reject(new Error('read_failed'));
+      // strip "data:image/jpeg;base64," prefix
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('read_failed'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 function base64ToBlob(base64: string, mime: string): Blob {

@@ -19,7 +19,7 @@ export default [
         localStorage: 'readonly', sessionStorage: 'readonly', navigator: 'readonly',
         crypto: 'readonly', fetch: 'readonly', URL: 'readonly', URLSearchParams: 'readonly',
         setTimeout: 'readonly', clearTimeout: 'readonly', setInterval: 'readonly', clearInterval: 'readonly',
-        Image: 'readonly', Blob: 'readonly', FormData: 'readonly', File: 'readonly',
+        Image: 'readonly', Blob: 'readonly', FormData: 'readonly', File: 'readonly', FileReader: 'readonly',
         HTMLElement: 'readonly', HTMLInputElement: 'readonly', HTMLTextAreaElement: 'readonly',
         HTMLDivElement: 'readonly', HTMLImageElement: 'readonly', HTMLButtonElement: 'readonly',
         PointerEvent: 'readonly',

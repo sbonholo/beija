@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
@@ -8,7 +8,12 @@ import {
   uploadProfilePhoto,
   type PhotoSlot,
 } from '../../lib/storage';
+import { ModerationError } from '../../lib/moderation';
 import { useToast } from '../Toast';
+
+const ModerationFeedbackModal = lazy(
+  () => import('../Moderation/ModerationFeedbackModal'),
+);
 
 const TOTAL_SLOTS = 6;
 const MAX_BIO = 300;
@@ -34,6 +39,7 @@ export function ProfileSetup() {
   const [maxAge, setMaxAge] = useState(50);
   const [maxDistance, setMaxDistance] = useState(50);
   const [busySlot, setBusySlot] = useState<number | null>(null);
+  const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -96,7 +102,11 @@ export function ProfileSetup() {
       if (error) throw error;
       await refreshPhotos(userId);
     } catch (e) {
-      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao enviar foto' });
+      if (e instanceof ModerationError) {
+        setModerationReasons(e.reasons);
+      } else {
+        toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao enviar foto' });
+      }
     } finally {
       setBusySlot(null);
     }
@@ -329,6 +339,14 @@ export function ProfileSetup() {
           </button>
         </div>
       </div>
+      {moderationReasons && (
+        <Suspense fallback={null}>
+          <ModerationFeedbackModal
+            reasons={moderationReasons}
+            onClose={() => setModerationReasons(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

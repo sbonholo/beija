@@ -39,6 +39,12 @@ verify_jwt = false
 # Fired by Storage object-created webhook on the `profile-photos` bucket.
 # Calls OpenAI omni-moderation; quarantines + reports if flagged.
 
+[functions.moderate_photo]
+verify_jwt = false
+# PRE-upload moderation called by the client BEFORE pushing to storage.
+# Proxies to Sightengine (env: SIGHTENGINE_USER, SIGHTENGINE_SECRET).
+# Defense in depth — photo_moderation_hook runs post-upload as backstop.
+
 # ---------------------------------------------------------------------------
 # Storage buckets (declarative)
 # ---------------------------------------------------------------------------

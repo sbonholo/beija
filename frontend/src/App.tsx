@@ -21,6 +21,9 @@ const DeleteAccountFlow = lazy(() =>
 );
 const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./components/pages/TermsPage'));
+const CommunityGuidelinesPage = lazy(
+  () => import('./components/pages/CommunityGuidelinesPage'),
+);
 const SettingsScreen = lazy(() => import('./components/Settings/SettingsScreen'));
 const ProfileDetailModal = lazy(() => import('./components/Discovery/ProfileDetailModal'));
 
@@ -127,6 +130,10 @@ export function App() {
           <Route path="/signin" element={<SignInScreen />} />
           <Route path="/privacy" element={<Suspense fallback={<Splash />}><PrivacyPage /></Suspense>} />
           <Route path="/terms" element={<Suspense fallback={<Splash />}><TermsPage /></Suspense>} />
+          <Route
+            path="/community-guidelines"
+            element={<Suspense fallback={<Splash />}><CommunityGuidelinesPage /></Suspense>}
+          />
 
           <Route element={<Protected />}>
             <Route path="/reactivate" element={<ReactivationScreen />} />

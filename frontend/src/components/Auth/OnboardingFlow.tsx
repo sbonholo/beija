@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { pickPhoto, uploadProfilePhoto } from '../../lib/storage';
+import { ModerationError } from '../../lib/moderation';
 import { useToast } from '../Toast';
+
+const ModerationFeedbackModal = lazy(
+  () => import('../Moderation/ModerationFeedbackModal'),
+);
 
 type GenderUI = 'woman' | 'man' | 'other';
 type SeekingUI = 'women' | 'men' | 'all';
@@ -39,6 +44,7 @@ export function OnboardingFlow() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
+  const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
 
   // Track which step has already auto-advanced so coming back doesn't re-trigger.
   const advancedFrom = useRef<Set<number>>(new Set());
@@ -112,7 +118,11 @@ export function OnboardingFlow() {
 
       nav('/discover', { replace: true });
     } catch (e) {
-      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao salvar perfil' });
+      if (e instanceof ModerationError) {
+        setModerationReasons(e.reasons);
+      } else {
+        toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao salvar perfil' });
+      }
     } finally {
       setSaving(false);
     }
@@ -291,6 +301,14 @@ export function OnboardingFlow() {
         >
           Voltar
         </button>
+      )}
+      {moderationReasons && (
+        <Suspense fallback={null}>
+          <ModerationFeedbackModal
+            reasons={moderationReasons}
+            onClose={() => setModerationReasons(null)}
+          />
+        </Suspense>
       )}
     </div>
   );
