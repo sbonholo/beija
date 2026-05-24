@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Message } from '../../lib/supabase';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 
 const LONG_PRESS_MS = 500;
 
-export function MessageBubble({ message, isOwn, onDelete }: Props) {
+function MessageBubbleImpl({ message, isOwn, onDelete }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const timerRef = useRef<number | null>(null);
   const movedRef = useRef(false);
@@ -163,3 +163,13 @@ export function MessageBubble({ message, isOwn, onDelete }: Props) {
     </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleImpl, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.read_at === next.message.read_at &&
+    prev.message.deleted_at === next.message.deleted_at &&
+    prev.message.content === next.message.content &&
+    prev.isOwn === next.isOwn
+  );
+});

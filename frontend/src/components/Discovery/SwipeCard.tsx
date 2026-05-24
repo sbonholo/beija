@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Profile } from '../../lib/supabase';
 
 export type SwipeDirection = 'left' | 'right' | 'super';
@@ -17,7 +17,7 @@ const UP_THRESHOLD = 80;
 const TAP_TOLERANCE_PX = 6;
 const LONG_PRESS_MS = 500;
 
-export function SwipeCard({ profile, photos, interests = [], stackIndex, onSwipe }: Props) {
+function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }: Props) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -341,3 +341,11 @@ function ageFromBirthdate(birthdate: string | null): number | null {
   if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
   return age >= 0 ? age : null;
 }
+
+export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {
+  return (
+    prev.profile.id === next.profile.id &&
+    prev.stackIndex === next.stackIndex &&
+    prev.photos === next.photos
+  );
+});
