@@ -1,53 +1,72 @@
 import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 
-export type ReportTargetType = 'user' | 'message';
+const REASONS = [
+  'Foto inadequada',
+  'Perfil falso',
+  'Comportamento abusivo',
+  'Spam',
+  'Menor de idade',
+  'Outro',
+] as const;
 
-export type ReportReason =
-  | 'inappropriate_photo'
-  | 'harassment'
-  | 'fake_profile'
-  | 'underage'
-  | 'spam'
-  | 'other';
-
-const REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'inappropriate_photo', label: 'Foto inapropriada' },
-  { value: 'harassment', label: 'Assédio ou agressão' },
-  { value: 'fake_profile', label: 'Perfil falso / catfish' },
-  { value: 'underage', label: 'Parece menor de 18' },
-  { value: 'spam', label: 'Spam ou golpe' },
-  { value: 'other', label: 'Outro motivo' },
-];
+type Reason = (typeof REASONS)[number];
 
 interface Props {
-  targetType: ReportTargetType;
-  targetId: string;
-  targetName?: string;
+  reportedUserId: string;
+  reportedName?: string;
   onClose: () => void;
-  onSubmit: (payload: {
-    targetType: ReportTargetType;
-    targetId: string;
-    reason: ReportReason;
-    details: string;
-  }) => Promise<void> | void;
+  onReported?: () => void;
 }
 
-export function ReportModal({ targetType, targetId, targetName, onClose, onSubmit }: Props) {
-  const [reason, setReason] = useState<ReportReason | null>(null);
+export function ReportModal({ reportedUserId, reportedName, onClose, onReported }: Props) {
+  const [reason, setReason] = useState<Reason | null>(null);
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
-    if (!reason) return;
+    if (!reason || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      await onSubmit({ targetType, targetId, reason, details: details.trim() });
+      const { data: auth } = await supabase.auth.getUser();
+      const me = auth.user?.id;
+      if (!me) throw new Error('not_authenticated');
+
+      const { error: reportErr } = await supabase.from('reports').insert({
+        reporter_id: me,
+        reported_id: reportedUserId,
+        reason,
+        details: details.trim() || null,
+      });
+      if (reportErr) throw reportErr;
+
+      // Auto-block the reported user
+      const { error: blockErr } = await supabase
+        .from('blocks')
+        .insert({ blocker_id: me, blocked_id: reportedUserId });
+      if (blockErr && blockErr.code !== '23505') {
+        // unique_violation just means they were already blocked — ignore
+        console.warn('[ReportModal] auto-block failed:', blockErr);
+      }
+
+      // Remove mutual swipes and match so we don't show them again
+      await supabase
+        .from('swipes')
+        .delete()
+        .or(
+          `and(swiper_id.eq.${me},swipee_id.eq.${reportedUserId}),and(swiper_id.eq.${reportedUserId},swipee_id.eq.${me})`,
+        );
+      const lo = me < reportedUserId ? me : reportedUserId;
+      const hi = me < reportedUserId ? reportedUserId : me;
+      await supabase.from('matches').delete().eq('user1_id', lo).eq('user2_id', hi);
+
       setSubmitted(true);
-    } catch {
-      setError('Não foi possível enviar a denúncia. Tente novamente.');
+      onReported?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao enviar denúncia.');
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +79,7 @@ export function ReportModal({ targetType, targetId, targetName, onClose, onSubmi
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 440,
           padding: '20px 22px calc(20px + env(safe-area-inset-bottom))',
         }}
       >
@@ -69,7 +88,8 @@ export function ReportModal({ targetType, targetId, targetName, onClose, onSubmi
             <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>✅</div>
             <h2 style={{ margin: '0 0 6px', textAlign: 'center' }}>Denúncia recebida</h2>
             <p className="muted" style={{ textAlign: 'center', marginTop: 0 }}>
-              Nossa equipe vai analisar. Obrigado por ajudar a manter o Beija seguro.
+              Nossa equipe vai responder em até 24h. Você não vai mais ver{' '}
+              {reportedName ?? 'essa pessoa'} no app.
             </p>
             <button className="btn" style={{ marginTop: 18 }} onClick={onClose}>
               Fechar
@@ -78,18 +98,16 @@ export function ReportModal({ targetType, targetId, targetName, onClose, onSubmi
         ) : (
           <>
             <h2 style={{ margin: '0 0 6px' }}>
-              {targetType === 'user' ? 'Denunciar perfil' : 'Denunciar mensagem'}
+              Denunciar {reportedName ?? 'perfil'}
             </h2>
             <p className="muted" style={{ marginTop: 0, marginBottom: 16, fontSize: 13 }}>
-              {targetName
-                ? `Conta pra gente o que rolou com ${targetName}.`
-                : 'Conta pra gente o que rolou.'}
+              Conta pra gente o que rolou. Nossa equipe analisa em até 24h.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {REASONS.map((r) => (
                 <label
-                  key={r.value}
+                  key={r}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -98,17 +116,17 @@ export function ReportModal({ targetType, targetId, targetName, onClose, onSubmi
                     background: 'var(--bg-elev)',
                     borderRadius: 'var(--radius-sm)',
                     cursor: 'pointer',
-                    border: `1px solid ${reason === r.value ? 'var(--pink)' : 'rgba(255,255,255,0.08)'}`,
+                    border: `1px solid ${reason === r ? 'var(--pink)' : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
                   <input
                     type="radio"
                     name="report-reason"
-                    checked={reason === r.value}
-                    onChange={() => setReason(r.value)}
+                    checked={reason === r}
+                    onChange={() => setReason(r)}
                     style={{ accentColor: 'var(--pink)' }}
                   />
-                  <span style={{ fontSize: 14 }}>{r.label}</span>
+                  <span style={{ fontSize: 14 }}>{r}</span>
                 </label>
               ))}
             </div>
