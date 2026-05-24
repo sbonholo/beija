@@ -183,6 +183,39 @@ See `fastlane/Fastfile` for the (currently commented) lane definitions.
 
 ---
 
+## Step 8.5 — Deploy edge functions + scheduled cron
+
+Four edge functions live in `supabase/functions/`. Deploy each:
+
+```bash
+cd beija
+supabase functions deploy notify_new_message
+supabase functions deploy notify_match
+supabase functions deploy account_deletion_confirmation
+supabase functions deploy process_pending_deletions
+```
+
+Set the secrets these functions need (use `supabase secrets set KEY=value`):
+
+| Function | Required env vars |
+|---|---|
+| `notify_new_message`, `notify_match` | `APNS_TEAM_ID`, `APNS_KEY_ID`, `APNS_PRIVATE_KEY` (full .p8 PEM), `APNS_BUNDLE_ID` (= `io.beija.app`), optionally `APNS_PRODUCTION=true` for prod servers. For Android: `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT` (raw JSON of the service-account key). |
+| `account_deletion_confirmation` | `RESEND_API_KEY`, `RESEND_FROM` (e.g. `"Beija <noreply@beija.app>"`) |
+| `process_pending_deletions` | none beyond the built-in `SUPABASE_*` |
+
+Without these set, each function logs a TODO and returns success — safe to deploy before keys arrive.
+
+### Schedule the cron
+
+The `.github/workflows/process-deletions.yml` workflow runs daily at 03:10 UTC. Add these repo secrets to enable it:
+
+- `SUPABASE_FUNCTIONS_URL` — `https://<project-ref>.functions.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` — from Supabase → Settings → API → `service_role` JWT
+
+Until both are set the workflow runs but skips the invocation (logs a warning). Manual run: Actions tab → "Process pending deletions" → Run workflow.
+
+---
+
 ## Step 9 — Post-launch
 
 - Monitor crash-free rate (Sentry/Crashlytics — TODO).

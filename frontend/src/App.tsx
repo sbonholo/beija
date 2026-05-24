@@ -4,6 +4,7 @@ import { useAuth } from './state/AuthContext';
 import { ToastProvider } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SignInScreen } from './components/Auth/SignInScreen';
+import { ReactivationScreen } from './components/Auth/ReactivationScreen';
 import { StackDeck } from './components/Discovery/StackDeck';
 import { ChatScreen } from './components/Chat/ChatScreen';
 import { MatchesList } from './components/Chat/MatchesList';
@@ -45,7 +46,7 @@ function getLastRoute(): string {
 }
 
 function RootRedirect() {
-  const { session, loading, hasProfile } = useAuth();
+  const { session, loading, hasProfile, needsReactivation } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
@@ -55,6 +56,7 @@ function RootRedirect() {
 
   if (!splashDone || loading) return <Splash />;
   if (!session) return <Navigate to="/signin" replace />;
+  if (needsReactivation) return <Navigate to="/reactivate" replace />;
   if (!hasProfile) return <Navigate to="/onboarding" replace />;
   return <Navigate to={getLastRoute()} replace />;
 }
@@ -75,10 +77,15 @@ function RouteMemory() {
 }
 
 function Protected() {
-  const { session, loading } = useAuth();
+  const { session, loading, needsReactivation } = useAuth();
   const location = useLocation();
   if (loading) return <Splash />;
   if (!session) return <Navigate to="/signin" replace state={{ from: location }} />;
+  // Soft-deleted but inside the 30-day window — force the reactivation prompt
+  // before allowing access to any other authenticated route.
+  if (needsReactivation && location.pathname !== '/reactivate') {
+    return <Navigate to="/reactivate" replace />;
+  }
   // Per-route ErrorBoundary: a screen-level crash doesn't take down the auth shell
   // or any sibling tab — user can still navigate via the bottom nav.
   return (
@@ -119,6 +126,7 @@ export function App() {
           <Route path="/terms" element={<Suspense fallback={<Splash />}><TermsPage /></Suspense>} />
 
           <Route element={<Protected />}>
+            <Route path="/reactivate" element={<ReactivationScreen />} />
             <Route
               path="/onboarding"
               element={<Suspense fallback={<Splash />}><OnboardingFlow /></Suspense>}

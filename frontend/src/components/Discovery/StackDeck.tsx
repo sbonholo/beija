@@ -128,6 +128,14 @@ export function StackDeck() {
           const created = new Date(matchRow.created_at).getTime();
           if (Date.now() - created < 5000) {
             setMatch({ matchId: matchRow.id, other: target });
+            // Fire push notification to both participants (best-effort).
+            try {
+              await supabase.functions.invoke('notify_match', {
+                body: { match_id: matchRow.id },
+              });
+            } catch {
+              /* push delivery is best-effort */
+            }
           }
         }
       }

@@ -1,0 +1,50 @@
+name: Process pending deletions
+
+# Daily cron — picks up any deletion_requests whose scheduled_for date has
+# passed and hard-deletes the user (Storage files + auth.users row + all
+# cascaded rows). Set the required secrets to enable:
+#   SUPABASE_FUNCTIONS_URL    https://<project-ref>.functions.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY service_role JWT from Supabase → Settings → API
+#
+# To trigger manually: Actions tab → "Process pending deletions" → Run workflow.
+
+on:
+  schedule:
+    # 03:10 UTC daily — off-peak for São Paulo (~00:10 BRT)
+    - cron: '10 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sanity check — secrets present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_FUNCTIONS_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "::warning::SUPABASE_FUNCTIONS_URL or SUPABASE_SERVICE_ROLE_KEY missing — skipping invocation."
+            exit 0
+          fi
+      - name: Invoke process_pending_deletions
+        if: ${{ secrets.SUPABASE_FUNCTIONS_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          response=$(curl -sS -w "\n%{http_code}" \
+            -X POST "${URL}/process_pending_deletions" \
+            -H "Authorization: Bearer ${KEY}" \
+            -H "Content-Type: application/json")
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+          echo "HTTP $status"
+          echo "$body"
+          if [ "$status" != "200" ]; then
+            exit 1
+          fi
+          # Surface the summary in the run output
+          processed=$(echo "$body" | jq -r '.processed // 0')
+          errors=$(echo "$body" | jq -r '.errors | length')
+          echo "## Deletions" >> "$GITHUB_STEP_SUMMARY"
+          echo "- processed: $processed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- errors: $errors" >> "$GITHUB_STEP_SUMMARY"
