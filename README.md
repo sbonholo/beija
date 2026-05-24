@@ -82,6 +82,8 @@ npm run dev
 
 Required env vars are documented in `frontend/.env.example`. Without `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` the app loads but no DB calls succeed.
 
+Want 50 perfis fake brasileiros pra testar visualmente? Veja **[docs/SEEDING.md](docs/SEEDING.md)** — `npm run db:seed` popula profiles + fotos + localização em SP/RJ/BH/Curitiba/POA.
+
 ---
 
 ## Database setup (Supabase)

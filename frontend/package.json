@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
@@ -39,6 +40,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "serve": "^14.2.6",
+    "tsx": "^4.20.6",
     "typescript": "~5.8.2",
     "vite": "^5.4.2",
     "vite-plugin-pwa": "^0.20.5"
