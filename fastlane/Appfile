@@ -1,0 +1,7 @@
+# Beija — fastlane Appfile (PLACEHOLDER)
+# Fill these in when registering the app in App Store Connect.
+
+app_identifier('io.beija.app')           # Bundle ID — matches Capacitor config
+# apple_id('appstore@beija.app')         # Your Apple ID (App Store Connect login)
+# itc_team_id('XXXXXXXX')                # App Store Connect team ID
+# team_id('XXXXXXXXXX')                  # Apple Developer team ID

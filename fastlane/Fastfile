@@ -1,0 +1,47 @@
+# Beija — fastlane configuration (PLACEHOLDER)
+#
+# Most lanes are commented out until App Store Connect credentials are wired in
+# the CI environment. To run locally:
+#
+#   gem install bundler
+#   bundle init   # if no Gemfile yet
+#   bundle add fastlane
+#   bundle exec fastlane beta
+#
+# Required env vars (typically loaded from CI secrets):
+#   APP_STORE_CONNECT_API_KEY_ID
+#   APP_STORE_CONNECT_API_ISSUER_ID
+#   APP_STORE_CONNECT_API_KEY (path to .p8 or its base64 contents)
+#   FASTLANE_USER
+#   FASTLANE_PASSWORD (app-specific password)
+#   MATCH_PASSWORD (only if using fastlane match for code signing)
+
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    # TODO: setup_circle_ci / setup_ci as appropriate
+  end
+
+  desc 'Bump build number and upload current archive to TestFlight'
+  lane :beta do
+    # TODO: enable when signing + API key are configured.
+    # increment_build_number(xcodeproj: '../frontend/ios/App/App.xcodeproj')
+    # build_app(
+    #   workspace: '../frontend/ios/App/App.xcworkspace',
+    #   scheme: 'App',
+    #   export_method: 'app-store',
+    #   clean: true,
+    # )
+    # upload_to_testflight(
+    #   skip_waiting_for_build_processing: true,
+    #   apple_id: ENV['APPLE_APP_ID'],
+    # )
+    UI.message('beta lane placeholder — wire up secrets to enable')
+  end
+
+  desc 'Production release to App Store (requires manual review submission step)'
+  lane :release do
+    UI.message('release lane placeholder')
+  end
+end
