@@ -1,11 +1,26 @@
 import { Capacitor } from '@capacitor/core';
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 import { supabase } from './supabase';
 
 const APP_BUNDLE_ID = 'io.beija.app';
+const GOOGLE_IOS_CLIENT_ID = import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID as string | undefined;
+const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID as string | undefined;
 
 export type AuthResult = { success: true } | { success: false; error: string };
+
+let socialLoginInitialized = false;
+
+async function initSocialLogin(): Promise<void> {
+  if (socialLoginInitialized) return;
+  await SocialLogin.initialize({
+    google: {
+      iOSClientId: GOOGLE_IOS_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+    },
+  });
+  socialLoginInitialized = true;
+}
 
 /**
  * Sign in with Apple. Uses native Capacitor plugin on iOS/Android,
@@ -41,19 +56,18 @@ export async function signInWithApple(): Promise<AuthResult> {
 }
 
 /**
- * Sign in with Google. Uses native Capacitor plugin on iOS/Android,
+ * Sign in with Google. Uses @capgo/capacitor-social-login on iOS/Android,
  * falls back to Supabase OAuth flow on web.
  */
 export async function signInWithGoogle(): Promise<AuthResult> {
   try {
     if (Capacitor.isNativePlatform()) {
-      try {
-        await GoogleAuth.initialize();
-      } catch {
-        /* idempotent — initialize may have already been called */
-      }
-      const result = await GoogleAuth.signIn();
-      const idToken = result.authentication?.idToken;
+      await initSocialLogin();
+      const result = await SocialLogin.login({
+        provider: 'google',
+        options: { scopes: ['email', 'profile'] },
+      });
+      const idToken = extractIdToken(result);
       if (!idToken) return { success: false, error: 'no_identity_token' };
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
@@ -74,13 +88,13 @@ export async function signInWithGoogle(): Promise<AuthResult> {
 }
 
 /**
- * Sign out from Supabase and clear any native sign-in state.
+ * Sign out from Supabase and clear native sign-in state.
  */
 export async function signOut(): Promise<AuthResult> {
   try {
     if (Capacitor.isNativePlatform()) {
       try {
-        await GoogleAuth.signOut();
+        await SocialLogin.logout({ provider: 'google' });
       } catch {
         /* not signed in via Google — ignore */
       }
@@ -98,6 +112,17 @@ export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) return null;
   return data.session;
+}
+
+function extractIdToken(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const r = result as Record<string, unknown>;
+  const inner = r.result as Record<string, unknown> | undefined;
+  const candidate =
+    (inner?.idToken as string | undefined) ??
+    (r.idToken as string | undefined) ??
+    (inner?.identityToken as string | undefined);
+  return typeof candidate === 'string' ? candidate : undefined;
 }
 
 function cryptoRandomState(): string {

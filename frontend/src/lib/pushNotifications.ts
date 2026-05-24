@@ -70,7 +70,7 @@ export async function registerPushNotifications(): Promise<RegisterResult> {
 
     const user = await getCurrentUser();
     if (user) {
-      await supabase.from('users').update({ push_token: token }).eq('id', user.id);
+      await supabase.from('profiles').update({ push_token: token }).eq('id', user.id);
     }
 
     return { success: true, token };
@@ -110,7 +110,7 @@ export async function unregister(): Promise<void> {
   try {
     const user = await getCurrentUser();
     if (user && registeredToken) {
-      await supabase.from('users').update({ push_token: null }).eq('id', user.id);
+      await supabase.from('profiles').update({ push_token: null }).eq('id', user.id);
     }
     await PushNotifications.removeAllListeners();
     registeredToken = null;
