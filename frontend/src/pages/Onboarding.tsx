@@ -24,19 +24,13 @@ const seekingOptions: { value: SeekingChip; label: string; icon: string }[] = [
 
 export function Onboarding() {
   const nav = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, setUser, signOut } = useAuth();
   const [step, setStep] = useState(0);
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
   const [seeking, setSeeking] = useState<Gender[]>(user?.seeking ?? []);
-  const [birthdate, setBirthdate] = useState(user?.birthdate || '');
+  const [underage, setUnderage] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const maxBirthdate = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().slice(0, 10);
-  })();
 
   const everyoneSelected = ALL_GENDERS.every((g) => seeking.includes(g));
 
@@ -55,13 +49,11 @@ export function Onboarding() {
     return seeking.includes(value);
   }
 
-  async function finish(withBirthdate: string | null) {
+  async function finish() {
     if (!nickname || !gender || seeking.length === 0) return;
     setSaving(true);
     try {
-      const patch: Record<string, unknown> = { nickname, gender, seeking };
-      if (withBirthdate) patch.birthdate = withBirthdate;
-      const { user } = await api.updateMe(patch);
+      const { user } = await api.updateMe({ nickname, gender, seeking });
       setUser(user);
       nav(user.photoUrl ? '/events' : '/photo', { replace: true });
     } finally {
@@ -149,40 +141,63 @@ export function Onboarding() {
         </>
       )}
 
-      {step === 2 && (
+      {step === 2 && !underage && (
         <>
           <label className="muted" style={{ fontSize: 13, marginBottom: 4, display: 'block' }}>
-            Quando você nasceu?
+            Você tem 18 anos ou mais?
           </label>
-          <p className="muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 12 }}>
-            Isso nos ajuda a encontrar pessoas compatíveis
+          <p className="muted" style={{ fontSize: 12, marginTop: 0, marginBottom: 16 }}>
+            O Beija é só pra maiores de 18.
           </p>
-          <input
-            type="date"
-            max={maxBirthdate}
-            value={birthdate}
-            onChange={(e) => setBirthdate(e.target.value)}
-          />
           <button
             className="btn"
-            style={{ marginTop: 22 }}
-            disabled={saving || !birthdate}
-            onClick={() => finish(birthdate)}
+            style={{ marginTop: 6 }}
+            disabled={saving}
+            onClick={finish}
           >
-            {saving ? 'Salvando...' : 'Bora! 🔥'}
+            {saving ? 'Salvando...' : 'Sim, tenho 18+'}
           </button>
           <button
             className="btn ghost"
             style={{ marginTop: 12 }}
             disabled={saving}
-            onClick={() => finish(null)}
+            onClick={() => setUnderage(true)}
           >
-            Pular
+            Não
           </button>
         </>
       )}
 
-      {step > 0 && (
+      {step === 2 && underage && (
+        <>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>🚫</div>
+            <h3 style={{ margin: '0 0 8px' }}>Volta quando completar 18</h3>
+            <p className="muted" style={{ margin: 0 }}>
+              O Beija é exclusivo pra maiores de 18 anos.
+            </p>
+          </div>
+          <button
+            className="btn"
+            style={{ marginTop: 22 }}
+            onClick={() => {
+              signOut();
+              nav('/', { replace: true });
+            }}
+          >
+            Sair
+          </button>
+          <button
+            className="btn ghost"
+            style={{ marginTop: 12 }}
+            onClick={() => setUnderage(false)}
+          >
+            Voltar
+          </button>
+        </>
+      )}
+
+      {step > 0 && !(step === 2 && underage) && (
         <button className="btn ghost" style={{ marginTop: 12 }} onClick={() => setStep((s) => s - 1)}>
           Voltar
         </button>

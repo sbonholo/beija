@@ -74,7 +74,8 @@ export function Chat() {
     const draft = text.trim();
     setText('');
     try {
-      await api.sendMessage(matchId, draft);
+      const { message } = await api.sendMessage(matchId, draft);
+      setMessages((cur) => (cur.some((x) => x.id === message.id) ? cur : [...cur, message]));
     } catch {
       setText(draft);
     } finally {
