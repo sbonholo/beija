@@ -62,6 +62,7 @@ export function Profile() {
       gender,
       seeking,
     });
+    nav('/events');
   }
 
   function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
