@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { pickPhoto, uploadProfilePhoto } from '../../lib/storage';
 import { ModerationError } from '../../lib/moderation';
+import { track } from '../../lib/analytics';
 import { useToast } from '../Toast';
 
 const ModerationFeedbackModal = lazy(
@@ -67,6 +68,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (step === 0 && step1Valid && !advancedFrom.current.has(0)) {
       advancedFrom.current.add(0);
+      track('onboarding_step_completed', { step: 'identity' });
       const id = window.setTimeout(() => setStep(1), 250);
       return () => window.clearTimeout(id);
     }
@@ -76,6 +78,7 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (step === 1 && step2Valid && !advancedFrom.current.has(1)) {
       advancedFrom.current.add(1);
+      track('onboarding_step_completed', { step: 'preferences' });
       const id = window.setTimeout(() => setStep(2), 250);
       return () => window.clearTimeout(id);
     }
@@ -116,6 +119,8 @@ export function OnboardingFlow() {
       );
       if (photoRowErr) throw photoRowErr;
 
+      track('profile_setup_completed');
+      track('signup_completed');
       nav('/discover', { replace: true });
     } catch (e) {
       if (e instanceof ModerationError) {

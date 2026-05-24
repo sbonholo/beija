@@ -6,6 +6,7 @@ import { MatchModal } from './MatchModal';
 import { DiscoveryFilters } from './DiscoveryFilters';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useToast } from '../Toast';
+import { track } from '../../lib/analytics';
 import {
   REWIND_DAILY_LIMIT,
   REWIND_HISTORY_LIMIT,
@@ -90,6 +91,7 @@ export function StackDeck() {
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<NewMatch | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [firstCardTracked, setFirstCardTracked] = useState(false);
   useGeolocation({ autoUpdate: true });
 
   const top = useMemo(() => deck.slice(0, STACK_VISIBLE), [deck]);
@@ -177,11 +179,19 @@ export function StackDeck() {
   }, [userId, deck.length, loadMore]);
 
   useEffect(() => {
+    if (!firstCardTracked && deck.length > 0) {
+      setFirstCardTracked(true);
+      track('first_card_viewed');
+    }
+  }, [deck.length, firstCardTracked]);
+
+  useEffect(() => {
     if (userId) void refreshLikesYou();
   }, [userId, refreshLikesYou]);
 
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
+    track(`swipe_${direction}`, { card_index: history.length });
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
     void bumpLastActive(userId);
     let matchedId: string | null = null;
@@ -211,6 +221,7 @@ export function StackDeck() {
           const created = new Date(matchRow.created_at).getTime();
           if (Date.now() - created < 5000) {
             matchedId = matchRow.id as string;
+            track('match_created', { direction });
             setMatch({ matchId: matchRow.id as string, other: target });
             try {
               await supabase.functions.invoke('notify_match', {
@@ -247,6 +258,7 @@ export function StackDeck() {
       return;
     }
     setRewinding(true);
+    track('rewind_used', { remaining: REWIND_DAILY_LIMIT - rewindCount - 1 });
     const inverse: SwipeDirection =
       last.direction === 'left' ? 'right' : last.direction === 'right' ? 'left' : 'super';
     try {
@@ -327,7 +339,10 @@ export function StackDeck() {
           <button
             className="btn"
             style={{ marginTop: 18, maxWidth: 260 }}
-            onClick={() => nav('/likes-you')}
+            onClick={() => {
+              track('likes_you_viewed', { source: 'empty_deck_cta' });
+              nav('/likes-you');
+            }}
           >
             Ver {likesYouCount} {likesYouCount === 1 ? 'curtida' : 'curtidas'} 💋
           </button>
@@ -347,7 +362,10 @@ export function StackDeck() {
             <button
               type="button"
               className="chip"
-              onClick={() => nav('/likes-you')}
+              onClick={() => {
+              track('likes_you_viewed', { source: 'discover_chip' });
+              nav('/likes-you');
+            }}
               aria-label={`${likesYouCount} curtidas`}
               style={{
                 background: 'linear-gradient(120deg, var(--pink), var(--hot))',

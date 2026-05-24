@@ -9,6 +9,7 @@
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.106.1';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
+import { withSentry } from '../_shared/sentry.ts';
 import { sendApns } from '../_shared/apns.ts';
 import { sendFcm } from '../_shared/fcm.ts';
 
@@ -115,7 +116,7 @@ async function resolveMatch(
   return data;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSentry('notify_match', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, { status: 405 });
 
@@ -173,4 +174,4 @@ Deno.serve(async (req) => {
 
   logJson('info', { matchId: resolved.id, results });
   return jsonResponse({ ok: true, results });
-});
+}));

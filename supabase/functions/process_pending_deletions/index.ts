@@ -17,6 +17,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.106.1';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
+import { withSentry } from '../_shared/sentry.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -29,7 +30,7 @@ function logJson(level: 'info' | 'warn' | 'error', fields: Record<string, unknow
   );
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withSentry('process_pending_deletions', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const auth = req.headers.get('Authorization') ?? '';
@@ -116,4 +117,4 @@ Deno.serve(async (req) => {
 
   logJson('info', { stage: 'summary', batch: pending.length, processed, errored: errors.length });
   return jsonResponse({ ok: true, processed, errors });
-});
+}));

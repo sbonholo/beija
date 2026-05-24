@@ -46,6 +46,12 @@ verify_jwt = false
 # Defense in depth — photo_moderation_hook runs post-upload as backstop.
 
 # ---------------------------------------------------------------------------
+# Observability (FASE P2)
+# ---------------------------------------------------------------------------
+# All edge functions read SENTRY_DSN_EDGE (set via `supabase secrets set`).
+# When unset, the wrapper is a no-op — handlers still run normally.
+
+# ---------------------------------------------------------------------------
 # Storage buckets (declarative)
 # ---------------------------------------------------------------------------
 # `profile-photos` is public-readable; `quarantine` is private. Create via

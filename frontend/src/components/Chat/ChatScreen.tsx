@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase, type Match, type Message } from '../../lib/supabase';
+import { track } from '../../lib/analytics';
 import { MessageBubble } from './MessageBubble';
 import { BlockButton } from '../Moderation/BlockButton';
 import { ReportModal } from '../Moderation/ReportModal';
@@ -212,6 +213,9 @@ export function ChatScreen() {
       if (insertErr) throw insertErr;
       if (msg) {
         setMessages((cur) => (cur.some((x) => x.id === msg.id) ? cur : [...cur, msg as Message]));
+        const len = draft.length;
+        const bucket = len < 20 ? 'short' : len < 100 ? 'medium' : 'long';
+        track('message_sent', { length_bucket: bucket });
       }
       // Best-effort push notification trigger (edge function placeholder).
       try {

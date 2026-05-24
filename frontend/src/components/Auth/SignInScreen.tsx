@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithApple, signInWithGoogle } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { track } from '../../lib/analytics';
 import { useToast } from '../Toast';
 
 type Provider = 'apple' | 'google';
@@ -13,6 +14,7 @@ export function SignInScreen() {
 
   async function handleSignIn(provider: Provider) {
     if (loading) return;
+    track('signup_started', { provider });
     setLoading(provider);
     try {
       const result = provider === 'apple' ? await signInWithApple() : await signInWithGoogle();

@@ -5,6 +5,7 @@ import { ReportModal } from '../Moderation/ReportModal';
 import { useToast } from '../Toast';
 import { STR_PROFILE_DETAIL_BLOCK, STR_PROFILE_DETAIL_CLOSE, STR_PROFILE_DETAIL_MORE, STR_PROFILE_DETAIL_REPORT, STR_PASS, STR_LIKE } from '../../lib/constants';
 import { formatDistanceKm } from '../../lib/labels';
+import { track } from '../../lib/analytics';
 
 interface ProfileDetail extends Profile {
   photos: string[];
@@ -46,6 +47,7 @@ export default function ProfileDetailModal() {
   // Load me + profile + photos in parallel
   useEffect(() => {
     if (!id) return;
+    track('profile_detail_opened', { source: 'direct_url' });
     let cancelled = false;
     (async () => {
       try {

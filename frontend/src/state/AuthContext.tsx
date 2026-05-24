@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { signOut as authSignOut } from '../lib/auth';
+import { identifyAnalytics, resetAnalytics, setAnalyticsConsent } from '../lib/analytics';
+import { identifySentryUser } from '../lib/sentry';
 
 interface ProfileLite {
   id: string;
@@ -9,6 +11,7 @@ interface ProfileLite {
   gender: string | null;
   deleted_at: string | null;
   has_photo: boolean;
+  allow_analytics: boolean;
   /** non-null when an active deletion_request exists. */
   deletion_scheduled_for: string | null;
 }
@@ -35,7 +38,7 @@ async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
   const [{ data: profileRow }, { data: photoRow }, { data: deletionRow }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, gender, deleted_at')
+      .select('id, name, gender, deleted_at, allow_analytics')
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -59,6 +62,7 @@ async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
     gender: profileRow.gender ?? null,
     deleted_at: profileRow.deleted_at ?? null,
     has_photo: !!photoRow,
+    allow_analytics: profileRow.allow_analytics !== false,
     deletion_scheduled_for: activeDeletion,
   };
 }
@@ -91,8 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currentSessionRef.current = token;
       setSession(data.session);
       if (data.session) {
+        identifySentryUser(data.session.user.id);
+        identifyAnalytics(data.session.user.id);
         const p = await fetchProfileLite(data.session.user.id);
-        if (mounted && currentSessionRef.current === token) setProfile(p);
+        if (mounted && currentSessionRef.current === token) {
+          setProfile(p);
+          if (p) setAnalyticsConsent(p.allow_analytics);
+        }
       }
       if (mounted) setLoading(false);
     })();
@@ -103,9 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currentSessionRef.current = token;
       setSession(newSession);
       if (newSession) {
+        identifySentryUser(newSession.user.id);
+        identifyAnalytics(newSession.user.id);
         const p = await fetchProfileLite(newSession.user.id);
-        if (mounted && currentSessionRef.current === token) setProfile(p);
+        if (mounted && currentSessionRef.current === token) {
+          setProfile(p);
+          if (p) setAnalyticsConsent(p.allow_analytics);
+        }
       } else {
+        identifySentryUser(null);
+        resetAnalytics();
         setProfile(null);
       }
     });
@@ -118,6 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await authSignOut();
+    identifySentryUser(null);
+    resetAnalytics();
     setSession(null);
     setProfile(null);
   }, []);

@@ -215,6 +215,21 @@ Style conventions:
 
 ---
 
+## Observability
+
+Sentry (errors + session replay com PII mascarado) + PostHog (funil
+`abrir app → swipe → match → mensagem`) + web-vitals (LCP/INP/CLS/FCP/TTFB).
+
+- Frontend SDKs em `src/lib/{sentry,analytics,vitals}.ts`.
+- Edge functions wrappadas via `supabase/functions/_shared/sentry.ts`.
+- Opt-out LGPD-compliance em Settings → Privacidade
+  (`profiles.allow_analytics`).
+- Eventos, sample rates, setup e custos: **[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)**.
+
+Tudo fail-safe — sem keys, no-op. Dev local funciona sem qualquer config.
+
+---
+
 ## Compliance
 
 App Store / Google Play exigem tooling de moderação pra apps com

@@ -1,4 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { captureSentryException } from '../lib/sentry';
+import { track } from '../lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -17,6 +19,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('ErrorBoundary caught:', error, info);
+    captureSentryException(error, { componentStack: info.componentStack });
+    track('app_error', {
+      error_boundary: true,
+      message: error.message?.slice(0, 200),
+      name: error.name,
+    });
   }
 
   render() {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { setAnalyticsConsent, track } from '../../lib/analytics';
 import { useToast } from '../Toast';
 import {
   APP_VERSION,
@@ -21,12 +22,14 @@ interface Prefs {
   mute_notifications: boolean;
   hide_distance: boolean;
   show_age: boolean;
+  allow_analytics: boolean;
 }
 
 const DEFAULT_PREFS: Prefs = {
   mute_notifications: false,
   hide_distance: false,
   show_age: true,
+  allow_analytics: true,
 };
 
 export default function SettingsScreen() {
@@ -48,7 +51,7 @@ export default function SettingsScreen() {
       }
       const { data } = await supabase
         .from('profiles')
-        .select('mute_notifications, hide_distance, show_age')
+        .select('mute_notifications, hide_distance, show_age, allow_analytics')
         .eq('id', me)
         .maybeSingle();
       if (cancelled) return;
@@ -57,7 +60,9 @@ export default function SettingsScreen() {
         mute_notifications: !!data?.mute_notifications,
         hide_distance: !!data?.hide_distance,
         show_age: data?.show_age !== false,
+        allow_analytics: data?.allow_analytics !== false,
       });
+      track('settings_opened');
       setLoading(false);
     })();
     return () => {
@@ -77,6 +82,9 @@ export default function SettingsScreen() {
           .update({ [key]: value })
           .eq('id', userId);
         if (error) throw error;
+        // Track BEFORE flipping consent so the opt-out itself gets recorded.
+        track('settings_changed', { setting_name: key, value });
+        if (key === 'allow_analytics') setAnalyticsConsent(value);
       } catch (e) {
         setPrefs((p) => ({ ...p, [key]: prev }));
         toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao salvar' });
@@ -126,6 +134,13 @@ export default function SettingsScreen() {
           saving={saving === 'show_age'}
           onChange={(v) => void update('show_age', v)}
           hint="Mostra sua idade no card do Discover."
+        />
+        <Toggle
+          label="Compartilhar dados anônimos para melhorias"
+          checked={prefs.allow_analytics}
+          saving={saving === 'allow_analytics'}
+          onChange={(v) => void update('allow_analytics', v)}
+          hint="Eventos de uso (sem nome, foto ou conteúdo de chat). Pode desligar a qualquer momento."
         />
         <Link to="/privacy" className="settings-link">
           {STR_PRIVACY_POLICY} →

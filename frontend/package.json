@@ -21,12 +21,15 @@
     "@capacitor/ios": "^8.3.4",
     "@capacitor/push-notifications": "^8.1.1",
     "@capgo/capacitor-social-login": "^8.3.22",
+    "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.106.1",
+    "posthog-js": "^1.376.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.26.2",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "web-vitals": "^5.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

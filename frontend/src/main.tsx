@@ -14,7 +14,17 @@ import { App } from './App';
 import { AuthProvider } from './state/AuthContext';
 import { UnreadProvider } from './state/UnreadContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { initSentry } from './lib/sentry';
+import { initAnalytics, track } from './lib/analytics';
+import { startWebVitals } from './lib/vitals';
 import './index.css';
+
+// Boot observability before anything React-related so initial errors are
+// caught and the app_opened funnel marker is the first event.
+initSentry();
+initAnalytics();
+startWebVitals();
+track('app_opened');
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {

@@ -1,6 +1,7 @@
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { supabase } from './supabase';
 import { ModerationError, moderatePhotoPreUpload } from './moderation';
+import { track } from './analytics';
 
 const BUCKET = 'profile-photos';
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -61,12 +62,14 @@ export async function uploadProfilePhoto(
   }
 
   blob = await validateAndResize(blob);
+  track('photo_upload_attempted', { slot });
 
   // Pre-upload moderation (Apple Guideline 1.2). Fails OPEN on provider
   // errors — server-side photo_moderation_hook is the backstop.
   const resizedBase64 = await blobToBase64(blob);
   const decision = await moderatePhotoPreUpload(resizedBase64, blob.type);
   if (!decision.approved) {
+    track('photo_upload_blocked', { slot, reasons: decision.reasons });
     throw new ModerationError(decision.reasons, decision.scores);
   }
 
@@ -75,6 +78,7 @@ export async function uploadProfilePhoto(
     .from(BUCKET)
     .upload(path, blob, { upsert: true, contentType: blob.type });
   if (error) throw error;
+  track('photo_upload_success', { slot });
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { publicUrl: data.publicUrl };
