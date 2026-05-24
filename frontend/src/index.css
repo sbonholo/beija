@@ -337,6 +337,42 @@ a { color: var(--pink-glow); }
   font-weight: 700;
 }
 
+.markdown-body h1 { font-size: 24px; margin: 16px 0 12px; }
+.markdown-body h2 { font-size: 20px; margin: 18px 0 10px; color: var(--pink-glow); }
+.markdown-body h3 { font-size: 16px; margin: 14px 0 8px; }
+.markdown-body p { margin: 8px 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 22px; margin: 8px 0; }
+.markdown-body li { margin: 4px 0; }
+.markdown-body code { background: var(--bg-elev); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+.markdown-body pre { background: var(--bg-elev); padding: 12px; border-radius: 8px; overflow-x: auto; }
+.markdown-body a { color: var(--pink-glow); }
+.markdown-body table { border-collapse: collapse; margin: 12px 0; width: 100%; }
+.markdown-body th, .markdown-body td { border: 1px solid rgba(255,255,255,0.1); padding: 6px 10px; text-align: left; font-size: 13px; }
+.markdown-body hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 22px 0; }
+
+.splash-screen {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background:
+    radial-gradient(800px 600px at 50% 30%, #2a0036 0%, transparent 60%),
+    var(--bg);
+  animation: fadeIn 0.4s ease;
+}
+.splash-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--pink-glow);
+  margin-top: 18px;
+  animation: splash-pulse 1.2s ease-in-out infinite;
+}
+@keyframes splash-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
 .confetti-piece {
   position: absolute;
   top: -20px;

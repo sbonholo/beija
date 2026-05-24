@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom';
 import { useUnread } from '../state/UnreadContext';
 
 const tabs = [
-  { to: '/events', icon: '🎶', label: 'Eventos' },
+  { to: '/discover', icon: '🔥', label: 'Discover' },
   { to: '/matches', icon: '💋', label: 'Matches' },
-  { to: '/', icon: '👤', label: 'Perfil', end: true },
+  { to: '/profile', icon: '👤', label: 'Perfil' },
 ];
 
 export function BottomNav() {
@@ -15,7 +15,11 @@ export function BottomNav() {
       {tabs.map((t) => {
         const showBadge = t.to === '/matches' && unreadMatches > 0;
         return (
-          <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => (isActive ? 'active' : '')}>
+          <NavLink
+            key={t.to}
+            to={t.to}
+            className={({ isActive }) => (isActive ? 'active' : '')}
+          >
             <span className="icon" aria-hidden style={{ position: 'relative' }}>
               {t.icon}
               {showBadge && <span className="unread-dot" aria-label="mensagens não lidas" />}

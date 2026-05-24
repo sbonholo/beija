@@ -1,52 +1,119 @@
-import { createContext, useCallback, useContext, useState, ReactNode } from 'react';
-import { closeSocket } from '../lib/socket';
-import type { User } from '../types';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { signOut as authSignOut } from '../lib/auth';
 
-const PROFILE_KEY = 'beija_profile';
-
-function readProfile(): User | null {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
-}
-
-function writeProfile(u: User | null) {
-  try {
-    if (u) localStorage.setItem(PROFILE_KEY, JSON.stringify(u));
-    else localStorage.removeItem(PROFILE_KEY);
-  } catch {
-    /* quota or private mode */
-  }
+interface ProfileLite {
+  id: string;
+  name: string | null;
+  gender: string | null;
+  deleted_at: string | null;
+  has_photo: boolean;
 }
 
 interface AuthCtx {
-  user: User | null;
+  session: Session | null;
+  userId: string | null;
   loading: boolean;
-  setUser: (u: User | null) => void;
-  signOut: () => void;
+  profile: ProfileLite | null;
+  hasProfile: boolean;
+  refresh: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<User | null>(() => readProfile());
+async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
+  const [{ data: profileRow }, { data: photoRow }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, name, gender, deleted_at')
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .from('photos')
+      .select('user_id')
+      .eq('user_id', userId)
+      .eq('slot', 0)
+      .maybeSingle(),
+  ]);
+  if (!profileRow) return null;
+  return {
+    id: profileRow.id,
+    name: profileRow.name ?? null,
+    gender: profileRow.gender ?? null,
+    deleted_at: profileRow.deleted_at ?? null,
+    has_photo: !!photoRow,
+  };
+}
 
-  const setUser = useCallback((u: User | null) => {
-    setUserState(u);
-    writeProfile(u);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<ProfileLite | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    setSession(data.session);
+    if (data.session) {
+      const p = await fetchProfileLite(data.session.user.id);
+      setProfile(p);
+    } else {
+      setProfile(null);
+    }
   }, []);
 
-  const signOut = useCallback(() => {
-    setUser(null);
-    closeSocket();
-  }, [setUser]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+      setSession(data.session);
+      if (data.session) {
+        const p = await fetchProfileLite(data.session.user.id);
+        if (mounted) setProfile(p);
+      }
+      if (mounted) setLoading(false);
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession);
+      if (newSession) {
+        const p = await fetchProfileLite(newSession.user.id);
+        if (mounted) setProfile(p);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await authSignOut();
+    setSession(null);
+    setProfile(null);
+  }, []);
+
+  const hasProfile =
+    !!profile && !!profile.name && !!profile.gender && !profile.deleted_at && profile.has_photo;
 
   return (
-    <Ctx.Provider value={{ user, loading: false, setUser, signOut }}>
+    <Ctx.Provider
+      value={{
+        session,
+        userId: session?.user.id ?? null,
+        loading,
+        profile,
+        hasProfile,
+        refresh,
+        signOut,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
