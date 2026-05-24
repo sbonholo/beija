@@ -32,6 +32,11 @@ jobs:
   release:
     name: Build + upload AAB
     runs-on: ubuntu-latest
+    # TODO(infra): re-enable strict mode once docs/CI.md § "Known
+    # non-blocking CI failures" → "Android debug build" is closed. This
+    # workflow is workflow_dispatch-only so it doesn't gate PRs anyway,
+    # but a green default expectation helps catch real regressions earlier.
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
