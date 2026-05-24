@@ -1,0 +1,48 @@
+/**
+ * Single source of truth for UX timing, color tokens (not in CSS vars),
+ * and default product values. Keep this thin — anything with strong styling
+ * intent belongs in index.css as a CSS variable.
+ */
+
+// ---- UX timings ----
+export const LONG_PRESS_MS = 500;
+export const SWIPE_THRESHOLD_PCT = 0.25;
+export const SWIPE_UP_THRESHOLD_PX = 80;
+export const TAP_TOLERANCE_PX = 6;
+export const SWIPE_EXIT_MS = 220;
+export const SPLASH_MS = 1500;
+export const TYPING_TIMEOUT_MS = 3000;
+export const TYPING_BROADCAST_THROTTLE_MS = 800;
+export const GEOLOCATION_REFRESH_MS = 30 * 60 * 1000;
+export const MATCH_DETECTION_WINDOW_MS = 5000;
+
+// ---- Storage / quotas ----
+export const MAX_PHOTO_SLOTS = 6;
+export const MAX_PHOTOS_PER_CARD = 5;
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export const MAX_PHOTO_DIMENSION = 1080;
+export const MIN_PHOTO_DIMENSION = 400;
+
+// ---- Defaults ----
+export const DEFAULT_MIN_AGE = 18;
+export const DEFAULT_MAX_AGE = 50;
+export const DEFAULT_MAX_DISTANCE_KM = 50;
+export const ABSOLUTE_MAX_AGE = 99;
+export const ABSOLUTE_MAX_DISTANCE_KM = 100;
+
+// ---- Limits ----
+export const MAX_MESSAGE_CHARS = 2000;
+export const MAX_BIO_CHARS = 300;
+export const MAX_ONBOARDING_BIO_CHARS = 150;
+export const MAX_NICKNAME_CHARS = 30;
+export const POTENTIAL_MATCHES_BATCH = 10;
+export const STACK_VISIBLE = 3;
+export const ACCOUNT_DELETION_GRACE_DAYS = 30;
+
+// ---- Color tokens not exposed as CSS vars (used inline in JSX) ----
+export const COLOR_NOPE = '#ff5b5b';
+export const COLOR_LIKE = '#4ade80';
+export const COLOR_SUPER = '#3aa8ff';
+
+// ---- Bundle id (also referenced in capacitor.config) ----
+export const APP_BUNDLE_ID = 'io.beija.app';
