@@ -101,7 +101,7 @@ router.get('/:id/people', authRequired, (req: AuthedRequest, res) => {
        WHERE c.event_id = ? AND u.id != ?
          AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?)
          AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?)
-       ORDER BY c.checked_in_at DESC`
+       ORDER BY c.checked_in_at DESC, u.id ASC`
     )
     .all(eventId, meId, meId, meId) as any[];
 

@@ -145,6 +145,7 @@ export const mockedApi = {
   },
   sendReaction: async (toUserId: string, eventId: string, type: string) => {
     const target = mockPeople.find((p) => p.id === toUserId);
+    if (target) target.sentReaction = type as import('../types').ReactionType;
     // Match rule: any combination matches as long as the other person already reacted.
     if (target && target.receivedReaction) {
       const matchId = `mock-match-${toUserId}`;
@@ -173,7 +174,11 @@ export const mockedApi = {
     }
     return { ok: true as const, reaction: type, match: null };
   },
-  removeReaction: async (_toUserId: string, _eventId: string) => ({ ok: true as const }),
+  removeReaction: async (toUserId: string, _eventId: string) => {
+    const target = mockPeople.find((p) => p.id === toUserId);
+    if (target) target.sentReaction = null;
+    return { ok: true as const };
+  },
   listMatches: async (): Promise<{ matches: any[] }> => ({ matches: mockMatches }),
   listMessages: async (matchId: string): Promise<{ messages: any[] }> => ({
     messages: matchId === 'mock-match-1' ? mockMessages : [],
