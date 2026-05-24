@@ -10,6 +10,7 @@ import { Matches } from './pages/Matches';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
 import { getSocket, closeSocket } from './lib/socket';
+import { isMockMode } from './lib/api';
 import type { ReactionType, User } from './types';
 import { hapticSuccess } from './platform/haptics';
 
@@ -31,12 +32,8 @@ function GlobalSocketListeners() {
 
   useEffect(() => {
     if (!user) return;
-    let sock: ReturnType<typeof getSocket> | null = null;
-    try {
-      sock = getSocket();
-    } catch {
-      return;
-    }
+    const sock = getSocket();
+    if (!sock) return;
 
     const onReaction = (payload: { fromUser: User; type: ReactionType; eventId: string }) => {
       if (location.pathname.startsWith(`/events/${payload.eventId}`)) return;
@@ -60,13 +57,9 @@ function GlobalSocketListeners() {
     sock.on('message:new', onMessage);
 
     return () => {
-      try {
-        sock?.off('reaction:incoming', onReaction);
-        sock?.off('match:new', onMatch);
-        sock?.off('message:new', onMessage);
-      } catch {
-        /* socket already torn down */
-      }
+      sock.off('reaction:incoming', onReaction);
+      sock.off('match:new', onMatch);
+      sock.off('message:new', onMessage);
     };
   }, [user, toast, location.pathname, nav, bump]);
 
@@ -89,6 +82,15 @@ export function App() {
   return (
     <ToastProvider>
       <GlobalSocketListeners />
+      {isMockMode && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: '#f59e0b', color: '#000', textAlign: 'center',
+          padding: '4px 0', fontSize: '13px', fontWeight: 600,
+        }}>
+          ⚡ Modo Demo — dados fictícios
+        </div>
+      )}
       <div className="app">
         <Routes>
           <Route path="/" element={user ? <Profile /> : <CreateProfile />} />

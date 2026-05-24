@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockedApi as api } from '../lib/api';
+import { activeApi as api } from '../lib/api';
 import type { MatchSummary } from '../types';
 import { BottomNav } from '../components/BottomNav';
 import { getSocket } from '../lib/socket';

@@ -3,12 +3,13 @@ import { getToken } from './api';
 
 let socket: Socket | null = null;
 
-export function getSocket(): Socket {
+export function getSocket(): Socket | null {
   if (socket && socket.connected) return socket;
   const url =
     import.meta.env.VITE_SOCKET_URL ||
     import.meta.env.VITE_API_URL ||
-    undefined;
+    null;
+  if (!url) return null;
   socket = io(url, {
     autoConnect: true,
     transports: ['websocket', 'polling'],
@@ -24,7 +25,7 @@ export function closeSocket() {
   }
 }
 
-export function refreshSocketAuth() {
+export function refreshSocketAuth(): Socket | null {
   closeSocket();
   return getSocket();
 }

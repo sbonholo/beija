@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { mockedApi as api } from '../lib/api';
+import { activeApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { PersonAtEvent, ReactionType, EventItem, User } from '../types';
 import { getSocket } from '../lib/socket';
