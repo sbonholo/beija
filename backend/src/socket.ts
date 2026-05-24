@@ -1,5 +1,7 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 import { verifyToken } from './auth.js';
 import { config } from './config.js';
 
@@ -12,6 +14,13 @@ export function initSocket(server: HttpServer) {
       credentials: true,
     },
   });
+
+  if (process.env.REDIS_URL) {
+    const pubClient = new Redis(process.env.REDIS_URL);
+    const subClient = pubClient.duplicate();
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('[socket] Redis adapter enabled');
+  }
 
   io.use((socket, next) => {
     const token = (socket.handshake.auth?.token as string) || '';
