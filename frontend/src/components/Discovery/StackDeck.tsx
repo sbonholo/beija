@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase, type Profile } from '../../lib/supabase';
 import { SwipeCard, type SwipeDirection } from './SwipeCard';
 import { MatchModal } from './MatchModal';
+import { DiscoveryFilters } from './DiscoveryFilters';
+import { useGeolocation } from '../../hooks/useGeolocation';
 
 const BATCH_SIZE = 10;
 const STACK_VISIBLE = 3;
@@ -22,6 +24,8 @@ export function StackDeck() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<NewMatch | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  useGeolocation({ autoUpdate: true });
 
   const top = useMemo(() => deck.slice(0, STACK_VISIBLE), [deck]);
 
@@ -186,6 +190,17 @@ export function StackDeck() {
 
   return (
     <div className="screen" style={{ paddingBottom: 140 }}>
+      <div className="header" style={{ marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Discover</h2>
+        <button
+          type="button"
+          className="chip"
+          onClick={() => setFiltersOpen(true)}
+          aria-label="Filtros"
+        >
+          ⚙︎ Filtros
+        </button>
+      </div>
       <div
         style={{
           position: 'relative',
@@ -255,6 +270,16 @@ export function StackDeck() {
           matchId={match.matchId}
           other={match.other}
           onClose={() => setMatch(null)}
+        />
+      )}
+
+      {filtersOpen && (
+        <DiscoveryFilters
+          onClose={() => setFiltersOpen(false)}
+          onApplied={() => {
+            setDeck([]);
+            void loadMore();
+          }}
         />
       )}
     </div>
