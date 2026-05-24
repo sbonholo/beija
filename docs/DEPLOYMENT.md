@@ -6,14 +6,16 @@ Step-by-step from empty environment to a TestFlight build users can install.
 
 ## Prerequisites
 
-| Item | Cost | Time to set up |
+| Item | Cost | Status / Time |
 |---|---|---|
-| Apple Developer Account | $99/year | ~30 min + 24–48h verification |
-| Google Cloud Console account | Free | 10 min |
-| Supabase account + project | Free tier OK to start | 10 min |
-| Domain `beija.app` (or your choice) | ~$15/year | 15 min |
-| Email for support / legal | $0 if using Gmail aliases | 5 min |
-| Designer-day for icon + screenshots | One-off | See `ASSETS_SPEC.md` |
+| Apple Developer Account | $99/year | **✅ Already provisioned** under `info@arborium.app` (access recovery pending — see `CREDENTIALS.md`) |
+| Google Cloud Console account | Free | ❌ 10 min |
+| Supabase account + project | Free tier OK to start | ❌ 10 min |
+| Domain `beija.app` (or your choice) | ~$15/year | ❌ 15 min |
+| Email for support / legal | $0 if using Gmail aliases | ❌ 5 min |
+| Designer-day for icon + screenshots | One-off | ❌ See `ASSETS_SPEC.md` |
+
+> Apple Dev account belongs to the **Arborium** entity. The annual fee is paid; only access recovery is blocking. See the recovery checklist in `CREDENTIALS.md`.
 
 Software:
 - macOS (required for iOS submission)
@@ -201,9 +203,9 @@ If a release breaks production:
 
 ## Estimated total time
 
-- Apple Dev signup + verification: **24–48h** (mostly waiting)
+- Apple Dev signup + verification: **already done** ✅ (only access recovery needed for `info@arborium.app`)
 - Steps 1–6: **1 day** of focused work
 - First archive + TestFlight upload: **2–4h**
 - Apple review of TestFlight: **0** for internal testers, **≤24h** for external; full App Store: **1–3 business days**
 
-Realistic: **3–5 calendar days from credentials in hand to first external TestFlight invite**.
+Realistic: **1–2 calendar days from Apple access recovered to first external TestFlight invite**.

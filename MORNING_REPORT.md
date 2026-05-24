@@ -64,7 +64,8 @@ Bottom nav (Discover / Matches / Perfil) with active-tab gradient bar + live unr
 ## What's outside the diff (still TODO)
 
 ### Blocking App Store submission
-- [ ] **Apple Developer account** activation (`$99/yr`, 24–48h)
+- [x] ~~**Apple Developer account** activation~~ — ✅ already provisioned under `info@arborium.app` (Arborium entity); ⛔ access recovery pending. See `CREDENTIALS.md`.
+- [ ] **Apple Dev access recovery** (password / 2FA reset on Apple ID account recovery)
 - [ ] **Supabase project** created + `supabase db push` run
 - [ ] **Apple Sign In** configured in Supabase + Apple Dev (Services ID, Key, Team ID)
 - [ ] **Google OAuth** clients created (iOS + Web) + put into Supabase + `.env.local`
@@ -86,13 +87,14 @@ Bottom nav (Discover / Matches / Perfil) with active-tab gradient bar + live unr
 
 ## Time to first TestFlight
 
-Assuming credentials in hand and one designer-day for the icon + first screenshot:
+Apple Dev is already provisioned — only access recovery for `info@arborium.app` is blocking. Once recovered + one designer-day for the icon + first screenshot:
 
+- Apple ID access recovery: **0–24h** (depends on Apple's recovery flow)
 - Supabase project + migrations + OAuth providers: **half day**
 - Xcode capabilities + Info.plist + first archive: **half day**
 - Upload to TestFlight + invite internal testers: **30 min**
 
-**Realistic: 1–2 calendar days from "ready to push" to "external TestFlight invite landing in inboxes"**.
+**Realistic: 1–2 calendar days after Apple access is recovered to "external TestFlight invite landing in inboxes"**.
 
 ---
 

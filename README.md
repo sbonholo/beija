@@ -56,6 +56,7 @@ beija/
 ├── AUDIT_REPORT.md
 ├── BUGS_FOUND.md
 ├── CLICK_FLOW_ANALYSIS.md
+├── CREDENTIALS.md               ownership / status of external accounts
 ├── TEST_SCENARIOS.md
 └── MORNING_REPORT.md
 ```
