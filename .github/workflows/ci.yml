@@ -109,10 +109,10 @@ jobs:
     name: Android debug build
     runs-on: ubuntu-latest
     needs: lint
-    # The pre-launch app builds against compileSdk 36 (Android 16). Some runner
-    # snapshots are missing that platform — setup-android@v3 below installs it
-    # on-demand. continue-on-error=false now that the install step is in place;
-    # flip to true if SDK availability stops being reliable.
+    # Targets compileSdk 35 (Android 15 Vanilla Ice Cream — GA). 36 (Android
+    # 16 preview) was tried but the GH Actions sdkmanager default channel
+    # doesn't expose it as of late-2025. 35 is the Play target requirement
+    # until aug/2026. Apple Review is iOS-only so unaffected.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -124,13 +124,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Set up Android SDK (API 36 + build-tools 36.0.0)
+      - name: Set up Android SDK (API 35 + build-tools 35.0.0)
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: latest
           packages: |
-            platforms;android-36
-            build-tools;36.0.0
+            platforms;android-35
+            build-tools;35.0.0
             platform-tools
       - name: Cache Gradle caches
         uses: actions/cache@v4

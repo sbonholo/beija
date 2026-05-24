@@ -41,20 +41,22 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = public
 as $$
 declare
-  me_id uuid := auth.uid();
-  me_loc geography;
+  me profiles%rowtype;
 begin
-  if me_id is null then
+  if auth.uid() is null then
     raise exception 'not_authenticated';
   end if;
-  if me_id = p_target_user_id then
+  if auth.uid() = p_target_user_id then
     return;
   end if;
 
-  select location into me_loc from profiles where profiles.id = me_id;
+  -- Using %rowtype avoids declaring a local of the postgis `geography` type,
+  -- which is only resolvable when the `extensions` schema is in search_path.
+  -- The rowtype is parsed lazily — same pattern as find_potential_matches.
+  select * into me from profiles where profiles.id = auth.uid();
 
   return query
   select
@@ -79,8 +81,8 @@ begin
     ) as photo_urls,
     case
       when p.hide_distance then null
-      when me_loc is null or p.location is null then null
-      else (st_distance(me_loc, p.location) / 1000)::int
+      when me.location is null or p.location is null then null
+      else (st_distance(me.location, p.location) / 1000)::int
     end as distance_km
   from profiles p
   where p.id = p_target_user_id
@@ -88,15 +90,15 @@ begin
     and p.is_inactive = false
     and not exists (
       select 1 from blocks b
-      where (b.blocker_id = me_id and b.blocked_id = p.id)
-         or (b.blocker_id = p.id and b.blocked_id = me_id)
+      where (b.blocker_id = auth.uid() and b.blocked_id = p.id)
+         or (b.blocker_id = p.id and b.blocked_id = auth.uid())
     )
     and not exists (
       select 1 from reports r
       where r.status in ('pending', 'actioned')
         and (
-          (r.reporter_id = me_id and r.reported_id = p.id)
-          or (r.reporter_id = p.id and r.reported_id = me_id)
+          (r.reporter_id = auth.uid() and r.reported_id = p.id)
+          or (r.reporter_id = p.id and r.reported_id = auth.uid())
         )
     );
 end;
@@ -130,20 +132,19 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = public
 as $$
 declare
-  me_id uuid := auth.uid();
-  me_loc geography;
+  me profiles%rowtype;
 begin
-  if me_id is null then
+  if auth.uid() is null then
     raise exception 'not_authenticated';
   end if;
   if p_target_user_ids is null or array_length(p_target_user_ids, 1) is null then
     return;
   end if;
 
-  select location into me_loc from profiles where profiles.id = me_id;
+  select * into me from profiles where profiles.id = auth.uid();
 
   return query
   select
@@ -157,25 +158,25 @@ begin
     ) as photo_urls,
     case
       when p.hide_distance then null
-      when me_loc is null or p.location is null then null
-      else (st_distance(me_loc, p.location) / 1000)::int
+      when me.location is null or p.location is null then null
+      else (st_distance(me.location, p.location) / 1000)::int
     end as distance_km
   from profiles p
   where p.id = any(p_target_user_ids)
-    and p.id <> me_id
+    and p.id <> auth.uid()
     and p.deleted_at is null
     and p.is_inactive = false
     and not exists (
       select 1 from blocks b
-      where (b.blocker_id = me_id and b.blocked_id = p.id)
-         or (b.blocker_id = p.id and b.blocked_id = me_id)
+      where (b.blocker_id = auth.uid() and b.blocked_id = p.id)
+         or (b.blocker_id = p.id and b.blocked_id = auth.uid())
     )
     and not exists (
       select 1 from reports r
       where r.status in ('pending', 'actioned')
         and (
-          (r.reporter_id = me_id and r.reported_id = p.id)
-          or (r.reporter_id = p.id and r.reported_id = me_id)
+          (r.reporter_id = auth.uid() and r.reported_id = p.id)
+          or (r.reporter_id = p.id and r.reported_id = auth.uid())
         )
     );
 end;
@@ -211,7 +212,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = public
 as $$
 declare
   me profiles%rowtype;

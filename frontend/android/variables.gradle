@@ -1,7 +1,12 @@
 ext {
     minSdkVersion = 24
-    compileSdkVersion = 36
-    targetSdkVersion = 36
+    // compileSdk/target = 35 (Android 15 Vanilla Ice Cream — stable, GA).
+    // 36 (Android 16 preview) was tried but sdkmanager in GH Actions ubuntu
+    // runner doesn't expose it on the default channel as of late-2025; CI
+    // failed in 9s. 35 is the Play Store target requirement valid until
+    // aug/2026 (Apple Review is iOS-only, so unaffected).
+    compileSdkVersion = 35
+    targetSdkVersion = 35
     androidxActivityVersion = '1.11.0'
     androidxAppCompatVersion = '1.7.1'
     androidxCoordinatorLayoutVersion = '1.3.0'
