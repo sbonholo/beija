@@ -17,6 +17,8 @@ interface SendApnsArgs {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  /** APNs sound filename (must ship in the app bundle). Defaults to 'default'. */
+  sound?: string;
 }
 
 interface SendApnsResult {
@@ -90,7 +92,7 @@ export async function sendApns(args: SendApnsArgs): Promise<SendApnsResult> {
   const payload = {
     aps: {
       alert: { title: args.title, body: args.body },
-      sound: 'default',
+      sound: args.sound ?? 'default',
       'mutable-content': 1,
     },
     ...(args.data ?? {}),

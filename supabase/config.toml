@@ -1,0 +1,46 @@
+# Supabase project configuration
+# Generated/maintained by the team; read by `supabase` CLI v1.150+.
+#
+# Run: `supabase functions serve` to test locally (uses env from .env.local).
+# Run: `supabase functions deploy <name>` to ship to remote.
+
+project_id = "beija"
+
+# ---------------------------------------------------------------------------
+# Edge Functions
+# ---------------------------------------------------------------------------
+# `verify_jwt = false` lets the function accept service-role calls from DB
+# triggers (pg_net) without the gateway rejecting them as anonymous. We then
+# re-check the auth header inside the function (see each index.ts).
+
+[functions.notify_new_message]
+verify_jwt = false
+# Fired by AFTER INSERT trigger on `messages` via pg_net, or by the client
+# via supabase.functions.invoke for in-app immediate confirmation.
+
+[functions.notify_match]
+verify_jwt = false
+# Fired by AFTER INSERT trigger on `matches`. Both participants get pushed.
+
+[functions.process_pending_deletions]
+verify_jwt = false
+# Daily cron — finds deletion_requests past their 30-day grace window,
+# anonymizes profile, hard-deletes auth user (cascades the rest).
+# Schedule example (Supabase scheduled trigger or external cron):
+#   0 4 * * *   POST /functions/v1/process_pending_deletions
+# Auth: Bearer SUPABASE_SERVICE_ROLE_KEY.
+
+[functions.account_deletion_confirmation]
+verify_jwt = false
+# Transactional email confirming the deletion grace window.
+
+[functions.photo_moderation_hook]
+verify_jwt = false
+# Fired by Storage object-created webhook on the `profile-photos` bucket.
+# Calls OpenAI omni-moderation; quarantines + reports if flagged.
+
+# ---------------------------------------------------------------------------
+# Storage buckets (declarative)
+# ---------------------------------------------------------------------------
+# `profile-photos` is public-readable; `quarantine` is private. Create via
+# `supabase storage create-bucket` if not already present.

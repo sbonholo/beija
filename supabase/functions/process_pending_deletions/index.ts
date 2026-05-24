@@ -1,13 +1,19 @@
-// Edge function: process_pending_deletions
+// Edge function: process_pending_deletions  (a.k.a. account_deletion_cron)
 //
-// Cron job: finds deletion_requests where scheduled_for <= now() AND
-// cancelled_at IS NULL, deletes the user's Storage files, then deletes the
-// auth.users row (cascades to profiles → photos, swipes, matches, messages,
-// reports, blocks, deletion_requests via FK ON DELETE CASCADE).
+// Scheduled job (1×/day). Walks `deletion_requests` where scheduled_for <= now()
+// AND cancelled_at IS NULL, then for each user:
 //
-// Auth: requires the SERVICE ROLE key. Will reject anything else. Intended to
-// be invoked by GitHub Actions on a cron schedule (see
-// .github/workflows/process-deletions.yml) or by Supabase scheduled functions.
+//   1) ANONYMIZE the profile (name='Conta deletada', bio=null, photos rows
+//      cleared, push_token cleared) — partner-facing safety in case any later
+//      step fails midway.
+//   2) HARD-DELETE Storage objects under profile-photos/<userId>/.
+//   3) HARD-DELETE auth.users (cascades to profiles → swipes/matches/messages/
+//      reports/blocks/photos/deletion_requests via FK ON DELETE CASCADE).
+//
+// Structured JSON logs (one per row + a final summary) so this is observable in
+// Supabase log explorer.
+//
+// Auth: requires Bearer <SUPABASE_SERVICE_ROLE_KEY>. Anything else 401s.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.106.1';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
@@ -17,10 +23,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const STORAGE_BUCKET = 'profile-photos';
 const BATCH_SIZE = 100;
 
+function logJson(level: 'info' | 'warn' | 'error', fields: Record<string, unknown>) {
+  console.log(
+    JSON.stringify({ level, fn: 'process_pending_deletions', ts: new Date().toISOString(), ...fields }),
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // Reject anything not authenticated as the service role.
   const auth = req.headers.get('Authorization') ?? '';
   const expected = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
   if (!SUPABASE_SERVICE_ROLE_KEY || auth !== expected) {
@@ -38,42 +49,71 @@ Deno.serve(async (req) => {
     .lte('scheduled_for', new Date().toISOString())
     .limit(BATCH_SIZE);
 
-  if (queryErr) return jsonResponse({ error: 'query_failed', detail: queryErr.message }, { status: 500 });
+  if (queryErr) {
+    logJson('error', { stage: 'query', detail: queryErr.message });
+    return jsonResponse({ error: 'query_failed', detail: queryErr.message }, { status: 500 });
+  }
   if (!pending || pending.length === 0) {
+    logJson('info', { stage: 'idle', batch: 0 });
     return jsonResponse({ ok: true, processed: 0, errors: [] });
   }
 
-  const errors: { user_id: string; error: string }[] = [];
+  const errors: { user_id: string; error: string; stage: string }[] = [];
   let processed = 0;
 
   for (const row of pending) {
     const userId = row.user_id as string;
+
+    // 1) Anonymize first — partner-visible safety net.
+    const { error: anonErr } = await admin
+      .from('profiles')
+      .update({
+        name: 'Conta deletada',
+        bio: null,
+        push_token: null,
+        push_platform: null,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+    if (anonErr) {
+      logJson('error', { stage: 'anonymize', userId, error: anonErr.message });
+      errors.push({ user_id: userId, error: anonErr.message, stage: 'anonymize' });
+      continue;
+    }
+
+    // Clear photos table rows up front (storage drained next).
+    const { error: photosErr } = await admin.from('photos').delete().eq('user_id', userId);
+    if (photosErr) {
+      logJson('warn', { stage: 'photos_rows', userId, error: photosErr.message });
+    }
+
+    // 2) Drain storage objects.
     try {
-      // 1) Remove the user's Storage photos.
       const { data: files } = await admin.storage.from(STORAGE_BUCKET).list(userId);
       if (files && files.length > 0) {
         const paths = files.map((f) => `${userId}/${f.name}`);
-        const { error: removeErr } = await admin.storage
-          .from(STORAGE_BUCKET)
-          .remove(paths);
-        if (removeErr) throw new Error(`storage_remove: ${removeErr.message}`);
+        const { error: removeErr } = await admin.storage.from(STORAGE_BUCKET).remove(paths);
+        if (removeErr) throw new Error(removeErr.message);
       }
-
-      // 2) Delete the auth.users row. Cascades through profiles via the FK in
-      // the profiles table (profiles.id references auth.users(id) on delete cascade)
-      // which in turn cascades to photos / swipes / matches / messages / reports /
-      // blocks / deletion_requests via their own ON DELETE CASCADE clauses.
-      const { error: deleteErr } = await admin.auth.admin.deleteUser(userId);
-      if (deleteErr) throw new Error(`auth_delete: ${deleteErr.message}`);
-
-      processed++;
     } catch (e) {
-      errors.push({
-        user_id: userId,
-        error: e instanceof Error ? e.message : 'unknown',
-      });
+      const msg = e instanceof Error ? e.message : 'unknown';
+      logJson('error', { stage: 'storage', userId, error: msg });
+      errors.push({ user_id: userId, error: msg, stage: 'storage' });
+      continue;
     }
+
+    // 3) Hard-delete auth user (cascades the rest).
+    const { error: deleteErr } = await admin.auth.admin.deleteUser(userId);
+    if (deleteErr) {
+      logJson('error', { stage: 'auth_delete', userId, error: deleteErr.message });
+      errors.push({ user_id: userId, error: deleteErr.message, stage: 'auth_delete' });
+      continue;
+    }
+
+    logJson('info', { stage: 'completed', userId });
+    processed++;
   }
 
+  logJson('info', { stage: 'summary', batch: pending.length, processed, errored: errors.length });
   return jsonResponse({ ok: true, processed, errors });
 });

@@ -13,6 +13,8 @@ interface SendFcmArgs {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /** Android notification sound (channel id or filename in res/raw). */
+  sound?: string;
 }
 
 interface SendFcmResult {
@@ -126,6 +128,13 @@ export async function sendFcm(args: SendFcmArgs): Promise<SendFcmResult> {
       token: args.token,
       notification: { title: args.title, body: args.body },
       data: args.data ?? {},
+      ...(args.sound
+        ? {
+            android: {
+              notification: { sound: args.sound, channel_id: args.sound },
+            },
+          }
+        : {}),
     },
   };
 
