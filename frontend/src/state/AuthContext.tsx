@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { signOut as authSignOut } from '../lib/auth';
@@ -63,25 +63,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Track the most recent session token so stale fetch responses are dropped.
+  const currentSessionRef = useRef<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
+      const token = data.session?.access_token ?? null;
+      currentSessionRef.current = token;
       setSession(data.session);
       if (data.session) {
         const p = await fetchProfileLite(data.session.user.id);
-        if (mounted) setProfile(p);
+        if (mounted && currentSessionRef.current === token) setProfile(p);
       }
       if (mounted) setLoading(false);
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!mounted) return;
+      const token = newSession?.access_token ?? null;
+      currentSessionRef.current = token;
       setSession(newSession);
       if (newSession) {
         const p = await fetchProfileLite(newSession.user.id);
-        if (mounted) setProfile(p);
+        if (mounted && currentSessionRef.current === token) setProfile(p);
       } else {
         setProfile(null);
       }

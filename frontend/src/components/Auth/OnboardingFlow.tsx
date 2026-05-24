@@ -282,7 +282,12 @@ export function OnboardingFlow() {
         <button
           className="btn ghost"
           style={{ marginTop: 12 }}
-          onClick={() => setStep((s) => s - 1)}
+          onClick={() => {
+            // Clear the "already auto-advanced" flag for the step we're going
+            // back to, so the user can edit and re-trigger auto-advance.
+            advancedFrom.current.delete(step - 1);
+            setStep((s) => s - 1);
+          }}
         >
           Voltar
         </button>

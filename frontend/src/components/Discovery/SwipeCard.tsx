@@ -1,5 +1,13 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import type { Profile } from '../../lib/supabase';
+import {
+  LONG_PRESS_MS,
+  MAX_PHOTO_SLOTS,
+  SWIPE_EXIT_MS,
+  SWIPE_THRESHOLD_PCT,
+  SWIPE_UP_THRESHOLD_PX,
+  TAP_TOLERANCE_PX,
+} from '../../lib/constants';
 
 export type SwipeDirection = 'left' | 'right' | 'super';
 
@@ -11,12 +19,6 @@ interface Props {
   onSwipe: (direction: SwipeDirection) => void;
 }
 
-const MAX_PHOTOS = 5;
-const SWIPE_THRESHOLD_PCT = 0.25;
-const UP_THRESHOLD = 80;
-const TAP_TOLERANCE_PX = 6;
-const LONG_PRESS_MS = 500;
-
 function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }: Props) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
@@ -27,7 +29,7 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
   const [photoIdx, setPhotoIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
-  const visiblePhotos = photos.slice(0, MAX_PHOTOS);
+  const visiblePhotos = photos.slice(0, MAX_PHOTO_SLOTS);
   const isTop = stackIndex === 0;
   const age = ageFromBirthdate(profile.birthdate);
 
@@ -77,7 +79,7 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
       return;
     }
 
-    if (dy < -UP_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
+    if (dy < -SWIPE_UP_THRESHOLD_PX && Math.abs(dy) > Math.abs(dx)) {
       setRevealed(true);
       setDelta({ x: 0, y: 0 });
       return;
@@ -101,7 +103,7 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
       x: direction === 'left' ? -width : direction === 'right' ? width : 0,
       y: direction === 'super' ? -window.innerHeight : 0,
     });
-    window.setTimeout(() => onSwipe(direction), 220);
+    window.setTimeout(() => onSwipe(direction), SWIPE_EXIT_MS);
   }
 
   function onTap(clientX: number) {
@@ -315,8 +317,12 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
             position: 'absolute',
             width: 1,
             height: 1,
+            margin: -1,
+            padding: 0,
             overflow: 'hidden',
-            clip: 'rect(0 0 0 0)',
+            border: 0,
+            clipPath: 'inset(50%)',
+            whiteSpace: 'nowrap',
           }}
         >
           <button type="button" onClick={() => triggerExit('left')} aria-label={`Recusar ${profile.name ?? 'perfil'}`}>

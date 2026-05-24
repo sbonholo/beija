@@ -149,7 +149,17 @@ export function ChatScreen() {
       });
 
     return () => {
-      void supabase.removeChannel(channel);
+      // Clear any in-flight typing debounce and broadcast typing=false before
+      // tearing down the channel so the other side doesn't see a stuck indicator.
+      if (typingTimerRef.current !== null) {
+        window.clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = null;
+      }
+      void channel.track({ userId: meId, typing: false }).finally(() => {
+        void channel.untrack().finally(() => {
+          void supabase.removeChannel(channel);
+        });
+      });
       channelRef.current = null;
     };
   }, [matchId, meId, markRead]);
@@ -279,7 +289,16 @@ export function ChatScreen() {
       style={{ paddingBottom: 0, height: '100vh', display: 'flex', flexDirection: 'column' }}
     >
       <div className="header">
-        <button className="chip" onClick={() => nav('/matches')} aria-label="Voltar">←</button>
+        <button
+          className="chip"
+          onClick={() => {
+            // Prefer browser history (preserves whether user came from /discover or /matches);
+            // if there's no history entry to go back to, fall back to /matches.
+            if (window.history.length > 1) nav(-1);
+            else nav('/matches');
+          }}
+          aria-label="Voltar"
+        >←</button>
         <div className="row center" style={{ gap: 10, flex: 1, justifyContent: 'center' }}>
           <div
             className="avatar matched"
