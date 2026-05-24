@@ -36,7 +36,7 @@ export function Events() {
       const pos = await getCurrentPosition();
       const { events } = await api.listEvents(pos?.lat ?? null, pos?.lng ?? null);
       setEvents(events);
-    } catch {
+    } catch (err) {
       const { text } = errorMessage(err); setError(text);
     } finally {
       setLoading(false);
