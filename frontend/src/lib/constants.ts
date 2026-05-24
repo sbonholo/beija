@@ -46,3 +46,48 @@ export const COLOR_SUPER = '#3aa8ff';
 
 // ---- Bundle id (also referenced in capacitor.config) ----
 export const APP_BUNDLE_ID = 'io.beija.app';
+
+// ---- App version (read at build time; falls back to package.json) ----
+export const APP_VERSION = '0.1.0';
+
+// ---- Rewind (anti-regret) ----
+export const REWIND_DAILY_LIMIT = 3;
+export const REWIND_HISTORY_LIMIT = 5;
+export const REWIND_STORAGE_KEY = 'beija_rewind_log';
+export const REWIND_ENTER_MS = 320;
+
+// ---- Distance buckets ----
+export const DISTANCE_NEAR_M = 1000;
+export const DISTANCE_FAR_KM = 50;
+export const DISTANCE_NEAR_LABEL = 'aqui perto';
+export const DISTANCE_FAR_LABEL = 'longe';
+export function formatDistanceLabel(meters: number | null | undefined): string | null {
+  if (meters == null || !Number.isFinite(meters)) return null;
+  if (meters < DISTANCE_NEAR_M) return DISTANCE_NEAR_LABEL;
+  const km = Math.round(meters / 1000);
+  if (km > DISTANCE_FAR_KM) return DISTANCE_FAR_LABEL;
+  return `${km} km`;
+}
+
+// ---- PT-BR strings (centralized for future i18n) ----
+export const STR_REWIND_LABEL = 'Voltar último swipe';
+export const STR_REWIND_LIMIT_REACHED = 'Limite diário de 3 voltas atingido.';
+export const STR_REWIND_EMPTY = 'Sem swipe pra voltar.';
+export const STR_OPEN_PROFILE = 'Ver perfil completo';
+export const STR_SETTINGS_TITLE = 'Configurações';
+export const STR_SETTINGS_NOTIFICATIONS = 'Notificações';
+export const STR_SETTINGS_PRIVACY = 'Privacidade';
+export const STR_SETTINGS_ACCOUNT = 'Conta';
+export const STR_SETTINGS_ABOUT = 'Sobre';
+export const STR_MUTE_NOTIFICATIONS = 'Silenciar notificações push';
+export const STR_HIDE_DISTANCE = 'Esconder minha distância';
+export const STR_SHOW_AGE = 'Mostrar minha idade';
+export const STR_DELETE_ACCOUNT = 'Deletar conta';
+export const STR_PRIVACY_POLICY = 'Política de privacidade';
+export const STR_TERMS = 'Termos de uso';
+export const STR_PROFILE_DETAIL_CLOSE = 'Fechar';
+export const STR_PROFILE_DETAIL_MORE = 'Mais ações';
+export const STR_PROFILE_DETAIL_REPORT = 'Reportar perfil';
+export const STR_PROFILE_DETAIL_BLOCK = 'Bloquear perfil';
+export const STR_PASS = 'Recusar';
+export const STR_LIKE = 'Curtir';

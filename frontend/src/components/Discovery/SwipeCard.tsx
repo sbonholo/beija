@@ -1,37 +1,66 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import type { Profile } from '../../lib/supabase';
+import type { DiscoverableProfile } from '../../lib/supabase';
 import {
   LONG_PRESS_MS,
   MAX_PHOTO_SLOTS,
+  REWIND_ENTER_MS,
   SWIPE_EXIT_MS,
   SWIPE_THRESHOLD_PCT,
   SWIPE_UP_THRESHOLD_PX,
+  STR_OPEN_PROFILE,
   TAP_TOLERANCE_PX,
+  formatDistanceLabel,
 } from '../../lib/constants';
 
 export type SwipeDirection = 'left' | 'right' | 'super';
 
 interface Props {
-  profile: Profile;
+  profile: DiscoverableProfile;
   photos: string[];
   interests?: string[];
   stackIndex: number;
   onSwipe: (direction: SwipeDirection) => void;
+  onOpenDetail?: (profileId: string) => void;
+  /**
+   * When set, the card animates in from this side (used by the rewind feature).
+   * 'super' enters from the bottom.
+   */
+  enterFrom?: SwipeDirection | null;
 }
 
-function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }: Props) {
+function SwipeCardImpl({
+  profile,
+  photos,
+  stackIndex,
+  onSwipe,
+  onOpenDetail,
+  enterFrom = null,
+}: Props) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const [delta, setDelta] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<SwipeDirection | null>(null);
+  const [entering, setEntering] = useState<SwipeDirection | null>(enterFrom);
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [revealed, setRevealed] = useState(false);
 
   const visiblePhotos = photos.slice(0, MAX_PHOTO_SLOTS);
   const isTop = stackIndex === 0;
-  const age = ageFromBirthdate(profile.birthdate);
+  const showAge = profile.show_age !== false;
+  const age = showAge ? ageFromBirthdate(profile.birthdate) : null;
+  const distanceLabel = profile.hide_distance
+    ? null
+    : formatDistanceLabel(profile.distance_meters);
+
+  useEffect(() => {
+    if (!entering) return;
+    // double-rAF: paint the starting offset, then animate to (0,0)
+    const id = window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => setEntering(null)),
+    );
+    return () => window.cancelAnimationFrame(id);
+  }, [entering]);
 
   function cancelLongPress() {
     if (longPressTimerRef.current !== null) {
@@ -40,13 +69,18 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
     }
   }
 
+  function openDetail() {
+    if (!onOpenDetail) return;
+    onOpenDetail(profile.id);
+  }
+
   function onPointerDown(e: React.PointerEvent) {
     if (!isTop || exiting) return;
     startRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     setDragging(true);
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     longPressTimerRef.current = window.setTimeout(() => {
-      setRevealed(true);
+      openDetail();
     }, LONG_PRESS_MS);
   }
 
@@ -80,7 +114,7 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
     }
 
     if (dy < -SWIPE_UP_THRESHOLD_PX && Math.abs(dy) > Math.abs(dx)) {
-      setRevealed(true);
+      openDetail();
       setDelta({ x: 0, y: 0 });
       return;
     }
@@ -107,10 +141,6 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
   }
 
   function onTap(clientX: number) {
-    if (revealed) {
-      setRevealed(false);
-      return;
-    }
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const relX = clientX - rect.left;
@@ -118,6 +148,10 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
       setPhotoIdx((i) => Math.max(0, i - 1));
     } else if (relX > rect.width * 0.66) {
       setPhotoIdx((i) => Math.min(visiblePhotos.length - 1, i + 1));
+    } else {
+      // middle tap → open detail (Tinder uses tap-to-cycle-photos only;
+      // we differentiate by treating the center column as a "more info" tap)
+      openDetail();
     }
   }
 
@@ -133,7 +167,23 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
       const scale = 1 - stackIndex * 0.05;
       return `translate3d(0, ${offset}px, 0) scale(${scale})`;
     }
+    if (entering) {
+      const w = (cardRef.current?.offsetWidth ?? 320) * 1.6;
+      const startX = entering === 'left' ? -w : entering === 'right' ? w : 0;
+      const startY = entering === 'super' ? window.innerHeight : 0;
+      return `translate3d(${startX}px, ${startY}px, 0)`;
+    }
     return `translate3d(${delta.x}px, ${delta.y}px, 0) rotate(${rotate}deg)`;
+  })();
+
+  const transitionStyle = (() => {
+    if (dragging) return 'none';
+    if (entering) {
+      // Custom curve for rewind — different from the swipe-exit cubic-bezier
+      // so the motion reads as a deliberate undo, not a mirror of the swipe.
+      return `transform ${REWIND_ENTER_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+    }
+    return 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
   })();
 
   const currentPhoto = visiblePhotos[photoIdx];
@@ -157,7 +207,7 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         transform: baseTransform,
-        transition: dragging ? 'none' : 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: transitionStyle,
         willChange: 'transform',
         backfaceVisibility: 'hidden',
         touchAction: 'none',
@@ -259,55 +309,79 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
             <span style={{ fontSize: 22, fontWeight: 400, opacity: 0.9 }}>{age}</span>
           )}
         </div>
-        {profile.city && (
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>📍 {profile.city}</div>
-        )}
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+          {distanceLabel && (
+            <span
+              className="chip distance-chip"
+              style={{
+                pointerEvents: 'none',
+                background: 'rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#fff',
+                fontSize: 12,
+                padding: '4px 10px',
+                minHeight: 26,
+                lineHeight: 1.4,
+              }}
+              aria-label={`Distância: ${distanceLabel}`}
+            >
+              📍 {distanceLabel}
+            </span>
+          )}
+          {profile.city && (
+            <span
+              className="chip"
+              style={{
+                pointerEvents: 'none',
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                fontSize: 12,
+                padding: '4px 10px',
+                minHeight: 26,
+                lineHeight: 1.4,
+              }}
+              aria-hidden
+            >
+              {profile.city}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Revealed bio overlay (swipe-up or long-press) */}
-      {revealed && (
-        <div
-          onPointerDown={(e) => {
+      {/* Info button (top-right) — opens the full profile modal */}
+      {isTop && onOpenDetail && (
+        <button
+          type="button"
+          onClick={(e) => {
             e.stopPropagation();
-            setRevealed(false);
+            openDetail();
           }}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={STR_OPEN_PROFILE}
+          className="icon-btn"
           style={{
             position: 'absolute',
-            inset: 0,
-            zIndex: 5,
-            background: 'rgba(10, 0, 20, 0.92)',
-            backdropFilter: 'blur(8px)',
-            padding: '24px 22px',
+            top: 14,
+            right: 14,
+            width: 36,
+            height: 36,
+            borderRadius: 999,
+            background: 'rgba(10, 0, 20, 0.55)',
             color: '#fff',
-            overflowY: 'auto',
-            animation: 'sheetUp 0.22s ease',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            fontSize: 18,
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 5,
+            cursor: 'pointer',
+            padding: 0,
           }}
-          role="dialog"
-          aria-label={`Detalhes de ${profile.name ?? 'perfil'}`}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-            <strong style={{ fontSize: 24 }}>{profile.name ?? '—'}</strong>
-            {age != null && (
-              <span style={{ fontSize: 20, fontWeight: 400, opacity: 0.85 }}>{age}</span>
-            )}
-          </div>
-          {profile.bio && <p style={{ lineHeight: 1.45 }}>{profile.bio}</p>}
-          {interests.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Interesses</div>
-              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-                {interests.map((i) => (
-                  <span key={i} className="chip" style={{ pointerEvents: 'none', minHeight: 32, padding: '6px 12px' }}>
-                    {i}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          <p className="muted" style={{ fontSize: 12, marginTop: 18 }}>
-            Toque pra voltar
-          </p>
-        </div>
+          ⓘ
+        </button>
       )}
 
       {/* Accessibility alternative buttons (visually hidden, focusable) */}
@@ -352,6 +426,8 @@ export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {
   return (
     prev.profile.id === next.profile.id &&
     prev.stackIndex === next.stackIndex &&
-    prev.photos === next.photos
+    prev.photos === next.photos &&
+    prev.enterFrom === next.enterFrom &&
+    prev.onOpenDetail === next.onOpenDetail
   );
 });

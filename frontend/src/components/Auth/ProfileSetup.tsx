@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   deletePhoto,
@@ -160,7 +160,27 @@ export function ProfileSetup() {
 
   return (
     <div className="screen" style={{ paddingBottom: 120 }}>
-      <div className="header"><h2>Seu perfil</h2></div>
+      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Seu perfil</h2>
+        <Link
+          to="/settings"
+          aria-label="Configurações"
+          style={{
+            display: 'inline-flex',
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.12)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 18,
+            color: 'var(--fg, #fff)',
+            textDecoration: 'none',
+          }}
+        >
+          ⚙
+        </Link>
+      </div>
 
       <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
         Fotos ({photos.filter((p) => p.publicUrl).length}/{TOTAL_SLOTS})

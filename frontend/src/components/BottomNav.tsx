@@ -5,6 +5,7 @@ const tabs = [
   { to: '/discover', icon: '🔥', label: 'Discover' },
   { to: '/matches', icon: '💋', label: 'Matches' },
   { to: '/profile', icon: '👤', label: 'Perfil' },
+  { to: '/settings', icon: '⚙', label: 'Ajustes' },
 ];
 
 export function BottomNav() {

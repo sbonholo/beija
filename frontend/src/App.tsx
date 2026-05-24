@@ -20,6 +20,8 @@ const DeleteAccountFlow = lazy(() =>
 );
 const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./components/pages/TermsPage'));
+const SettingsScreen = lazy(() => import('./components/Settings/SettingsScreen'));
+const ProfileDetailModal = lazy(() => import('./components/Discovery/ProfileDetailModal'));
 
 const SPLASH_MS = 1500;
 
@@ -33,7 +35,7 @@ function Splash() {
 }
 
 const LAST_ROUTE_KEY = 'beija_last_route';
-const VALID_RESUME_ROUTES = new Set(['/discover', '/matches', '/profile']);
+const VALID_RESUME_ROUTES = new Set(['/discover', '/matches', '/profile', '/settings']);
 
 function getLastRoute(): string {
   try {
@@ -135,6 +137,10 @@ export function App() {
               path="/settings/delete"
               element={<Suspense fallback={<Splash />}><DeleteAccountFlow /></Suspense>}
             />
+            <Route
+              path="/profile/:id"
+              element={<Suspense fallback={<Splash />}><ProfileDetailModal /></Suspense>}
+            />
 
             <Route element={<NeedsProfile />}>
               <Route path="/chat/:id" element={<ChatScreen />} />
@@ -142,6 +148,10 @@ export function App() {
                 <Route path="/discover" element={<StackDeck />} />
                 <Route path="/matches" element={<MatchesList />} />
                 <Route path="/profile" element={<ProfileSetup />} />
+                <Route
+                  path="/settings"
+                  element={<Suspense fallback={<Splash />}><SettingsScreen /></Suspense>}
+                />
               </Route>
             </Route>
           </Route>

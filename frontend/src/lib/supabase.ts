@@ -50,8 +50,15 @@ export interface Profile {
   last_active_at: string | null;
   is_inactive: boolean;
   mute_notifications: boolean;
+  hide_distance: boolean;
+  show_age: boolean;
   deleted_at: string | null;
   created_at: string;
+}
+
+/** Shape returned by the `find_potential_matches` RPC (profile + distance). */
+export interface DiscoverableProfile extends Profile {
+  distance_meters: number | null;
 }
 
 export interface Match {
