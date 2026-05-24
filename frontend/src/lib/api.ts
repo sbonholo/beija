@@ -101,8 +101,11 @@ export const mockedApi = {
     return _api.verifyOtp(phone, code);
   },
   getMe: async () => (isMock() ? { user: mockUser } : _api.getMe()),
-  updateMe: async (patch: Record<string, unknown>) =>
-    isMock() ? { user: { ...mockUser, ...patch } } : _api.updateMe(patch),
+  updateMe: async (patch: Record<string, unknown>) => {
+    if (!isMock()) return _api.updateMe(patch);
+    Object.assign(mockUser, patch);
+    return { user: mockUser };
+  },
   uploadPhoto: async (file: File) =>
     isMock() ? { photoUrl: URL.createObjectURL(file) } : _api.uploadPhoto(file),
   listEvents: async (lat?: number | null, lng?: number | null) =>
@@ -110,10 +113,18 @@ export const mockedApi = {
   getEvent: async (id: string) => (isMock() ? { event: findMockEvent(id) } : _api.getEvent(id)),
   checkIn: async (id: string) => (isMock() ? { ok: true as const } : _api.checkIn(id)),
   checkOut: async (id: string) => (isMock() ? { ok: true as const } : _api.checkOut(id)),
-  listPeople: async (id: string) =>
-    isMock()
-      ? { people: mockPeople.filter((p) => p.currentEventId === id) }
-      : _api.listPeople(id),
+  listPeople: async (id: string) => {
+    if (!isMock()) return _api.listPeople(id);
+    const mySeeking = mockUser.seeking ?? [];
+    const myGender = mockUser.gender;
+    const atEvent = mockPeople.filter((p) => p.currentEventId === id);
+    const compatible = atEvent.filter((p) => {
+      const iWantThem = mySeeking.length === 0 || (p.gender ? mySeeking.includes(p.gender) : true);
+      const theyWantMe = !myGender || !p.seeking || p.seeking.length === 0 || p.seeking.includes(myGender);
+      return iWantThem && theyWantMe;
+    });
+    return { people: compatible };
+  },
   sendReaction: async (toUserId: string, eventId: string, type: string) => {
     if (!isMock()) return _api.sendReaction(toUserId, eventId, type);
     // Demo affordance: a 💋 sent to Bia (mock-user-2) triggers a fake match.
