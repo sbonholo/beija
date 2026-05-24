@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { activeApi as api } from '../lib/api';
+import { activeApi as api, errorMessage } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { PersonAtEvent, ReactionType, EventItem, User } from '../types';
 import { getSocket } from '../lib/socket';
@@ -65,14 +65,13 @@ export function EventRoom() {
         setCheckedIn(true);
         await refreshPeople();
       } catch {
-        if (!cancelled) setLoadError('Não foi possível carregar este rolê.');
+        if (!cancelled) setLoadError(errorMessage(err).text);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
 
     const sock = getSocket();
-    sock.emit('event:join', eventId);
 
     const onReaction = (payload: { fromUser: User; type: ReactionType }) => {
       toast({ kind: payload.type, text: `${payload.fromUser.nickname || 'Alguém'} mandou um ${LABEL[payload.type]} ${ICON[payload.type]}` });
@@ -94,14 +93,19 @@ export function EventRoom() {
       refreshPeople();
     };
 
-    sock.on('reaction:incoming', onReaction);
-    sock.on('match:new', onMatch);
+    if (sock) {
+      sock.emit('event:join', eventId);
+      sock.on('reaction:incoming', onReaction);
+      sock.on('match:new', onMatch);
+    }
 
     return () => {
       cancelled = true;
-      sock.emit('event:leave', eventId);
-      sock.off('reaction:incoming', onReaction);
-      sock.off('match:new', onMatch);
+      if (sock) {
+        sock.emit('event:leave', eventId);
+        sock.off('reaction:incoming', onReaction);
+        sock.off('match:new', onMatch);
+      }
     };
   }, [eventId, nav, refreshPeople, toast]);
 
@@ -113,6 +117,15 @@ export function EventRoom() {
   async function react(type: ReactionType) {
     if (!selected) return;
     const targetId = selected.id;
+    if (selected.sentReaction === type) {
+      try {
+        await api.removeReaction(targetId, eventId);
+        await refreshPeople();
+      } catch {
+        toast({ kind: 'info', text: 'Não rolou remover a reação' });
+      }
+      return;
+    }
     try {
       const res = await api.sendReaction(targetId, eventId, type);
       toast({ kind: type, text: `Você mandou um ${LABEL[type]} ${ICON[type]}` });

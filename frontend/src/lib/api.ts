@@ -22,6 +22,17 @@ export class ApiError extends Error {
   }
 }
 
+
+export function errorMessage(err: unknown): { text: string; kind: 'auth' | 'offline' | 'server' } {
+  if (err instanceof ApiError) {
+    if (err.status === 401 || err.status === 403) return { text: 'Sessão expirada. Faça login novamente.', kind: 'auth' };
+    if (err.status >= 500) return { text: 'Erro no servidor. Tente de novo em instantes.', kind: 'server' };
+    return { text: err.message || 'Algo deu errado.', kind: 'server' };
+  }
+  if (err instanceof TypeError && err.message.includes('fetch')) return { text: 'Sem conexão. Verifique sua internet.', kind: 'offline' };
+  return { text: 'Algo deu errado.', kind: 'server' };
+}
+
 async function request<T>(method: string, path: string, body?: unknown, isForm = false): Promise<T> {
   const headers: Record<string, string> = {};
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -108,7 +119,14 @@ export const mockedApi = {
     const updated = { ...(cur ?? {}), ...patch } as User;
     return { user: updated };
   },
-  uploadPhoto: async (file: File) => ({ photoUrl: URL.createObjectURL(file) }),
+  uploadPhoto: async (file: File) => {
+    return new Promise<{ photoUrl: string }>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ photoUrl: reader.result as string });
+      reader.onerror = () => reject(new Error('read_failed'));
+      reader.readAsDataURL(file);
+    });
+  },
   listEvents: async (_lat?: number | null, _lng?: number | null) => ({ events: mockEvents }),
   getEvent: async (id: string) => ({ event: findMockEvent(id) }),
   checkIn: async (_id: string) => ({ ok: true as const }),

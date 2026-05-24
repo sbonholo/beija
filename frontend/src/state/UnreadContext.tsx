@@ -1,5 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
 
+const KEY = 'beija_unread';
+
+function readCount(): number {
+  try { return parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch { return 0; }
+}
+
+function writeCount(n: number) {
+  try { localStorage.setItem(KEY, String(n)); } catch { /* quota */ }
+}
+
 interface UnreadCtx {
   unreadMatches: number;
   bump: () => void;
@@ -9,9 +19,19 @@ interface UnreadCtx {
 const Ctx = createContext<UnreadCtx | null>(null);
 
 export function UnreadProvider({ children }: { children: ReactNode }) {
-  const [unreadMatches, setUnreadMatches] = useState(0);
-  const bump = useCallback(() => setUnreadMatches((n) => n + 1), []);
-  const clear = useCallback(() => setUnreadMatches(0), []);
+  const [unreadMatches, setUnreadMatches] = useState<number>(readCount);
+
+  const bump = useCallback(() => setUnreadMatches((n) => {
+    const next = n + 1;
+    writeCount(next);
+    return next;
+  }), []);
+
+  const clear = useCallback(() => {
+    writeCount(0);
+    setUnreadMatches(0);
+  }, []);
+
   const value = useMemo(() => ({ unreadMatches, bump, clear }), [unreadMatches, bump, clear]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

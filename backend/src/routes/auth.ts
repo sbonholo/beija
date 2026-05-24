@@ -5,11 +5,27 @@ import { newId, newOtp, normalizePhone } from '../lib/ids.js';
 import { sendSms } from '../lib/sms.js';
 import { config } from '../config.js';
 
+
+// In-memory OTP rate limit: 5 requests per phone per minute
+const otpRequests = new Map<string, { count: number; until: number }>();
+function checkOtpLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = otpRequests.get(key);
+  if (!entry || entry.until < now) {
+    otpRequests.set(key, { count: 1, until: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= 5) return false;
+  entry.count++;
+  return true;
+}
+
 const router = Router();
 
 router.post('/request-otp', async (req, res) => {
   const phone = normalizePhone(String(req.body?.phone || ''));
   if (!phone) return res.status(400).json({ error: 'invalid_phone' });
+  if (!checkOtpLimit(phone)) return res.status(429).json({ error: 'rate_limited' });
 
   const code = newOtp();
   const expiresAt = Date.now() + config.otpTtlSeconds * 1000;

@@ -72,31 +72,25 @@ export function CreateProfile() {
     if (!valid || !gender) return;
     setSaving(true);
     try {
+      let uploadedUrl: string | null = null;
+      if (photoFile) {
+        const r = await activeApi.uploadPhoto(photoFile);
+        uploadedUrl = r.photoUrl;
+      }
       if (isMockMode) {
-        const profile: User = {
+        setUser({
           id: newId(),
           nickname: nickname.trim(),
           gender,
           seeking,
           bio: null,
-          photoUrl,
+          photoUrl: uploadedUrl,
           birthdate: null,
           currentEventId: null,
           lastActive: Date.now(),
-        };
-        setUser(profile);
-      } else {
-        let uploadedUrl: string | null = null;
-        if (photoFile) {
-          const r = await activeApi.uploadPhoto(photoFile);
-          uploadedUrl = r.photoUrl;
-        }
-        const r = await activeApi.updateMe({
-          nickname: nickname.trim(),
-          gender,
-          seeking,
-          photoUrl: uploadedUrl,
         });
+      } else {
+        const r = await activeApi.updateMe({ nickname: nickname.trim(), gender, seeking, photoUrl: uploadedUrl });
         setUser(r.user);
       }
       nav('/events', { replace: true });

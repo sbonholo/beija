@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeApi as api } from '../lib/api';
+import { activeApi as api, errorMessage } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { EventItem } from '../types';
 import { getCurrentPosition } from '../platform/geolocation';
@@ -37,7 +37,7 @@ export function Events() {
       const { events } = await api.listEvents(pos?.lat ?? null, pos?.lng ?? null);
       setEvents(events);
     } catch {
-      setError('Não foi possível carregar eventos. Tente novamente.');
+      const { text } = errorMessage(err); setError(text);
     } finally {
       setLoading(false);
     }

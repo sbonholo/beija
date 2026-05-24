@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
+import { activeApi, isMockMode } from '../lib/api';
 import { BottomNav } from '../components/BottomNav';
 import { genderLabel } from '../lib/labels';
 import type { Gender } from '../types';
@@ -53,25 +54,32 @@ export function Profile() {
       gender !== user.gender ||
       JSON.stringify(seeking) !== JSON.stringify(user.seeking ?? []));
 
-  function save() {
+  async function save() {
     if (!user || !gender || seeking.length === 0 || !nickname.trim()) return;
-    setUser({
-      ...user,
-      nickname: nickname.trim(),
-      bio: bio.trim() || null,
-      gender,
-      seeking,
-    });
+    const patch = { nickname: nickname.trim(), bio: bio.trim() || null, gender, seeking };
+    if (isMockMode) {
+      setUser({ ...user, ...patch });
+    } else {
+      try {
+        const r = await activeApi.updateMe(patch);
+        setUser(r.user);
+      } catch {
+        return;
+      }
+    }
     nav('/events');
   }
 
-  function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f || !user) return;
     setIsUploading(true);
     try {
-      const photoUrl = URL.createObjectURL(f);
+      const { photoUrl } = await activeApi.uploadPhoto(f);
+      if (!isMockMode) await activeApi.updateMe({ photoUrl });
       setUser({ ...user, photoUrl });
+    } catch {
+      /* keep existing photo on failure */
     } finally {
       setIsUploading(false);
     }

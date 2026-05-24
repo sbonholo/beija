@@ -14,7 +14,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: config.corsOrigins.length ? config.corsOrigins : true,
+    origin: config.corsOrigins.length ? config.corsOrigins : false,
     credentials: true,
   })
 );
