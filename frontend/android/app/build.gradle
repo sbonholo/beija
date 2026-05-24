@@ -1,5 +1,26 @@
 apply plugin: 'com.android.application'
 
+// -----------------------------------------------------------------------------
+// Versioning
+// -----------------------------------------------------------------------------
+// versionCode is read from env BEIJA_VERSION_CODE (CI sets this monotonically);
+// versionName from BEIJA_VERSION_NAME. Defaults: 1 / "1.0.0" for local dev.
+def appVersionCode = (System.getenv("BEIJA_VERSION_CODE") ?: "1").toInteger()
+def appVersionName = System.getenv("BEIJA_VERSION_NAME") ?: "1.0.0"
+
+// -----------------------------------------------------------------------------
+// Signing
+// -----------------------------------------------------------------------------
+// CI / release builds expect:
+//   BEIJA_KEYSTORE_PATH   absolute path to the .jks keystore
+//   BEIJA_KEYSTORE_PASSWORD
+//   BEIJA_KEY_ALIAS
+//   BEIJA_KEY_PASSWORD
+//
+// Local debug builds use the default Android debug keystore — no env needed.
+def keystorePath = System.getenv("BEIJA_KEYSTORE_PATH")
+def hasReleaseSigning = keystorePath != null && file(keystorePath).exists()
+
 android {
     namespace = "io.beija.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,19 +28,42 @@ android {
         applicationId "io.beija.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        resourceConfigurations += ["pt-rBR", "en"]
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+            // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv("BEIJA_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("BEIJA_KEY_ALIAS")
+                keyPassword System.getenv("BEIJA_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    bundle {
+        language {
+            // Don't split by language — we ship pt-BR + en together.
+            enableSplit = false
         }
     }
 }

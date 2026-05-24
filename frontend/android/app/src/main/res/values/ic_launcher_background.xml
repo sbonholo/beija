@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Adaptive-icon background color. Brand pink — see ICON_DESIGN.md. -->
+    <color name="ic_launcher_background">#FF4D88</color>
 </resources>

@@ -30,9 +30,26 @@ Once access is restored, see `docs/DEPLOYMENT.md` § 2 (Apple) + § 5 (Xcode cap
 | **Status** | ❌ not created yet |
 | **Login email** | TBD — should match Apple owner or use a dedicated `dev@arborium.app` |
 | **Project name (suggested)** | `beija-prod` |
-| **OAuth clients needed** | iOS (bundle `io.beija.app`) + Web (Supabase callback) |
+| **OAuth clients needed** | iOS (bundle `io.beija.app`) + Web (Supabase callback) + Android (with SHA-1 fingerprints — see Play section) |
 
-Step-by-step in `docs/DEPLOYMENT.md` § 2 (Google).
+Step-by-step in `docs/DEPLOYMENT.md` § 2 (Google) and `docs/DEPLOYMENT_ANDROID.md` § 3.
+
+---
+
+## Google Play Developer Console
+
+| Field | Value |
+|---|---|
+| **Status** | ❌ not created yet — **can proceed independently of Apple** ✅ |
+| **Cost** | $25 one-time |
+| **Login email** | TBD — recommend a dedicated `dev@arborium.app` (separate from Apple) |
+| **Package name** | `io.beija.app` |
+| **Verification time** | ~1–2 days (ID upload) |
+| **Service account for fastlane / CI uploads** | ❌ not generated |
+| **Upload keystore** | ❌ not generated — see `docs/DEPLOYMENT_ANDROID.md` § 4 |
+| **Play App Signing** | enrolled automatically on first upload |
+
+Step-by-step in `docs/DEPLOYMENT_ANDROID.md`. Because this track is independent of Apple, **this is the recommended next step while Apple Dev access is being recovered**.
 
 ---
 
@@ -82,7 +99,7 @@ These are referenced in `PrivacyPolicy.md`, `TermsOfService.md`, and `AppStoreMe
 | Provider | Status | Notes |
 |---|---|---|
 | **APNs** (iOS) | ❌ key not generated yet | Generate from Apple Developer after access recovery |
-| **FCM** (Android) | ❌ Firebase project not created | Optional for v1 if shipping iOS-only first |
+| **FCM** (Android) | ❌ Firebase project not created | Required for Android push. Create at https://console.firebase.google.com → add Android app → bundle `io.beija.app`. Download `google-services.json` into `frontend/android/app/`. |
 
 ---
 

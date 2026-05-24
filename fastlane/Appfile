@@ -1,7 +1,14 @@
 # Beija — fastlane Appfile (PLACEHOLDER)
-# Fill these in when registering the app in App Store Connect.
+# Fill these in when registering the apps in App Store Connect + Play Console.
 
+# ---- iOS ----
 app_identifier('io.beija.app')           # Bundle ID — matches Capacitor config
-# apple_id('appstore@beija.app')         # Your Apple ID (App Store Connect login)
+# apple_id('appstore@beija.app')         # Apple ID (App Store Connect login)
 # itc_team_id('XXXXXXXX')                # App Store Connect team ID
 # team_id('XXXXXXXXXX')                  # Apple Developer team ID
+
+# ---- Android ----
+for_platform :android do
+  package_name('io.beija.app')           # Same as Capacitor applicationId
+  # json_key_file('./play-store-key.json') # Path to Play Console service-account JSON (gitignored)
+end

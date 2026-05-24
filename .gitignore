@@ -1,0 +1,36 @@
+# OS / IDE noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dev-dist/
+
+# Env
+.env
+.env.local
+.env.android
+
+# Logs
+*.log
+*.tsbuildinfo
+
+# Android signing — keystores and Play Console service-account keys must NEVER
+# enter git. The release-play.yml workflow expects these as repo secrets.
+*.jks
+*.keystore
+fastlane/play-store-key.json
+fastlane/*.json
+
+# fastlane runtime artifacts
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# iOS build outputs already covered by frontend/ios/.gitignore

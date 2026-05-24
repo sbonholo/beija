@@ -53,6 +53,9 @@ beija/
 ├── ASSETS_SPEC.md
 ├── ICON_DESIGN.md
 ├── AppStoreMetadata.md
+├── PlayStoreMetadata.md         Play Console listing copy + Data Safety
+├── ASSETS_SPEC.md
+├── ICON_DESIGN.md
 ├── AUDIT_REPORT.md
 ├── BUGS_FOUND.md
 ├── CLICK_FLOW_ANALYSIS.md
@@ -135,6 +138,35 @@ In Xcode you'll need to:
 4. Build & run on a device or simulator
 
 Step-by-step walkthrough: `docs/DEPLOYMENT.md`.
+
+---
+
+## Play Store release (Android)
+
+The Android track can proceed **independently of Apple Dev**. Full walkthrough in `docs/DEPLOYMENT_ANDROID.md`. Quick version:
+
+```bash
+# 1) Generate an upload keystore (one-time, store securely):
+keytool -genkey -v -keystore ~/keystores/beija-upload.jks \
+  -alias upload -keyalg RSA -keysize 2048 -validity 25000
+
+# 2) Export the keystore env vars
+export BEIJA_KEYSTORE_PATH=~/keystores/beija-upload.jks
+export BEIJA_KEYSTORE_PASSWORD=...
+export BEIJA_KEY_ALIAS=upload
+export BEIJA_KEY_PASSWORD=...
+
+# 3) Build the release AAB
+cd frontend
+npm run build && npx cap sync android
+cd android && ./gradlew bundleRelease
+# → app/build/outputs/bundle/release/app-release.aab
+
+# 4) Upload to Play Console → Testing → Internal testing → Create release
+```
+
+CI workflow: `.github/workflows/release-play.yml` (manual trigger).
+Listing copy: `PlayStoreMetadata.md`.
 
 ---
 

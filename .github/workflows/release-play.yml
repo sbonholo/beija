@@ -1,0 +1,114 @@
+# Play Store release pipeline — skeleton.
+#
+# Enable by:
+#   1) Generating an upload keystore (see docs/DEPLOYMENT_ANDROID.md § 4)
+#   2) Creating a Play Console service account + downloading the JSON
+#   3) Adding these secrets to the repo:
+#        BEIJA_KEYSTORE_BASE64        base64 of beija-upload.jks
+#        BEIJA_KEYSTORE_PASSWORD
+#        BEIJA_KEY_ALIAS
+#        BEIJA_KEY_PASSWORD
+#        PLAY_STORE_SERVICE_ACCOUNT_JSON  raw JSON of the Play Console service account
+#        VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_GOOGLE_WEB_CLIENT_ID
+#   4) Uncommenting the upload step at the bottom.
+
+name: Release to Play Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g. 1.0.1)'
+        required: true
+        default: '1.0.0'
+      track:
+        description: 'Play track to upload to'
+        required: true
+        default: 'internal'
+        type: choice
+        options: [internal, beta, production]
+
+jobs:
+  release:
+    name: Build + upload AAB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Build web bundle
+        working-directory: frontend
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Decode keystore
+        if: ${{ secrets.BEIJA_KEYSTORE_BASE64 != '' }}
+        run: |
+          mkdir -p $RUNNER_TEMP/keystores
+          echo "${{ secrets.BEIJA_KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/keystores/beija-upload.jks
+          echo "BEIJA_KEYSTORE_PATH=$RUNNER_TEMP/keystores/beija-upload.jks" >> $GITHUB_ENV
+
+      - name: Compute version code (timestamp-based)
+        id: vc
+        run: echo "code=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Build release AAB
+        if: ${{ secrets.BEIJA_KEYSTORE_BASE64 != '' }}
+        working-directory: frontend/android
+        env:
+          BEIJA_KEYSTORE_PASSWORD: ${{ secrets.BEIJA_KEYSTORE_PASSWORD }}
+          BEIJA_KEY_ALIAS: ${{ secrets.BEIJA_KEY_ALIAS }}
+          BEIJA_KEY_PASSWORD: ${{ secrets.BEIJA_KEY_PASSWORD }}
+          BEIJA_VERSION_CODE: ${{ steps.vc.outputs.code }}
+          BEIJA_VERSION_NAME: ${{ inputs.version_name }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB artifact
+        if: ${{ secrets.BEIJA_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ inputs.version_name }}.aab
+          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # - name: Upload to Play Store
+      #   if: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON != '' }}
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+      #     packageName: io.beija.app
+      #     releaseFiles: frontend/android/app/build/outputs/bundle/release/app-release.aab
+      #     track: ${{ inputs.track }}
+      #     status: draft
+      #     whatsNewDirectory: fastlane/metadata/android
+
+      - name: Placeholder reminder
+        if: ${{ secrets.BEIJA_KEYSTORE_BASE64 == '' }}
+        run: |
+          echo "::warning::Skipped Android build — BEIJA_KEYSTORE_BASE64 not set."
+          echo "See docs/DEPLOYMENT_ANDROID.md to enable."

@@ -1,28 +1,33 @@
 # Beija — fastlane configuration (PLACEHOLDER)
 #
-# Most lanes are commented out until App Store Connect credentials are wired in
-# the CI environment. To run locally:
+# Most lanes are commented out until credentials are wired in the CI env. To
+# run locally:
 #
 #   gem install bundler
-#   bundle init   # if no Gemfile yet
-#   bundle add fastlane
-#   bundle exec fastlane beta
+#   bundle init && bundle add fastlane
+#   bundle exec fastlane ios beta        # TestFlight
+#   bundle exec fastlane android playstore  # Internal testing track
 #
 # Required env vars (typically loaded from CI secrets):
+#   --- iOS ---
 #   APP_STORE_CONNECT_API_KEY_ID
 #   APP_STORE_CONNECT_API_ISSUER_ID
-#   APP_STORE_CONNECT_API_KEY (path to .p8 or its base64 contents)
+#   APP_STORE_CONNECT_API_KEY (path to .p8 or base64 contents)
 #   FASTLANE_USER
 #   FASTLANE_PASSWORD (app-specific password)
-#   MATCH_PASSWORD (only if using fastlane match for code signing)
+#   --- Android ---
+#   BEIJA_KEYSTORE_PATH
+#   BEIJA_KEYSTORE_PASSWORD
+#   BEIJA_KEY_ALIAS
+#   BEIJA_KEY_PASSWORD
+#   PLAY_STORE_JSON_KEY_PATH (path to Play Console service account JSON)
 
 default_platform(:ios)
 
+# =============================================================================
+# iOS
+# =============================================================================
 platform :ios do
-  before_all do
-    # TODO: setup_circle_ci / setup_ci as appropriate
-  end
-
   desc 'Bump build number and upload current archive to TestFlight'
   lane :beta do
     # TODO: enable when signing + API key are configured.
@@ -37,11 +42,50 @@ platform :ios do
     #   skip_waiting_for_build_processing: true,
     #   apple_id: ENV['APPLE_APP_ID'],
     # )
-    UI.message('beta lane placeholder — wire up secrets to enable')
+    UI.message('iOS beta lane placeholder — wire up secrets to enable')
   end
 
   desc 'Production release to App Store (requires manual review submission step)'
   lane :release do
-    UI.message('release lane placeholder')
+    UI.message('iOS release lane placeholder')
+  end
+end
+
+# =============================================================================
+# Android
+# =============================================================================
+platform :android do
+  desc 'Build AAB and upload to Google Play Internal testing track'
+  lane :playstore do
+    # TODO: enable when keystore + service account JSON are configured.
+    # gradle(
+    #   task: 'clean bundleRelease',
+    #   project_dir: '../frontend/android',
+    # )
+    # upload_to_play_store(
+    #   track: 'internal',
+    #   aab: '../frontend/android/app/build/outputs/bundle/release/app-release.aab',
+    #   release_status: 'draft',
+    #   skip_upload_metadata: true,
+    #   skip_upload_changelogs: false,
+    #   skip_upload_images: true,
+    #   skip_upload_screenshots: true,
+    #   json_key: ENV['PLAY_STORE_JSON_KEY_PATH'],
+    # )
+    UI.message('Android playstore lane placeholder — wire up keystore + service account to enable')
+  end
+
+  desc 'Promote latest internal build to closed testing'
+  lane :promote_to_closed do
+    # upload_to_play_store(
+    #   track: 'internal',
+    #   track_promote_to: 'beta',
+    #   skip_upload_aab: true,
+    #   skip_upload_metadata: true,
+    #   skip_upload_images: true,
+    #   skip_upload_screenshots: true,
+    #   json_key: ENV['PLAY_STORE_JSON_KEY_PATH'],
+    # )
+    UI.message('Android promote_to_closed placeholder')
   end
 end

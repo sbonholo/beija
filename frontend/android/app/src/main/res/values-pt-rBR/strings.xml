@@ -1,7 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
+<!--
+  Portuguese (Brazil) string resources. Override defaults from values/strings.xml
+  for users with pt-BR system locale.
+-->
 <resources>
     <string name="app_name">Beija</string>
     <string name="title_activity_main">Beija</string>
-    <string name="package_name">io.beija.app</string>
-    <string name="custom_url_scheme">io.beija.app</string>
 </resources>
