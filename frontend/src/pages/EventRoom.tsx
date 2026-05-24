@@ -64,7 +64,7 @@ export function EventRoom() {
         if (cancelled) return;
         setCheckedIn(true);
         await refreshPeople();
-      } catch {
+      } catch (err) {
         if (!cancelled) setLoadError(errorMessage(err).text);
       } finally {
         if (!cancelled) setLoading(false);
