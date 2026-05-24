@@ -15,7 +15,7 @@ function formatHM(ts: number): string {
 
 function startOfDay(ts: number): number {
   const d = new Date(messageTime(ts));
-  d.setHours(0, 0, 0, 0);h
+  d.setHours(0, 0, 0, 0);
   return d.getTime();
 }
 
