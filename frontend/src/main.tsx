@@ -16,6 +16,15 @@ import { UnreadProvider } from './state/UnreadContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    const swUrl = `${ROUTER_BASENAME.replace(/\/$/, '')}/sw.js`;
+    navigator.serviceWorker.register(swUrl).catch((err) => {
+      console.warn('[sw] register failed:', err);
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
