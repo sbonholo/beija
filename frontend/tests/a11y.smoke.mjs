@@ -20,7 +20,7 @@ const htmlPath = resolve(__dirname, '..', 'dist', 'index.html');
 let html;
 try {
   html = readFileSync(htmlPath, 'utf8');
-} catch (e) {
+} catch {
   console.error(`[a11y-smoke] ${htmlPath} not found. Run "npm run build" first.`);
   process.exit(1);
 }

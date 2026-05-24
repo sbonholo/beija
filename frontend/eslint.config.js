@@ -57,4 +57,25 @@ export default [
       'jsx-a11y/no-noninteractive-element-interactions': 'off',
     },
   },
+  // Node scripts (test smoke, tooling) — need Node globals + relaxed unused.
+  {
+    files: ['tests/**/*.mjs', 'scripts/**/*.{js,mjs}', '*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+    },
+  },
 ];
