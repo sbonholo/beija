@@ -3,7 +3,6 @@
 
 -- Enable necessary extensions
 create extension if not exists "uuid-ossp";
-create extension if not exists "pgjson";
 
 -- Users table
 create table if not exists users (
