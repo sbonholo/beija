@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from './state/AuthContext';
 import { ToastProvider } from './components/Toast';
 import { SignInScreen } from './components/Auth/SignInScreen';
-import { OnboardingFlow } from './components/Auth/OnboardingFlow';
-import { ProfileSetup } from './components/Auth/ProfileSetup';
 import { StackDeck } from './components/Discovery/StackDeck';
 import { ChatScreen } from './components/Chat/ChatScreen';
 import { MatchesList } from './components/Chat/MatchesList';
-import { DeleteAccountFlow } from './components/Settings/DeleteAccountFlow';
+import { ProfileSetup } from './components/Auth/ProfileSetup';
 import { BottomNav } from './components/BottomNav';
-import { MarkdownPage } from './components/MarkdownPage';
-import privacyContent from './pages/PrivacyPolicy.md?raw';
-import termsContent from './pages/TermsOfService.md?raw';
+
+// Heavy / rarely-visited routes — code-split to keep the main bundle lean.
+const OnboardingFlow = lazy(() =>
+  import('./components/Auth/OnboardingFlow').then((m) => ({ default: m.OnboardingFlow })),
+);
+const DeleteAccountFlow = lazy(() =>
+  import('./components/Settings/DeleteAccountFlow').then((m) => ({ default: m.DeleteAccountFlow })),
+);
+const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./components/pages/TermsPage'));
 
 const SPLASH_MS = 1500;
 
@@ -77,12 +82,18 @@ export function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/signin" element={<SignInScreen />} />
-          <Route path="/privacy" element={<MarkdownPage content={privacyContent} />} />
-          <Route path="/terms" element={<MarkdownPage content={termsContent} />} />
+          <Route path="/privacy" element={<Suspense fallback={<Splash />}><PrivacyPage /></Suspense>} />
+          <Route path="/terms" element={<Suspense fallback={<Splash />}><TermsPage /></Suspense>} />
 
           <Route element={<Protected />}>
-            <Route path="/onboarding" element={<OnboardingFlow />} />
-            <Route path="/settings/delete" element={<DeleteAccountFlow />} />
+            <Route
+              path="/onboarding"
+              element={<Suspense fallback={<Splash />}><OnboardingFlow /></Suspense>}
+            />
+            <Route
+              path="/settings/delete"
+              element={<Suspense fallback={<Splash />}><DeleteAccountFlow /></Suspense>}
+            />
 
             <Route element={<NeedsProfile />}>
               <Route path="/chat/:id" element={<ChatScreen />} />

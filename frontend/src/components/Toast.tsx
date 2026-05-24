@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, ReactNode, createContext, useContext } from 'react';
+import { useState, useCallback, ReactNode, createContext, useContext } from 'react';
 
 type ToastKind = 'kiss' | 'heart' | 'fire' | 'match' | 'info';
 interface ToastItem { id: number; kind: ToastKind; text: string }

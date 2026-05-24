@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase, type Match, type Message, type Profile } from '../../lib/supabase';
+import { supabase, type Match, type Message } from '../../lib/supabase';
 import { MessageBubble } from './MessageBubble';
 import { BlockButton } from '../Moderation/BlockButton';
 import { ReportModal } from '../Moderation/ReportModal';
