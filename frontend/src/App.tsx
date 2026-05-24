@@ -4,6 +4,8 @@ import { useAuth } from './state/AuthContext';
 import { useUnread } from './state/UnreadContext';
 import { ToastProvider, useToast } from './components/Toast';
 import { CreateProfile } from './pages/CreateProfile';
+import { Login } from './pages/Login';
+import { VerifyOtp } from './pages/VerifyOtp';
 import { Events } from './pages/Events';
 import { EventRoom } from './pages/EventRoom';
 import { Matches } from './pages/Matches';
@@ -72,7 +74,7 @@ function GlobalSocketListeners() {
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to={isMockMode ? '/' : '/login'} replace />;
   return <>{children}</>;
 }
 
@@ -93,12 +95,18 @@ export function App() {
       )}
       <div className="app">
         <Routes>
-          <Route path="/" element={user ? <Profile /> : <CreateProfile />} />
+          <Route path="/" element={
+            !user
+              ? (isMockMode ? <CreateProfile /> : <Navigate to="/login" replace />)
+              : (!user.nickname ? <CreateProfile /> : <Profile />)
+          } />
+          <Route path="/login" element={user ? <Navigate to="/events" replace /> : <Login />} />
+          <Route path="/verify" element={user ? <Navigate to="/events" replace /> : <VerifyOtp />} />
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
           <Route path="/chat/:matchId" element={<Protected><Chat /></Protected>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={isMockMode ? '/' : '/login'} replace />} />
         </Routes>
       </div>
     </ToastProvider>

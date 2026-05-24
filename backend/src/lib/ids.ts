@@ -5,7 +5,7 @@ export function newId(prefix = ''): string {
 }
 
 export function newOtp(): string {
-  return String(randomInt(0, 1000000)).padStart(6, '0');
+  return String(randomInt(0, 10000)).padStart(4, '0');
 }
 
 export function normalizePhone(raw: string): string | null {

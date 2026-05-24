@@ -43,6 +43,11 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
 }
 
 export const api = {
+  requestOtp: (phone: string) =>
+    request<{ ok: true; phone: string; devCode?: string }>('POST', '/auth/request-otp', { phone }),
+  verifyOtp: (phone: string, code: string) =>
+    request<{ token: string; user: any; isNew: boolean; needsProfile: boolean }>('POST', '/auth/verify-otp', { phone, code }),
+
   getMe: () => request<{ user: any }>('GET', '/profile/me'),
   updateMe: (patch: Record<string, unknown>) => request<{ user: any }>('PUT', '/profile/me', patch),
   uploadPhoto: (file: File) => {
@@ -88,10 +93,15 @@ function currentUser(): User | null {
   }
 }
 
-// In this build there is no backend. mockedApi always serves mock data.
-// Hook up a real api by gating each method behind a feature flag when the backend exists.
 export const mockedApi = {
   ...api,
+  requestOtp: async (phone: string) => ({ ok: true as const, phone }),
+  verifyOtp: async (_phone: string, _code: string) => ({
+    token: 'mock-token',
+    user: { id: 'mock-u-' + Math.random().toString(36).slice(2, 8), phone: _phone, nickname: null, gender: null, seeking: null, bio: null, photoUrl: null, birthdate: null, currentEventId: null, lastActive: Date.now() },
+    isNew: true,
+    needsProfile: true,
+  }),
   getMe: async () => ({ user: currentUser() }),
   updateMe: async (patch: Record<string, unknown>) => {
     const cur = currentUser();

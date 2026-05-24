@@ -3,6 +3,7 @@ import cors from 'cors';
 import http from 'http';
 import { config } from './config.js';
 import { initSocket } from './socket.js';
+import './seed.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import eventRoutes from './routes/events.js';

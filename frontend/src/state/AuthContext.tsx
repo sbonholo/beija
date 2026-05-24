@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, ReactNode } from 'react';
 import { closeSocket } from '../lib/socket';
+import { setToken } from '../lib/api';
 import type { User } from '../types';
 
 const PROFILE_KEY = 'beija_profile';
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    setToken(null);
     setUser(null);
     closeSocket();
   }, [setUser]);

@@ -79,18 +79,26 @@ const seedEvents = [
   },
 ];
 
-const insert = db.prepare(
+const upsert = db.prepare(
   `INSERT INTO events (id, name, venue, address, city, lat, lng, starts_at, ends_at, image_url, category)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
    ON CONFLICT(id) DO NOTHING`
 );
 
+const updateTimestamps = db.prepare(
+  `UPDATE events SET starts_at = ?, ends_at = ? WHERE name = ? AND venue = ?`
+);
+
 let inserted = 0;
 for (const e of seedEvents) {
   const existing = db.prepare('SELECT id FROM events WHERE name = ? AND venue = ?').get(e.name, e.venue);
-  if (existing) continue;
-  insert.run(newId('e_'), e.name, e.venue, e.address, e.city, e.lat, e.lng, e.starts_at, e.ends_at, e.image_url, e.category);
-  inserted++;
+  if (existing) {
+    updateTimestamps.run(e.starts_at, e.ends_at, e.name, e.venue);
+  } else {
+    upsert.run(newId('e_'), e.name, e.venue, e.address, e.city, e.lat, e.lng, e.starts_at, e.ends_at, e.image_url, e.category);
+    inserted++;
+  }
 }
 
-console.log(`[seed] inserted ${inserted} events (total now: ${(db.prepare('SELECT COUNT(*) AS c FROM events').get() as any).c})`);
+const total = (db.prepare('SELECT COUNT(*) AS c FROM events').get() as any).c;
+console.log(`[seed] ${inserted} events inserted, ${total} total (timestamps refreshed on restart)`);

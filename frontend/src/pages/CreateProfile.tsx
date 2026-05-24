@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
+import { activeApi, isMockMode } from '../lib/api';
 import type { Gender, User } from '../types';
 
 const identityOptions: { value: Gender; label: string; icon: string }[] = [
@@ -31,6 +32,7 @@ export function CreateProfile() {
   const galleryRef = useRef<HTMLInputElement | null>(null);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [nickname, setNickname] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [seeking, setSeeking] = useState<Gender[]>([]);
@@ -55,6 +57,7 @@ export function CreateProfile() {
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
+    setPhotoFile(f);
     setPhotoUrl(URL.createObjectURL(f));
   }
 
@@ -65,22 +68,41 @@ export function CreateProfile() {
     seeking.length > 0 &&
     isAdult;
 
-  function submit() {
+  async function submit() {
     if (!valid || !gender) return;
     setSaving(true);
-    const profile: User = {
-      id: newId(),
-      nickname: nickname.trim(),
-      gender,
-      seeking,
-      bio: null,
-      photoUrl,
-      birthdate: null,
-      currentEventId: null,
-      lastActive: Date.now(),
-    };
-    setUser(profile);
-    nav('/events', { replace: true });
+    try {
+      if (isMockMode) {
+        const profile: User = {
+          id: newId(),
+          nickname: nickname.trim(),
+          gender,
+          seeking,
+          bio: null,
+          photoUrl,
+          birthdate: null,
+          currentEventId: null,
+          lastActive: Date.now(),
+        };
+        setUser(profile);
+      } else {
+        let uploadedUrl: string | null = null;
+        if (photoFile) {
+          const r = await activeApi.uploadPhoto(photoFile);
+          uploadedUrl = r.photoUrl;
+        }
+        const r = await activeApi.updateMe({
+          nickname: nickname.trim(),
+          gender,
+          seeking,
+          photoUrl: uploadedUrl,
+        });
+        setUser(r.user);
+      }
+      nav('/events', { replace: true });
+    } catch {
+      setSaving(false);
+    }
   }
 
   return (
