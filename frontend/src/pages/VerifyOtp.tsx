@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { activeApi, setToken } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 
+function formatDisplay(d: string): string {
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 export function VerifyOtp() {
   const nav = useNavigate();
   const { setUser } = useAuth();
@@ -12,13 +19,6 @@ export function VerifyOtp() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const rawPhone = sessionStorage.getItem('beija_phone') || '';
-  const phone = rawPhone;
-  function formatDisplay(d: string): string {
-    if (d.length <= 2) return d;
-    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  }
 
   useEffect(() => {
     if (!rawPhone) nav('/login', { replace: true });
@@ -31,14 +31,14 @@ export function VerifyOtp() {
     setLoading(true);
     setError('');
     try {
-      const res = await activeApi.verifyOtp(phone, code);
+      const res = await activeApi.verifyOtp(rawPhone, code);
       setToken(res.token);
       setUser(res.user);
       sessionStorage.removeItem('beija_phone');
       nav(res.needsProfile ? '/' : '/events', { replace: true });
     } catch (err: any) {
       const msg: Record<string, string> = {
-        wrong_code: 'Código incorreto.',
+        wrong_code: 'Código incorreto. Tente de novo.',
         expired: 'Código expirado. Volte e peça um novo.',
         too_many_attempts: 'Muitas tentativas. Volte e peça um novo código.',
       };
@@ -50,30 +50,51 @@ export function VerifyOtp() {
     }
   }
 
+  const isReady = code.length === 4;
+
   return (
-    <div className="screen" style={{ justifyContent: 'center', paddingBottom: 40 }}>
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
+    <div className="auth-screen">
+      {/* Hero */}
+      <div className="auth-hero">
+        <div className="lock-hero" aria-hidden="true">🔐</div>
         <h1 className="brand-title">Beija</h1>
-        <p className="brand-sub">Digite o código de 4 dígitos</p>
-        {phone && <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>{formatDisplay(phone)}</p>}
+
+        {rawPhone && (
+          <div className="verify-sent-badge">
+            <span>✓</span> Código enviado para {formatDisplay(rawPhone)}
+          </div>
+        )}
+
+        <p className="auth-tagline" style={{ marginTop: 12 }}>
+          Digite o código de 4 dígitos que chegou por SMS.
+        </p>
       </div>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="auth-form">
         <input
           ref={inputRef}
           type="tel"
           inputMode="numeric"
           maxLength={4}
-          placeholder="0000"
+          placeholder="· · · ·"
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          style={{ fontSize: 32, textAlign: 'center', letterSpacing: 10 }}
+          onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+          className={`otp-input${isReady ? ' otp-ready' : ''}`}
         />
-        {error && <p style={{ color: 'var(--pink)', fontSize: 13, textAlign: 'center', margin: 0 }}>{error}</p>}
-        <button className="btn" type="submit" disabled={loading || code.length !== 4}>
-          {loading ? 'Verificando...' : 'Entrar 🔓'}
+
+        {error && <p className="auth-error">{error}</p>}
+
+        <button
+          className={`btn${isReady ? ' btn-ready' : ''}`}
+          type="submit"
+          disabled={loading || !isReady}
+        >
+          {loading ? 'Verificando…' : 'Entrar 🔓'}
         </button>
+
         <button type="button" className="btn ghost" onClick={() => nav('/login')}>
-          Voltar
+          ← Trocar número
         </button>
       </form>
     </div>

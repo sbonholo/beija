@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { activeApi, isMockMode } from '../lib/api';
-import type { Gender, User } from '../types';
+import type { Gender } from '../types';
 
 const identityOptions: { value: Gender; label: string; icon: string }[] = [
   { value: 'woman', label: 'Mulher', icon: '♀️' },
@@ -24,6 +24,8 @@ const seekingOptions: { value: SeekingChip; label: string; icon: string }[] = [
 function newId() {
   return 'u_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
+
+const STEPS = ['Foto', 'Nome', 'Identidade', 'Procuro'];
 
 export function CreateProfile() {
   const nav = useNavigate();
@@ -61,12 +63,8 @@ export function CreateProfile() {
     setPhotoUrl(URL.createObjectURL(f));
   }
 
-  const valid =
-    !!photoUrl &&
-    nickname.trim().length > 0 &&
-    gender !== null &&
-    seeking.length > 0 &&
-    isAdult;
+  const stepsCompleted = [!!photoUrl, !!nickname.trim(), !!gender, seeking.length > 0];
+  const valid = stepsCompleted.every(Boolean) && isAdult;
 
   async function submit() {
     if (!valid || !gender) return;
@@ -100,136 +98,122 @@ export function CreateProfile() {
   }
 
   return (
-    <div className="screen" style={{ paddingBottom: 40 }}>
-      <div style={{ marginBottom: 18 }}>
-        <h1 className="brand-title">Beija</h1>
-        <p className="brand-sub">Bem-vindo! Monta seu perfil pra entrar no rolê.</p>
+    <div className="screen" style={{ paddingBottom: 48 }}>
+      {/* Header */}
+      <div className="create-profile-header">
+        <h1 className="brand-title" style={{ fontSize: 40 }}>Beija</h1>
+        <p className="create-profile-hook">Cria seu perfil em 30 segundos ⚡</p>
+        {/* Progress dots */}
+        <div className="cp-progress">
+          {STEPS.map((label, i) => (
+            <div key={label} className={`cp-step${stepsCompleted[i] ? ' done' : ''}`}>
+              <div className="cp-dot">{stepsCompleted[i] ? '✓' : i + 1}</div>
+              <span className="cp-label">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
-        Sua foto
-      </label>
-      <div
-        onClick={() => galleryRef.current?.click()}
-        role="button"
-        aria-label="Escolher foto"
-        style={{
-          width: '100%',
-          aspectRatio: '1 / 1',
-          maxWidth: 240,
-          margin: '0 auto 12px',
-          borderRadius: 'var(--radius)',
-          backgroundImage: photoUrl ? `url("${photoUrl}")` : undefined,
-          backgroundColor: photoUrl ? undefined : '#1c0a2b',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          border: '2px dashed rgba(255, 59, 154, 0.35)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: photoUrl ? 'var(--shadow)' : undefined,
-        }}
-      >
-        {!photoUrl && <span style={{ fontSize: 48 }}>📷</span>}
-      </div>
-      <div className="row" style={{ gap: 8, justifyContent: 'center', marginBottom: 22 }}>
-        <button type="button" className="chip" onClick={() => cameraRef.current?.click()}>
-          📷 Selfie
-        </button>
-        <button type="button" className="chip" onClick={() => galleryRef.current?.click()}>
-          🖼️ Galeria
-        </button>
-      </div>
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="user"
-        style={{ display: 'none' }}
-        onChange={onPick}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={onPick}
-      />
-
-      <input
-        placeholder="Seu nome ou apelido"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        maxLength={30}
-      />
-
-      <label className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 8, display: 'block' }}>
-        Como você se identifica?
-      </label>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-        {identityOptions.map((g) => (
-          <button
-            key={g.value}
-            type="button"
-            className={`chip ${gender === g.value ? 'selected' : ''}`}
-            onClick={() => setGender(g.value)}
-          >
-            <span aria-hidden>{g.icon}</span> {g.label}
+      {/* Photo */}
+      <div className="cp-section">
+        <p className="field-label">Sua melhor foto 📸</p>
+        <div
+          onClick={() => galleryRef.current?.click()}
+          role="button"
+          aria-label="Escolher foto"
+          className={`cp-photo-pick${photoUrl ? ' has-photo' : ''}`}
+          style={photoUrl ? { backgroundImage: `url("${photoUrl}")` } : undefined}
+        >
+          {!photoUrl && (
+            <div className="cp-photo-placeholder">
+              <span style={{ fontSize: 44 }}>📷</span>
+              <span style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>Toque para escolher</span>
+            </div>
+          )}
+          {photoUrl && <div className="cp-photo-overlay">Trocar</div>}
+        </div>
+        <div className="row" style={{ gap: 8, justifyContent: 'center', marginTop: 10 }}>
+          <button type="button" className="chip" onClick={() => cameraRef.current?.click()}>
+            📷 Selfie
           </button>
-        ))}
-      </div>
-
-      <label className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 8, display: 'block' }}>
-        Quem você quer conhecer?
-      </label>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-        {seekingOptions.map((s) => (
-          <button
-            key={s.value}
-            type="button"
-            className={`chip ${isChipSelected(s.value) ? 'selected' : ''}`}
-            onClick={() => toggleSeeking(s.value)}
-          >
-            <span aria-hidden>{s.icon}</span> {s.label}
+          <button type="button" className="chip" onClick={() => galleryRef.current?.click()}>
+            🖼️ Galeria
           </button>
-        ))}
+        </div>
       </div>
 
-      <label
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginTop: 22,
-          padding: '14px 16px',
-          background: 'var(--bg-elev)',
-          borderRadius: 'var(--radius-sm)',
-          cursor: 'pointer',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
+      <input ref={cameraRef} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={onPick} />
+      <input ref={galleryRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onPick} />
+
+      {/* Nickname */}
+      <div className="cp-section">
+        <p className="field-label">Como te chamam?</p>
+        <input
+          placeholder="Seu nome ou apelido"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          maxLength={30}
+          style={{ fontSize: 18 }}
+        />
+      </div>
+
+      {/* Identity */}
+      <div className="cp-section">
+        <p className="field-label">Como você se identifica?</p>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {identityOptions.map((g) => (
+            <button
+              key={g.value}
+              type="button"
+              className={`chip ${gender === g.value ? 'selected' : ''}`}
+              onClick={() => setGender(g.value)}
+            >
+              <span aria-hidden>{g.icon}</span> {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Seeking */}
+      <div className="cp-section">
+        <p className="field-label">Quem você quer conhecer?</p>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {seekingOptions.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              className={`chip ${isChipSelected(s.value) ? 'selected' : ''}`}
+              onClick={() => toggleSeeking(s.value)}
+            >
+              <span aria-hidden>{s.icon}</span> {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Age confirmation */}
+      <label className="cp-adult-check">
         <input
           type="checkbox"
           checked={isAdult}
           onChange={(e) => setIsAdult(e.target.checked)}
-          style={{ width: 20, height: 20, accentColor: 'var(--pink)' }}
+          style={{ width: 20, height: 20, accentColor: 'var(--pink)', flexShrink: 0 }}
         />
-        <span style={{ fontSize: 14 }}>Tenho 18 anos ou mais</span>
+        <span>Tenho 18 anos ou mais e aceito os termos de uso</span>
       </label>
 
       <button
-        className="btn"
+        className={`btn${valid ? ' btn-ready' : ''}`}
         style={{ marginTop: 22 }}
         disabled={!valid || saving}
         onClick={submit}
       >
-        {saving ? 'Salvando...' : 'Bora! 🔥'}
+        {saving ? 'Criando perfil…' : 'Bora entrar no rolê! 🔥'}
       </button>
 
       {!valid && (
-        <p className="muted" style={{ marginTop: 10, fontSize: 12, textAlign: 'center' }}>
-          Pra continuar: foto, nick, identidade, quem você procura e confirmar 18+.
+        <p className="muted" style={{ marginTop: 10, fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>
+          Falta: {[!photoUrl && 'foto', !nickname.trim() && 'apelido', !gender && 'identidade', seeking.length === 0 && 'quem procura', !isAdult && '18+'].filter(Boolean).join(', ')}.
         </p>
       )}
     </div>
