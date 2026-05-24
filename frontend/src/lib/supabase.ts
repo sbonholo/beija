@@ -27,29 +27,36 @@ export async function requireUser(): Promise<User> {
   return user;
 }
 
-export type Gender = 'M' | 'F' | 'Other' | 'Prefer not to say';
-export type Seeking = 'M' | 'F' | 'Both';
+export type Gender = 'woman' | 'man' | 'non-binary' | 'other';
 
+/**
+ * Mirrors the `profiles` table from migrations/20260524000000_complete_schema.sql
+ * (+ 20260524100000_add_interests.sql).
+ */
 export interface Profile {
   id: string;
-  phone_number: string;
-  nickname: string;
+  name: string | null;
   birthdate: string | null;
+  gender: 'woman' | 'man' | 'non-binary' | 'other' | null;
   bio: string | null;
-  gender: Gender | null;
-  seeking: Seeking | null;
-  photo_url: string | null;
+  location: unknown | null;
+  city: string | null;
+  interested_in: string[] | null;
+  interests: string[];
+  min_age: number | null;
+  max_age: number | null;
+  max_distance_km: number | null;
   push_token: string | null;
+  last_active: string | null;
+  deleted_at: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Match {
   id: string;
-  user_1_id: string;
-  user_2_id: string;
-  event_id: string;
-  matched_at: string;
+  user1_id: string;
+  user2_id: string;
+  created_at: string;
   last_message_at: string | null;
 }
 
@@ -58,6 +65,7 @@ export interface Message {
   match_id: string;
   sender_id: string;
   content: string;
-  created_at: string;
   read_at: string | null;
+  created_at: string;
+  deleted_at: string | null;
 }
