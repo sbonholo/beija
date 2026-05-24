@@ -3,15 +3,12 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { useAuth } from './state/AuthContext';
 import { useUnread } from './state/UnreadContext';
 import { ToastProvider, useToast } from './components/Toast';
-import { Login } from './pages/Login';
-import { VerifyOtp } from './pages/VerifyOtp';
-import { Onboarding } from './pages/Onboarding';
+import { CreateProfile } from './pages/CreateProfile';
 import { Events } from './pages/Events';
 import { EventRoom } from './pages/EventRoom';
 import { Matches } from './pages/Matches';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
-import { PhotoGate } from './pages/PhotoGate';
 import { getSocket, closeSocket } from './lib/socket';
 import type { ReactionType, User } from './types';
 import { hapticSuccess } from './platform/haptics';
@@ -34,7 +31,12 @@ function GlobalSocketListeners() {
 
   useEffect(() => {
     if (!user) return;
-    const sock = getSocket();
+    let sock: ReturnType<typeof getSocket> | null = null;
+    try {
+      sock = getSocket();
+    } catch {
+      return;
+    }
 
     const onReaction = (payload: { fromUser: User; type: ReactionType; eventId: string }) => {
       if (location.pathname.startsWith(`/events/${payload.eventId}`)) return;
@@ -58,9 +60,13 @@ function GlobalSocketListeners() {
     sock.on('message:new', onMessage);
 
     return () => {
-      sock.off('reaction:incoming', onReaction);
-      sock.off('match:new', onMatch);
-      sock.off('message:new', onMessage);
+      try {
+        sock?.off('reaction:incoming', onReaction);
+        sock?.off('match:new', onMatch);
+        sock?.off('message:new', onMessage);
+      } catch {
+        /* socket already torn down */
+      }
     };
   }, [user, toast, location.pathname, nav, bump]);
 
@@ -72,31 +78,24 @@ function GlobalSocketListeners() {
 }
 
 function Protected({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="screen"><p className="muted">Carregando...</p></div>;
+  const { user } = useAuth();
   if (!user) return <Navigate to="/" replace />;
-  if (!user.nickname || !user.gender) return <Navigate to="/onboarding" replace />;
-  if (!user.photoUrl) return <Navigate to="/photo" replace />;
   return <>{children}</>;
 }
 
 export function App() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
   return (
     <ToastProvider>
       <GlobalSocketListeners />
       <div className="app">
         <Routes>
-          <Route path="/" element={user && !loading ? <Navigate to="/events" replace /> : <Login />} />
-          <Route path="/verify" element={<VerifyOtp />} />
-          <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/" replace />} />
-          <Route path="/photo" element={user ? <PhotoGate /> : <Navigate to="/" replace />} />
+          <Route path="/" element={user ? <Profile /> : <CreateProfile />} />
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
           <Route path="/chat/:matchId" element={<Protected><Chat /></Protected>} />
-          <Route path="/me" element={<Protected><Profile /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

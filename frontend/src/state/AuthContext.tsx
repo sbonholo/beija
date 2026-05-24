@@ -1,57 +1,52 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { mockedApi as api, setToken, getToken } from '../lib/api';
-import { refreshSocketAuth, closeSocket } from '../lib/socket';
+import { createContext, useCallback, useContext, useState, ReactNode } from 'react';
+import { closeSocket } from '../lib/socket';
 import type { User } from '../types';
+
+const PROFILE_KEY = 'beija_profile';
+
+function readProfile(): User | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+function writeProfile(u: User | null) {
+  try {
+    if (u) localStorage.setItem(PROFILE_KEY, JSON.stringify(u));
+    else localStorage.removeItem(PROFILE_KEY);
+  } catch {
+    /* quota or private mode */
+  }
+}
 
 interface AuthCtx {
   user: User | null;
   loading: boolean;
   setUser: (u: User | null) => void;
-  signIn: (token: string, user: User) => void;
   signOut: () => void;
-  refresh: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUserState] = useState<User | null>(() => readProfile());
 
-  const refresh = useCallback(async () => {
-    if (!getToken()) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      const { user } = await api.getMe();
-      setUser(user);
-    } catch {
-      setToken(null);
-      setUser(null);
-      closeSocket();
-    } finally {
-      setLoading(false);
-    }
+  const setUser = useCallback((u: User | null) => {
+    setUserState(u);
+    writeProfile(u);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const signIn = (token: string, u: User) => {
-    setToken(token);
-    setUser(u);
-    refreshSocketAuth();
-  };
-
-  const signOut = () => {
-    setToken(null);
+  const signOut = useCallback(() => {
     setUser(null);
     closeSocket();
-  };
+  }, [setUser]);
 
   return (
-    <Ctx.Provider value={{ user, loading, setUser, signIn, signOut, refresh }}>
+    <Ctx.Provider value={{ user, loading: false, setUser, signOut }}>
       {children}
     </Ctx.Provider>
   );

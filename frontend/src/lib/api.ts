@@ -43,11 +43,6 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
 }
 
 export const api = {
-  requestOtp: (phone: string) =>
-    request<{ ok: true; phone: string; devCode?: string }>('POST', '/auth/request-otp', { phone }),
-  verifyOtp: (phone: string, code: string) =>
-    request<{ token: string; user: any; isNew: boolean; needsProfile: boolean }>('POST', '/auth/verify-otp', { phone, code }),
-
   getMe: () => request<{ user: any }>('GET', '/profile/me'),
   updateMe: (patch: Record<string, unknown>) => request<{ user: any }>('PUT', '/profile/me', patch),
   uploadPhoto: (file: File) => {
@@ -76,47 +71,42 @@ export const api = {
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
 };
 
-import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages, biaUser } from './mockData';
-
-function isMock() { return getToken() === MOCK_TOKEN; }
+import type { User } from '../types';
+import { mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages, biaUser } from './mockData';
 
 function findMockEvent(id: string) {
   return mockEvents.find((e) => e.id === id) ?? mockEvent1;
 }
 
-const _api = api;
+function currentUser(): User | null {
+  try {
+    const raw = localStorage.getItem('beija_profile');
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+// In this build there is no backend. mockedApi always serves mock data.
+// Hook up a real api by gating each method behind a feature flag when the backend exists.
 export const mockedApi = {
   ...api,
-  requestOtp: async (phone: string) => {
-    if (phone === '00000000000') {
-      return { ok: true as const, phone, devCode: MOCK_OTP };
-    }
-    return _api.requestOtp(phone);
-  },
-  verifyOtp: async (phone: string, code: string) => {
-    if (phone === '00000000000' && code === MOCK_OTP) {
-      setToken(MOCK_TOKEN);
-      return { token: MOCK_TOKEN, user: mockUser, isNew: false, needsProfile: false };
-    }
-    return _api.verifyOtp(phone, code);
-  },
-  getMe: async () => (isMock() ? { user: mockUser } : _api.getMe()),
+  getMe: async () => ({ user: currentUser() }),
   updateMe: async (patch: Record<string, unknown>) => {
-    if (!isMock()) return _api.updateMe(patch);
-    Object.assign(mockUser, patch);
-    return { user: mockUser };
+    const cur = currentUser();
+    const updated = { ...(cur ?? {}), ...patch } as User;
+    return { user: updated };
   },
-  uploadPhoto: async (file: File) =>
-    isMock() ? { photoUrl: URL.createObjectURL(file) } : _api.uploadPhoto(file),
-  listEvents: async (lat?: number | null, lng?: number | null) =>
-    isMock() ? { events: mockEvents } : _api.listEvents(lat, lng),
-  getEvent: async (id: string) => (isMock() ? { event: findMockEvent(id) } : _api.getEvent(id)),
-  checkIn: async (id: string) => (isMock() ? { ok: true as const } : _api.checkIn(id)),
-  checkOut: async (id: string) => (isMock() ? { ok: true as const } : _api.checkOut(id)),
+  uploadPhoto: async (file: File) => ({ photoUrl: URL.createObjectURL(file) }),
+  listEvents: async (_lat?: number | null, _lng?: number | null) => ({ events: mockEvents }),
+  getEvent: async (id: string) => ({ event: findMockEvent(id) }),
+  checkIn: async (_id: string) => ({ ok: true as const }),
+  checkOut: async (_id: string) => ({ ok: true as const }),
   listPeople: async (id: string) => {
-    if (!isMock()) return _api.listPeople(id);
-    const mySeeking = mockUser.seeking ?? [];
-    const myGender = mockUser.gender;
+    const me = currentUser();
+    const mySeeking = me?.seeking ?? [];
+    const myGender = me?.gender ?? null;
     const atEvent = mockPeople.filter((p) => p.currentEventId === id);
     const compatible = atEvent.filter((p) => {
       const iWantThem = mySeeking.length === 0 || (p.gender ? mySeeking.includes(p.gender) : true);
@@ -126,27 +116,43 @@ export const mockedApi = {
     return { people: compatible };
   },
   sendReaction: async (toUserId: string, eventId: string, type: string) => {
-    if (!isMock()) return _api.sendReaction(toUserId, eventId, type);
     // Demo affordance: a 💋 sent to Bia (mock-user-2) triggers a fake match.
     if (toUserId === biaUser.id && type === 'kiss') {
+      const matchId = 'mock-match-fake';
+      if (!mockMatches.some((m) => m.id === matchId)) {
+        mockMatches.unshift({
+          id: matchId,
+          eventId,
+          eventName: mockEvent1.name,
+          eventVenue: mockEvent1.venue,
+          createdAt: Date.now(),
+          lastMessage: null,
+          otherUser: biaUser,
+        });
+      }
       return {
         ok: true as const,
         reaction: type,
-        match: { id: 'mock-match-fake', eventId, otherUser: biaUser } as { id: string; eventId: string; otherUser: typeof biaUser },
+        match: { id: matchId, eventId, otherUser: biaUser },
       };
     }
     return { ok: true as const, reaction: type, match: null };
   },
-  removeReaction: async (toUserId: string, eventId: string) =>
-    isMock() ? { ok: true as const } : _api.removeReaction(toUserId, eventId),
-  listMatches: async (): Promise<{ matches: any[] }> =>
-    isMock() ? { matches: mockMatches } : _api.listMatches(),
-  listMessages: async (matchId: string): Promise<{ messages: any[] }> =>
-    isMock()
-      ? { messages: matchId === 'mock-match-1' ? mockMessages : [] }
-      : _api.listMessages(matchId),
-  sendMessage: async (matchId: string, text: string) =>
-    isMock()
-      ? { message: { id: `msg-${Date.now()}`, fromUserId: 'mock-user-1', text, createdAt: Date.now() } }
-      : _api.sendMessage(matchId, text),
+  removeReaction: async (_toUserId: string, _eventId: string) => ({ ok: true as const }),
+  listMatches: async (): Promise<{ matches: any[] }> => ({ matches: mockMatches }),
+  listMessages: async (matchId: string): Promise<{ messages: any[] }> => ({
+    messages: matchId === 'mock-match-1' ? mockMessages : [],
+  }),
+  sendMessage: async (matchId: string, text: string) => {
+    const me = currentUser();
+    return {
+      message: {
+        id: `msg-${Date.now()}`,
+        matchId,
+        fromUserId: me?.id ?? 'me',
+        text,
+        createdAt: Date.now(),
+      },
+    };
+  },
 };
