@@ -1,4 +1,4 @@
-const ROUTER_BASENAME = import.meta.env.PROD ? '/beija' : '/';
+const ROUTER_BASENAME = import.meta.env.VITE_ROUTER_BASE || '/';
 
 const spaRedirect = sessionStorage.getItem('beija_spa_redirect');
 if (spaRedirect) {
