@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase, type Profile } from '../../lib/supabase';
-import { SwipeCard, type SwipeDirection } from './SwipeCard';
+import { SwipeCard, type SwipeCardProfile, type SwipeDirection } from './SwipeCard';
 import { MatchModal } from './MatchModal';
 import { DiscoveryFilters } from './DiscoveryFilters';
 import { useGeolocation } from '../../hooks/useGeolocation';
@@ -24,7 +25,7 @@ async function bumpLastActive(userId: string) {
   }
 }
 
-interface ProfileWithMedia extends Profile {
+interface ProfileWithMedia extends SwipeCardProfile {
   photos: string[];
   interests: string[];
 }
@@ -34,18 +35,29 @@ interface NewMatch {
   other: ProfileWithMedia;
 }
 
+interface RewindState {
+  profile: ProfileWithMedia;
+  /** The match (id) that was created by this swipe, if any. Cleared on rewind. */
+  matchIdToUndo: string | null;
+}
+
 export function StackDeck() {
+  const nav = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [deck, setDeck] = useState<ProfileWithMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<NewMatch | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  /** Last swiped profile — enables Rewind. Cleared after rewind or page exit. */
+  const [lastSwiped, setLastSwiped] = useState<RewindState | null>(null);
+  const [rewinding, setRewinding] = useState(false);
+  const [likesYouCount, setLikesYouCount] = useState(0);
   useGeolocation({ autoUpdate: true });
 
   const top = useMemo(() => deck.slice(0, STACK_VISIBLE), [deck]);
 
-  const enrichProfiles = useCallback(async (profiles: Profile[]): Promise<ProfileWithMedia[]> => {
+  const enrichProfiles = useCallback(async (profiles: SwipeCardProfile[]): Promise<ProfileWithMedia[]> => {
     if (profiles.length === 0) return [];
     const ids = profiles.map((p) => p.id);
     const { data: photos } = await supabase
@@ -75,7 +87,7 @@ export function StackDeck() {
         p_user_id: userId,
       });
       if (rpcError) throw rpcError;
-      const fresh = (data ?? []) as Profile[];
+      const fresh = (data ?? []) as SwipeCardProfile[];
       const enriched = await enrichProfiles(fresh);
       setDeck((cur) => {
         const seen = new Set(cur.map((p) => p.id));
@@ -86,6 +98,16 @@ export function StackDeck() {
       setError(e instanceof Error ? e.message : 'load_failed');
     }
   }, [userId, enrichProfiles]);
+
+  const refreshLikesYou = useCallback(async () => {
+    try {
+      const { data, error: e } = await supabase.rpc('who_liked_me');
+      if (e) return;
+      setLikesYouCount((data as unknown[] | null)?.length ?? 0);
+    } catch {
+      /* ignore — non-critical */
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,10 +136,15 @@ export function StackDeck() {
     }
   }, [userId, deck.length, loadMore]);
 
+  useEffect(() => {
+    if (userId) void refreshLikesYou();
+  }, [userId, refreshLikesYou]);
+
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
     void bumpLastActive(userId);
+    let matchedId: string | null = null;
 
     if (deck.length <= STACK_VISIBLE + 1) {
       void loadMore();
@@ -141,11 +168,10 @@ export function StackDeck() {
           .eq('user2_id', hi)
           .maybeSingle();
         if (matchRow) {
-          // Only show modal for matches created within the last 5 seconds (this swipe)
           const created = new Date(matchRow.created_at).getTime();
           if (Date.now() - created < 5000) {
-            setMatch({ matchId: matchRow.id, other: target });
-            // Fire push notification to both participants (best-effort).
+            matchedId = matchRow.id as string;
+            setMatch({ matchId: matchRow.id as string, other: target });
             try {
               await supabase.functions.invoke('notify_match', {
                 body: { match_id: matchRow.id },
@@ -158,6 +184,33 @@ export function StackDeck() {
       }
     } catch (e) {
       console.warn('[StackDeck] swipe persistence failed:', e);
+    }
+
+    setLastSwiped({ profile: target, matchIdToUndo: matchedId });
+    // Re-fetch likes-you count: if I just swiped right on someone who liked me,
+    // they should disappear from that list.
+    void refreshLikesYou();
+  }
+
+  async function rewind() {
+    if (!lastSwiped || rewinding) return;
+    setRewinding(true);
+    try {
+      const { data, error: rpcErr } = await supabase.rpc('rewind_last_swipe');
+      if (rpcErr) throw rpcErr;
+      // Re-insert the profile at the top of the deck so the user sees them again
+      setDeck((cur) => [lastSwiped.profile, ...cur.filter((p) => p.id !== lastSwiped.profile.id)]);
+      // Close any open match modal that this swipe might have produced
+      if (lastSwiped.matchIdToUndo) setMatch(null);
+      setLastSwiped(null);
+      // Refresh ancillary state
+      void refreshLikesYou();
+      // Acknowledge result for future telemetry
+      void data;
+    } catch (e) {
+      console.warn('[StackDeck] rewind failed:', e);
+    } finally {
+      setRewinding(false);
     }
   }
 
@@ -207,22 +260,49 @@ export function StackDeck() {
         <div style={{ fontSize: 56, marginTop: '18vh' }}>🌙</div>
         <h2 style={{ marginTop: 8 }}>Sem perfis novos por aqui</h2>
         <p className="muted">Volta mais tarde — ou aumenta a distância no seu perfil pra ver mais gente.</p>
+        {likesYouCount > 0 && (
+          <button
+            className="btn"
+            style={{ marginTop: 18, maxWidth: 260 }}
+            onClick={() => nav('/likes-you')}
+          >
+            Ver {likesYouCount} {likesYouCount === 1 ? 'curtida' : 'curtidas'} 💋
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="screen" style={{ paddingBottom: 140 }}>
-      <div className="header" style={{ marginBottom: 12 }}>
+      <div className="header" style={{ marginBottom: 12, gap: 8 }}>
         <h2 style={{ margin: 0 }}>Discover</h2>
-        <button
-          type="button"
-          className="chip"
-          onClick={() => setFiltersOpen(true)}
-          aria-label="Filtros"
-        >
-          ⚙︎ Filtros
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {likesYouCount > 0 && (
+            <button
+              type="button"
+              className="chip"
+              onClick={() => nav('/likes-you')}
+              aria-label={`${likesYouCount} curtidas`}
+              style={{
+                background: 'linear-gradient(120deg, var(--pink), var(--hot))',
+                borderColor: 'transparent',
+                color: '#fff',
+                fontWeight: 700,
+              }}
+            >
+              💋 {likesYouCount}
+            </button>
+          )}
+          <button
+            type="button"
+            className="chip"
+            onClick={() => setFiltersOpen(true)}
+            aria-label="Filtros"
+          >
+            ⚙︎ Filtros
+          </button>
+        </div>
       </div>
       <div
         style={{
@@ -233,7 +313,6 @@ export function StackDeck() {
           margin: '0 auto',
         }}
       >
-        {/* Render top-down so top card is last in DOM (above siblings) */}
         {top
           .map((p, i) => ({ p, i }))
           .reverse()
@@ -257,11 +336,30 @@ export function StackDeck() {
           bottom: 'calc(env(safe-area-inset-bottom) + 24px)',
           display: 'flex',
           justifyContent: 'center',
-          gap: 22,
+          gap: 16,
           zIndex: 30,
           pointerEvents: 'none',
         }}
       >
+        <button
+          type="button"
+          onClick={rewind}
+          disabled={!lastSwiped || rewinding}
+          aria-label="Desfazer último swipe"
+          title={lastSwiped ? 'Desfazer' : 'Nada pra desfazer'}
+          style={{
+            ...circleBtn,
+            color: lastSwiped ? '#ffd54a' : 'var(--muted)',
+            opacity: lastSwiped ? 1 : 0.45,
+            cursor: lastSwiped ? 'pointer' : 'not-allowed',
+            width: 50,
+            height: 50,
+            fontSize: 22,
+            pointerEvents: 'auto',
+          }}
+        >
+          ↶
+        </button>
         <button
           type="button"
           onClick={() => trigger('left')}
@@ -274,7 +372,14 @@ export function StackDeck() {
           type="button"
           onClick={() => trigger('super')}
           aria-label="Super like"
-          style={{ ...circleBtn, color: '#3aa8ff', pointerEvents: 'auto', width: 54, height: 54, fontSize: 24 }}
+          style={{
+            ...circleBtn,
+            color: '#3aa8ff',
+            pointerEvents: 'auto',
+            width: 54,
+            height: 54,
+            fontSize: 24,
+          }}
         >
           ⭐
         </button>

@@ -15,6 +15,8 @@ export const TYPING_TIMEOUT_MS = 3000;
 export const TYPING_BROADCAST_THROTTLE_MS = 800;
 export const GEOLOCATION_REFRESH_MS = 30 * 60 * 1000;
 export const MATCH_DETECTION_WINDOW_MS = 5000;
+/** Anything more recent than this is shown as "Ativo agora" with a green dot. */
+export const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
 
 // ---- Storage / quotas ----
 export const MAX_PHOTO_SLOTS = 6;

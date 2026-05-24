@@ -8,11 +8,16 @@ import {
   SWIPE_UP_THRESHOLD_PX,
   TAP_TOLERANCE_PX,
 } from '../../lib/constants';
+import { ageFromBirthdate, formatDistanceKm, formatLastActive, isOnline } from '../../lib/labels';
 
 export type SwipeDirection = 'left' | 'right' | 'super';
 
+/** Profile fields needed by the card — accepts the base Profile plus the
+ *  extra distance_km computed by find_potential_matches. */
+export type SwipeCardProfile = Profile & { distance_km?: number | null };
+
 interface Props {
-  profile: Profile;
+  profile: SwipeCardProfile;
   photos: string[];
   interests?: string[];
   stackIndex: number;
@@ -258,10 +263,52 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
           {age != null && (
             <span style={{ fontSize: 22, fontWeight: 400, opacity: 0.9 }}>{age}</span>
           )}
+          {isOnline(profile.last_active_at) && (
+            <span
+              aria-label="online agora"
+              title="online agora"
+              style={{
+                marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#4ade80',
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#4ade80',
+                  boxShadow: '0 0 8px rgba(74, 222, 128, 0.8)',
+                  display: 'inline-block',
+                }}
+              />
+              online
+            </span>
+          )}
         </div>
-        {profile.city && (
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>📍 {profile.city}</div>
-        )}
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            fontSize: 13,
+            opacity: 0.85,
+            marginTop: 4,
+            flexWrap: 'wrap',
+          }}
+        >
+          {profile.city && <span>📍 {profile.city}</span>}
+          {formatDistanceKm(profile.distance_km) && (
+            <span>· {formatDistanceKm(profile.distance_km)}</span>
+          )}
+          {!isOnline(profile.last_active_at) && formatLastActive(profile.last_active_at) && (
+            <span style={{ opacity: 0.75 }}>· {formatLastActive(profile.last_active_at)}</span>
+          )}
+        </div>
       </div>
 
       {/* Revealed bio overlay (swipe-up or long-press) */}
@@ -335,17 +382,6 @@ function SwipeCardImpl({ profile, photos, interests = [], stackIndex, onSwipe }:
       )}
     </div>
   );
-}
-
-function ageFromBirthdate(birthdate: string | null): number | null {
-  if (!birthdate) return null;
-  const d = new Date(birthdate);
-  if (isNaN(d.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - d.getFullYear();
-  const m = now.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-  return age >= 0 ? age : null;
 }
 
 export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {

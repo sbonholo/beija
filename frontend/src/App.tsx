@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SignInScreen } from './components/Auth/SignInScreen';
 import { ReactivationScreen } from './components/Auth/ReactivationScreen';
 import { StackDeck } from './components/Discovery/StackDeck';
+import { LikesYouScreen } from './components/Discovery/LikesYouScreen';
 import { ChatScreen } from './components/Chat/ChatScreen';
 import { MatchesList } from './components/Chat/MatchesList';
 import { ProfileSetup } from './components/Auth/ProfileSetup';
@@ -138,6 +139,7 @@ export function App() {
 
             <Route element={<NeedsProfile />}>
               <Route path="/chat/:id" element={<ChatScreen />} />
+              <Route path="/likes-you" element={<LikesYouScreen />} />
               <Route element={<TabLayout />}>
                 <Route path="/discover" element={<StackDeck />} />
                 <Route path="/matches" element={<MatchesList />} />
