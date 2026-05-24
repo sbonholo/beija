@@ -56,9 +56,12 @@ export interface Profile {
   created_at: string;
 }
 
-/** Shape returned by the `find_potential_matches` RPC (profile + distance). */
+/**
+ * Shape returned by the `find_potential_matches` RPC: a slice of Profile plus
+ * `distance_km` (integer kilometers, see migration 20260524800000_distance_km_back).
+ */
 export interface DiscoverableProfile extends Profile {
-  distance_meters: number | null;
+  distance_km: number | null;
 }
 
 export interface Match {

@@ -3,12 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase, type Profile } from '../../lib/supabase';
 import { ReportModal } from '../Moderation/ReportModal';
 import { useToast } from '../Toast';
-import { formatDistanceLabel, STR_PROFILE_DETAIL_BLOCK, STR_PROFILE_DETAIL_CLOSE, STR_PROFILE_DETAIL_MORE, STR_PROFILE_DETAIL_REPORT, STR_PASS, STR_LIKE } from '../../lib/constants';
+import { STR_PROFILE_DETAIL_BLOCK, STR_PROFILE_DETAIL_CLOSE, STR_PROFILE_DETAIL_MORE, STR_PROFILE_DETAIL_REPORT, STR_PASS, STR_LIKE } from '../../lib/constants';
+import { formatDistanceKm } from '../../lib/labels';
 
 interface ProfileDetail extends Profile {
   photos: string[];
   interests: string[];
-  distance_meters: number | null;
+  distance_km: number | null;
 }
 
 function ageFromBirthdate(birthdate: string | null): number | null {
@@ -118,7 +119,7 @@ export default function ProfileDetailModal() {
           deleted_at: null,
           created_at: '',
           photos,
-          distance_meters: null,
+          distance_km: null,
         });
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'load_failed');
@@ -455,12 +456,12 @@ function DistanceSubtitle({
   // distance_meters isn't on this profile fetch — derive from city as a
   // fallback subtitle. Real distance shows up in the deck card; this is just
   // a placeholder secondary line.
-  if (!myCoords || profile.distance_meters == null) {
+  if (!myCoords || profile.distance_km == null) {
     return profile.city ? (
       <span className="muted" style={{ fontSize: 12 }}>{profile.city}</span>
     ) : null;
   }
-  const label = formatDistanceLabel(profile.distance_meters);
+  const label = formatDistanceKm(profile.distance_km);
   return <span className="muted" style={{ fontSize: 12 }}>{label}</span>;
 }
 

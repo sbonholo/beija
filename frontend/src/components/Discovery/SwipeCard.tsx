@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import type { DiscoverableProfile } from '../../lib/supabase';
+import type { Profile } from '../../lib/supabase';
 import {
   LONG_PRESS_MS,
   MAX_PHOTO_SLOTS,
@@ -9,13 +9,17 @@ import {
   SWIPE_UP_THRESHOLD_PX,
   STR_OPEN_PROFILE,
   TAP_TOLERANCE_PX,
-  formatDistanceLabel,
 } from '../../lib/constants';
+import { ageFromBirthdate, formatDistanceKm, formatLastActive, isOnline } from '../../lib/labels';
 
 export type SwipeDirection = 'left' | 'right' | 'super';
 
+/** Profile fields needed by the card — accepts the base Profile plus the
+ *  extra distance_km computed by find_potential_matches. */
+export type SwipeCardProfile = Profile & { distance_km?: number | null };
+
 interface Props {
-  profile: DiscoverableProfile;
+  profile: SwipeCardProfile;
   photos: string[];
   interests?: string[];
   stackIndex: number;
@@ -49,9 +53,6 @@ function SwipeCardImpl({
   const isTop = stackIndex === 0;
   const showAge = profile.show_age !== false;
   const age = showAge ? ageFromBirthdate(profile.birthdate) : null;
-  const distanceLabel = profile.hide_distance
-    ? null
-    : formatDistanceLabel(profile.distance_meters);
 
   useEffect(() => {
     if (!entering) return;
@@ -308,43 +309,50 @@ function SwipeCardImpl({
           {age != null && (
             <span style={{ fontSize: 22, fontWeight: 400, opacity: 0.9 }}>{age}</span>
           )}
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-          {distanceLabel && (
+          {isOnline(profile.last_active_at) && (
             <span
-              className="chip distance-chip"
+              aria-label="online agora"
+              title="online agora"
               style={{
-                pointerEvents: 'none',
-                background: 'rgba(255, 255, 255, 0.18)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#fff',
+                marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 fontSize: 12,
-                padding: '4px 10px',
-                minHeight: 26,
-                lineHeight: 1.4,
+                fontWeight: 600,
+                color: '#4ade80',
               }}
-              aria-label={`Distância: ${distanceLabel}`}
             >
-              📍 {distanceLabel}
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#4ade80',
+                  boxShadow: '0 0 8px rgba(74, 222, 128, 0.8)',
+                  display: 'inline-block',
+                }}
+              />
+              online
             </span>
           )}
-          {profile.city && (
-            <span
-              className="chip"
-              style={{
-                pointerEvents: 'none',
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: '#fff',
-                fontSize: 12,
-                padding: '4px 10px',
-                minHeight: 26,
-                lineHeight: 1.4,
-              }}
-              aria-hidden
-            >
-              {profile.city}
-            </span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            fontSize: 13,
+            opacity: 0.85,
+            marginTop: 4,
+            flexWrap: 'wrap',
+          }}
+        >
+          {profile.city && <span>📍 {profile.city}</span>}
+          {!profile.hide_distance && formatDistanceKm(profile.distance_km) && (
+            <span>· {formatDistanceKm(profile.distance_km)}</span>
+          )}
+          {!isOnline(profile.last_active_at) && formatLastActive(profile.last_active_at) && (
+            <span style={{ opacity: 0.75 }}>· {formatLastActive(profile.last_active_at)}</span>
           )}
         </div>
       </div>
@@ -409,17 +417,6 @@ function SwipeCardImpl({
       )}
     </div>
   );
-}
-
-function ageFromBirthdate(birthdate: string | null): number | null {
-  if (!birthdate) return null;
-  const d = new Date(birthdate);
-  if (isNaN(d.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - d.getFullYear();
-  const m = now.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-  return age >= 0 ? age : null;
 }
 
 export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {

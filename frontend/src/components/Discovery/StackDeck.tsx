@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, type DiscoverableProfile } from '../../lib/supabase';
-import { SwipeCard, type SwipeDirection } from './SwipeCard';
+import { supabase, type Profile } from '../../lib/supabase';
+import { SwipeCard, type SwipeCardProfile, type SwipeDirection } from './SwipeCard';
 import { MatchModal } from './MatchModal';
 import { DiscoveryFilters } from './DiscoveryFilters';
 import { useGeolocation } from '../../hooks/useGeolocation';
@@ -44,8 +44,7 @@ function readRewindCount(): number {
     const raw = localStorage.getItem(REWIND_STORAGE_KEY);
     if (!raw) return 0;
     const parsed = JSON.parse(raw) as { date?: string; count?: number };
-    if (parsed.date === todayKey()) return parsed.count ?? 0;
-    return 0;
+    return parsed.date === todayKey() ? (parsed.count ?? 0) : 0;
   } catch {
     return 0;
   }
@@ -53,16 +52,13 @@ function readRewindCount(): number {
 
 function writeRewindCount(count: number): void {
   try {
-    localStorage.setItem(
-      REWIND_STORAGE_KEY,
-      JSON.stringify({ date: todayKey(), count }),
-    );
+    localStorage.setItem(REWIND_STORAGE_KEY, JSON.stringify({ date: todayKey(), count }));
   } catch {
     /* private mode */
   }
 }
 
-interface ProfileWithMedia extends DiscoverableProfile {
+interface ProfileWithMedia extends SwipeCardProfile {
   photos: string[];
   interests: string[];
 }
@@ -75,7 +71,8 @@ interface NewMatch {
 interface RewindEntry {
   profile: ProfileWithMedia;
   direction: SwipeDirection;
-  swipedAt: number;
+  /** Match this swipe created (id), if any — server's rewind will also undo it. */
+  matchIdToUndo: string | null;
 }
 
 export function StackDeck() {
@@ -85,8 +82,10 @@ export function StackDeck() {
   const [deck, setDeck] = useState<ProfileWithMedia[]>([]);
   const [history, setHistory] = useState<RewindEntry[]>([]);
   const [rewindCount, setRewindCount] = useState<number>(() => readRewindCount());
+  const [rewinding, setRewinding] = useState(false);
   const [rewindEnter, setRewindEnter] = useState<SwipeDirection | null>(null);
   const [rewoundId, setRewoundId] = useState<string | null>(null);
+  const [likesYouCount, setLikesYouCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<NewMatch | null>(null);
@@ -96,7 +95,7 @@ export function StackDeck() {
   const top = useMemo(() => deck.slice(0, STACK_VISIBLE), [deck]);
 
   const enrichProfiles = useCallback(
-    async (profiles: DiscoverableProfile[]): Promise<ProfileWithMedia[]> => {
+    async (profiles: SwipeCardProfile[]): Promise<ProfileWithMedia[]> => {
       if (profiles.length === 0) return [];
       const ids = profiles.map((p) => p.id);
       const { data: photos } = await supabase
@@ -113,7 +112,9 @@ export function StackDeck() {
       return profiles.map((p) => ({
         ...p,
         photos: photosByUser.get(p.id) ?? [],
-        interests: Array.isArray(p.interests) ? p.interests : [],
+        interests: Array.isArray((p as Profile & { interests?: string[] }).interests)
+          ? ((p as Profile & { interests?: string[] }).interests as string[])
+          : [],
       }));
     },
     [],
@@ -126,7 +127,7 @@ export function StackDeck() {
         p_user_id: userId,
       });
       if (rpcError) throw rpcError;
-      const fresh = (data ?? []) as DiscoverableProfile[];
+      const fresh = (data ?? []) as SwipeCardProfile[];
       const enriched = await enrichProfiles(fresh);
       setDeck((cur) => {
         const seen = new Set(cur.map((p) => p.id));
@@ -137,6 +138,16 @@ export function StackDeck() {
       setError(e instanceof Error ? e.message : 'load_failed');
     }
   }, [userId, enrichProfiles]);
+
+  const refreshLikesYou = useCallback(async () => {
+    try {
+      const { data, error: e } = await supabase.rpc('who_liked_me');
+      if (e) return;
+      setLikesYouCount((data as unknown[] | null)?.length ?? 0);
+    } catch {
+      /* ignore — non-critical */
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,16 +176,15 @@ export function StackDeck() {
     }
   }, [userId, deck.length, loadMore]);
 
+  useEffect(() => {
+    if (userId) void refreshLikesYou();
+  }, [userId, refreshLikesYou]);
+
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
-    setHistory((h) =>
-      [{ profile: target, direction, swipedAt: Date.now() }, ...h].slice(
-        0,
-        REWIND_HISTORY_LIMIT,
-      ),
-    );
     void bumpLastActive(userId);
+    let matchedId: string | null = null;
 
     if (deck.length <= STACK_VISIBLE + 1) {
       void loadMore();
@@ -200,7 +210,8 @@ export function StackDeck() {
         if (matchRow) {
           const created = new Date(matchRow.created_at).getTime();
           if (Date.now() - created < 5000) {
-            setMatch({ matchId: matchRow.id, other: target });
+            matchedId = matchRow.id as string;
+            setMatch({ matchId: matchRow.id as string, other: target });
             try {
               await supabase.functions.invoke('notify_match', {
                 body: { match_id: matchRow.id },
@@ -214,10 +225,18 @@ export function StackDeck() {
     } catch (e) {
       console.warn('[StackDeck] swipe persistence failed:', e);
     }
+
+    setHistory((h) =>
+      [{ profile: target, direction, matchIdToUndo: matchedId }, ...h].slice(
+        0,
+        REWIND_HISTORY_LIMIT,
+      ),
+    );
+    void refreshLikesYou();
   }
 
   async function handleRewind() {
-    if (!userId) return;
+    if (!userId || rewinding) return;
     const last = history[0];
     if (!last) {
       toast({ kind: 'info', text: STR_REWIND_EMPTY });
@@ -227,28 +246,27 @@ export function StackDeck() {
       toast({ kind: 'info', text: STR_REWIND_LIMIT_REACHED });
       return;
     }
-
-    // Re-insert at the top of the deck with an entrance animation from the
-    // OPPOSITE side of the original swipe (deliberate undo, not a mirror).
+    setRewinding(true);
     const inverse: SwipeDirection =
       last.direction === 'left' ? 'right' : last.direction === 'right' ? 'left' : 'super';
-    setHistory((h) => h.slice(1));
-    setRewindEnter(inverse);
-    setRewoundId(last.profile.id);
-    setDeck((cur) => [last.profile, ...cur.filter((p) => p.id !== last.profile.id)]);
-
-    const nextCount = rewindCount + 1;
-    setRewindCount(nextCount);
-    writeRewindCount(nextCount);
-
     try {
-      await supabase
-        .from('swipes')
-        .delete()
-        .eq('swiper_id', userId)
-        .eq('swipee_id', last.profile.id);
+      const { error: rpcErr } = await supabase.rpc('rewind_last_swipe');
+      if (rpcErr) throw rpcErr;
+
+      setHistory((h) => h.slice(1));
+      setRewoundId(last.profile.id);
+      setRewindEnter(inverse);
+      setDeck((cur) => [last.profile, ...cur.filter((p) => p.id !== last.profile.id)]);
+      if (last.matchIdToUndo) setMatch(null);
+      const nextCount = rewindCount + 1;
+      setRewindCount(nextCount);
+      writeRewindCount(nextCount);
+      void refreshLikesYou();
     } catch (e) {
-      console.warn('[StackDeck] rewind delete failed:', e);
+      console.warn('[StackDeck] rewind failed:', e);
+      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Falha no rewind' });
+    } finally {
+      setRewinding(false);
     }
   }
 
@@ -305,24 +323,51 @@ export function StackDeck() {
         <div style={{ fontSize: 56, marginTop: '18vh' }}>🌙</div>
         <h2 style={{ marginTop: 8 }}>Sem perfis novos por aqui</h2>
         <p className="muted">Volta mais tarde — ou aumenta a distância no seu perfil pra ver mais gente.</p>
+        {likesYouCount > 0 && (
+          <button
+            className="btn"
+            style={{ marginTop: 18, maxWidth: 260 }}
+            onClick={() => nav('/likes-you')}
+          >
+            Ver {likesYouCount} {likesYouCount === 1 ? 'curtida' : 'curtidas'} 💋
+          </button>
+        )}
       </div>
     );
   }
 
-  const rewindAvailable = history.length > 0 && rewindCount < REWIND_DAILY_LIMIT;
+  const rewindAvailable = history.length > 0 && rewindCount < REWIND_DAILY_LIMIT && !rewinding;
 
   return (
     <div className="screen" style={{ paddingBottom: 140 }}>
-      <div className="header" style={{ marginBottom: 12 }}>
+      <div className="header" style={{ marginBottom: 12, gap: 8 }}>
         <h2 style={{ margin: 0 }}>Discover</h2>
-        <button
-          type="button"
-          className="chip"
-          onClick={() => setFiltersOpen(true)}
-          aria-label="Filtros"
-        >
-          ⚙︎ Filtros
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {likesYouCount > 0 && (
+            <button
+              type="button"
+              className="chip"
+              onClick={() => nav('/likes-you')}
+              aria-label={`${likesYouCount} curtidas`}
+              style={{
+                background: 'linear-gradient(120deg, var(--pink), var(--hot))',
+                borderColor: 'transparent',
+                color: '#fff',
+                fontWeight: 700,
+              }}
+            >
+              💋 {likesYouCount}
+            </button>
+          )}
+          <button
+            type="button"
+            className="chip"
+            onClick={() => setFiltersOpen(true)}
+            aria-label="Filtros"
+          >
+            ⚙︎ Filtros
+          </button>
+        </div>
       </div>
       <div
         style={{
@@ -333,7 +378,6 @@ export function StackDeck() {
           margin: '0 auto',
         }}
       >
-        {/* Render top-down so top card is last in DOM (above siblings) */}
         {top
           .map((p, i) => ({ p, i }))
           .reverse()
@@ -351,10 +395,10 @@ export function StackDeck() {
           ))}
       </div>
 
-      {/* Rewind button — bottom-LEFT (Tinder's is right; we differentiate) */}
+      {/* Rewind button — bottom-LEFT (Tinder uses right; we differentiate). */}
       <button
         type="button"
-        onClick={handleRewind}
+        onClick={() => void handleRewind()}
         aria-label={STR_REWIND_LABEL}
         disabled={!rewindAvailable}
         style={{

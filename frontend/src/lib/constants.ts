@@ -15,6 +15,8 @@ export const TYPING_TIMEOUT_MS = 3000;
 export const TYPING_BROADCAST_THROTTLE_MS = 800;
 export const GEOLOCATION_REFRESH_MS = 30 * 60 * 1000;
 export const MATCH_DETECTION_WINDOW_MS = 5000;
+/** Anything more recent than this is shown as "Ativo agora" with a green dot. */
+export const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
 
 // ---- Storage / quotas ----
 export const MAX_PHOTO_SLOTS = 6;
@@ -56,18 +58,9 @@ export const REWIND_HISTORY_LIMIT = 5;
 export const REWIND_STORAGE_KEY = 'beija_rewind_log';
 export const REWIND_ENTER_MS = 320;
 
-// ---- Distance buckets ----
-export const DISTANCE_NEAR_M = 1000;
+// Re-export the distance formatter from lib/labels for the SwipeCard chip.
+// Kept here just for the constants for buckets if a future module wants them.
 export const DISTANCE_FAR_KM = 50;
-export const DISTANCE_NEAR_LABEL = 'aqui perto';
-export const DISTANCE_FAR_LABEL = 'longe';
-export function formatDistanceLabel(meters: number | null | undefined): string | null {
-  if (meters == null || !Number.isFinite(meters)) return null;
-  if (meters < DISTANCE_NEAR_M) return DISTANCE_NEAR_LABEL;
-  const km = Math.round(meters / 1000);
-  if (km > DISTANCE_FAR_KM) return DISTANCE_FAR_LABEL;
-  return `${km} km`;
-}
 
 // ---- PT-BR strings (centralized for future i18n) ----
 export const STR_REWIND_LABEL = 'Voltar último swipe';

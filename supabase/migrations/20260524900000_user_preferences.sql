@@ -1,24 +1,17 @@
--- Phase X — user privacy prefs + distance exposed by find_potential_matches
+-- Phase X (additional) — user privacy prefs.
 --
--- New columns:
---   profiles.hide_distance  bool default false  → distância não é mostrada
---                                                  ao outro usuário no card
---   profiles.show_age       bool default true   → idade visível no card / detail
+-- Adds:
+--   profiles.hide_distance  bool default false  → distance not shown to others
+--   profiles.show_age       bool default true   → age visible on card / detail
 --
--- RPC find_potential_matches reescrita com return type explícito incluindo
--- distance_meters (st_distance entre me.location e p.location, em metros).
--- O comportamento de filtragem (mesma lista de WHERE) é idêntico ao anterior;
--- só ganhamos uma coluna a mais no resultset.
+-- find_potential_matches is recreated to surface hide_distance/show_age in the
+-- output. distance_km comes from the prior migration 20260524800000_distance_km_back.
 
 alter table profiles
   add column if not exists hide_distance boolean not null default false;
 
 alter table profiles
   add column if not exists show_age boolean not null default true;
-
--- ---------------------------------------------------------------------------
--- find_potential_matches v3 (com distance_meters)
--- ---------------------------------------------------------------------------
 
 drop function if exists find_potential_matches(uuid, int);
 
@@ -32,23 +25,13 @@ returns table (
   birthdate date,
   gender text,
   bio text,
-  location geography(Point, 4326),
   city text,
   interested_in text[],
-  min_age int,
-  max_age int,
-  max_distance_km int,
-  push_token text,
-  push_platform text,
-  last_active_at timestamptz,
-  deleted_at timestamptz,
-  created_at timestamptz,
   interests text[],
-  mute_notifications boolean,
-  is_inactive boolean,
+  last_active_at timestamptz,
   hide_distance boolean,
   show_age boolean,
-  distance_meters double precision
+  distance_km int
 )
 language plpgsql
 security definer
@@ -67,16 +50,13 @@ begin
 
   return query
   select
-    p.id, p.name, p.birthdate, p.gender, p.bio, p.location, p.city,
-    p.interested_in, p.min_age, p.max_age, p.max_distance_km,
-    p.push_token, p.push_platform,
-    p.last_active_at, p.deleted_at, p.created_at,
-    p.interests, p.mute_notifications, p.is_inactive,
+    p.id, p.name, p.birthdate, p.gender, p.bio, p.city,
+    p.interested_in, p.interests, p.last_active_at,
     p.hide_distance, p.show_age,
     case
       when me.location is null or p.location is null then null
-      else st_distance(me.location, p.location)
-    end as distance_meters
+      else (st_distance(me.location, p.location) / 1000)::int
+    end as distance_km
   from profiles p
   where p.id <> p_user_id
     and p.deleted_at is null
