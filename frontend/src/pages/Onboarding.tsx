@@ -80,10 +80,10 @@ export function Onboarding() {
 
       {step === 0 && (
         <>
-          <label className="muted" style={{ fontSize: 13 }}>Como te chamam?</label>
+          <label className="muted" style={{ fontSize: 13 }}>Como te chamamos no rolê? 💋</label>
           <input
             autoFocus
-            placeholder="Seu apelido"
+            placeholder="Seu nome ou apelido"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             maxLength={30}

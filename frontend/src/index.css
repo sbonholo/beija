@@ -242,24 +242,56 @@ a { color: var(--pink-glow); }
   max-width: 540px;
   display: flex;
   justify-content: space-around;
-  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
-  background: rgba(10, 0, 20, 0.85);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  align-items: center;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(28, 10, 43, 0.0), rgba(10, 0, 20, 0.92) 35%),
+    rgba(10, 0, 20, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(255, 59, 154, 0.12);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
-.bottom-nav button {
+.bottom-nav a {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 3px;
   color: var(--muted);
   font-size: 11px;
-  padding: 6px 12px;
   font-weight: 600;
+  padding: 8px 18px;
+  text-decoration: none;
+  border-radius: 16px;
+  transition: color 0.18s ease, transform 0.12s ease;
+  min-height: 52px;
 }
-.bottom-nav button.active { color: var(--pink-glow); }
-.bottom-nav .icon { font-size: 22px; }
+.bottom-nav a:active { transform: scale(0.94); }
+.bottom-nav a.active { color: var(--pink-glow); }
+.bottom-nav a.active::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--pink), var(--hot));
+  box-shadow: 0 0 14px rgba(255, 59, 154, 0.65);
+}
+.bottom-nav .icon {
+  font-size: 22px;
+  line-height: 1;
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+.bottom-nav a.active .icon {
+  filter: drop-shadow(0 0 8px rgba(255, 59, 154, 0.55));
+  transform: translateY(-1px) scale(1.06);
+}
 
 .unread-dot {
   position: absolute;
@@ -269,7 +301,7 @@ a { color: var(--pink-glow); }
   height: 8px;
   border-radius: 50%;
   background: var(--danger);
-  box-shadow: 0 0 0 2px rgba(10, 0, 20, 0.85);
+  box-shadow: 0 0 0 2px rgba(10, 0, 20, 0.95), 0 0 10px rgba(255, 91, 91, 0.7);
 }
 
 .header {
