@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { supabase, type Profile } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
+import { fetchProfileSafe, type SafeProfile } from '../../lib/profiles';
 import { ReportModal } from '../Moderation/ReportModal';
 import { useToast } from '../Toast';
 import { formatDistanceKm } from '../../lib/labels';
 import { track } from '../../lib/analytics';
-
-interface ProfileDetail extends Profile {
-  photos: string[];
-  interests: string[];
-  distance_km: number | null;
-}
+import { captureSentryException } from '../../lib/sentry';
 
 function ageFromBirthdate(birthdate: string | null): number | null {
   if (!birthdate) return null;
@@ -30,10 +26,8 @@ export default function ProfileDetailModal() {
   const toast = useToast();
   const { t } = useTranslation('profile');
   const { t: tSwipe } = useTranslation('swipe');
-  const [me, setMe] = useState<{ id: string; lat: number | null; lng: number | null } | null>(
-    null,
-  );
-  const [profile, setProfile] = useState<ProfileDetail | null>(null);
+  const [meId, setMeId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SafeProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
@@ -46,7 +40,8 @@ export default function ProfileDetailModal() {
     nav(-1);
   }, [nav]);
 
-  // Load me + profile + photos in parallel
+  // Fetch via privacy-sanitizing RPC — server has already applied show_age /
+  // hide_distance / block / report / deleted filters by the time we get data.
   useEffect(() => {
     if (!id) return;
     track('profile_detail_opened', { source: 'direct_url' });
@@ -55,79 +50,27 @@ export default function ProfileDetailModal() {
       try {
         setLoading(true);
         setError(null);
-        const { data: auth } = await supabase.auth.getUser();
-        const myId = auth.user?.id;
+        const { data: authData } = await supabase.auth.getUser();
+        const myId = authData.user?.id;
         if (!myId) {
           nav('/signin', { replace: true });
           return;
         }
-        const [meProfileRes, theirProfileRes, photosRes] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('id, location')
-            .eq('id', myId)
-            .maybeSingle(),
-          supabase
-            .from('profiles')
-            .select(
-              'id, name, birthdate, gender, bio, city, interested_in, interests, ' +
-                'hide_distance, show_age, deleted_at',
-            )
-            .eq('id', id)
-            .maybeSingle(),
-          supabase
-            .from('photos')
-            .select('slot, url')
-            .eq('user_id', id)
-            .order('slot', { ascending: true }),
-        ]);
-
         if (cancelled) return;
+        setMeId(myId);
 
-        const theirData = theirProfileRes.data as Partial<Profile> | null;
-        if (!theirData || theirData.deleted_at) {
+        const safe = await fetchProfileSafe(id);
+        if (cancelled) return;
+        if (!safe) {
           setError('not_found');
           return;
         }
-
-        // Read my coords via geolocation update (best-effort).
-        let myCoords: { lat: number | null; lng: number | null } = { lat: null, lng: null };
-        const meLoc = (meProfileRes.data as { location?: unknown })?.location;
-        if (meLoc && typeof meLoc === 'object' && 'coordinates' in meLoc) {
-          const coords = (meLoc as { coordinates: [number, number] }).coordinates;
-          myCoords = { lng: coords[0], lat: coords[1] };
-        }
-        setMe({ id: myId, ...myCoords });
-
-        const photos = (photosRes.data ?? []).map((p) => p.url as string);
-        const td = theirData;
-        setProfile({
-          id: td.id as string,
-          name: td.name ?? null,
-          birthdate: td.birthdate ?? null,
-          gender: td.gender ?? null,
-          bio: td.bio ?? null,
-          location: null,
-          city: td.city ?? null,
-          interested_in: td.interested_in ?? null,
-          interests: Array.isArray(td.interests) ? td.interests : [],
-          min_age: null,
-          max_age: null,
-          max_distance_km: null,
-          push_token: null,
-          last_active_at: null,
-          is_inactive: false,
-          mute_notifications: false,
-          hide_distance: !!td.hide_distance,
-          show_age: td.show_age !== false,
-          deleted_at: null,
-          created_at: '',
-          locale: 'pt-BR',
-          photos,
-          distance_km: null,
-        });
+        setProfile(safe);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'load_failed');
+        if (!cancelled) {
+          captureSentryException(e, { component: 'ProfileDetailModal', targetId: id });
+          setError(e instanceof Error ? e.message : 'load_failed');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -172,11 +115,11 @@ export default function ProfileDetailModal() {
   }, []);
 
   async function doSwipe(direction: 'left' | 'right') {
-    if (!profile || !me || acting) return;
+    if (!profile || !meId || acting) return;
     setActing(true);
     try {
       const { error: insErr } = await supabase.from('swipes').insert({
-        swiper_id: me.id,
+        swiper_id: meId,
         swipee_id: profile.id,
         direction,
       });
@@ -191,12 +134,12 @@ export default function ProfileDetailModal() {
   }
 
   async function doBlock() {
-    if (!profile || !me) return;
+    if (!profile || !meId) return;
     setMenuOpen(false);
     try {
       const { error: bErr } = await supabase
         .from('blocks')
-        .insert({ blocker_id: me.id, blocked_id: profile.id });
+        .insert({ blocker_id: meId, blocked_id: profile.id });
       if (bErr) throw bErr;
       toast({ kind: 'info', text: 'Usuário bloqueado.' });
       close();
@@ -210,7 +153,7 @@ export default function ProfileDetailModal() {
       ref={containerRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`Perfil de ${profile?.name ?? 'usuário'}`}
+      aria-label={profile?.name ? `${t('title')}: ${profile.name}` : t('title')}
       style={{
         position: 'fixed',
         inset: 0,
@@ -254,7 +197,7 @@ export default function ProfileDetailModal() {
                   <AgeSpan birthdate={profile.birthdate} />
                 )}
               </strong>
-              <DistanceSubtitle profile={profile} myCoords={me} />
+              <DistanceSubtitle profile={profile} />
             </>
           )}
         </div>
@@ -318,7 +261,7 @@ export default function ProfileDetailModal() {
 
       {!loading && error && (
         <div className="empty" style={{ padding: 32 }}>
-          <p className="muted">Perfil indisponível.</p>
+          <p className="muted">{t('detail.not_available')}</p>
         </div>
       )}
 
@@ -328,15 +271,15 @@ export default function ProfileDetailModal() {
               paginated carousel; we stack so the user just thumbs down the
               whole reel without paging gestures. */}
           <section style={{ padding: '8px 0 0 0', display: 'flex', flexDirection: 'column' }}>
-            {profile.photos.length === 0 && (
+            {profile.photo_urls.length === 0 && (
               <div
                 className="empty"
                 style={{ aspectRatio: '3 / 4', display: 'grid', placeItems: 'center' }}
               >
-                <p className="muted">Sem fotos</p>
+                <p className="muted">{t('detail.no_photos')}</p>
               </div>
             )}
-            {profile.photos.map((url, i) => (
+            {profile.photo_urls.map((url, i) => (
               <img
                 key={url + i}
                 src={url}
@@ -450,24 +393,16 @@ function AgeSpan({ birthdate }: { birthdate: string | null }) {
   return <span style={{ fontWeight: 400, opacity: 0.8 }}> · {age}</span>;
 }
 
-function DistanceSubtitle({
-  profile,
-  myCoords,
-}: {
-  profile: ProfileDetail;
-  myCoords: { lat: number | null; lng: number | null } | null;
-}) {
-  if (profile.hide_distance) return null;
-  // distance_meters isn't on this profile fetch — derive from city as a
-  // fallback subtitle. Real distance shows up in the deck card; this is just
-  // a placeholder secondary line.
-  if (!myCoords || profile.distance_km == null) {
-    return profile.city ? (
-      <span className="muted" style={{ fontSize: 12 }}>{profile.city}</span>
-    ) : null;
+function DistanceSubtitle({ profile }: { profile: SafeProfile }) {
+  // The RPC already nulled out distance_km when hide_distance was true OR
+  // either side has no location; we just render whatever came back.
+  if (profile.distance_km != null) {
+    const label = formatDistanceKm(profile.distance_km);
+    return <span className="muted" style={{ fontSize: 12 }}>{label}</span>;
   }
-  const label = formatDistanceKm(profile.distance_km);
-  return <span className="muted" style={{ fontSize: 12 }}>{label}</span>;
+  return profile.city ? (
+    <span className="muted" style={{ fontSize: 12 }}>{profile.city}</span>
+  ) : null;
 }
 
 const iconBtnStyle: React.CSSProperties = {

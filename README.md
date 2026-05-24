@@ -260,8 +260,15 @@ Tudo fail-safe — sem keys, no-op. Dev local funciona sem qualquer config.
 
 ## Compliance
 
-App Store / Google Play exigem tooling de moderação pra apps com
-user-generated content (Apple Guideline 1.2, equivalente Google).
+App Store / Google Play exigem tooling de moderação + privacy controls
+para apps com user-generated content (Apple Guideline 1.2 + 5.1.x).
+
+**Privacy — defesa em profundidade**: filtros server-side via RPCs
+`get_profile_safe` / `get_profiles_safe` / `find_potential_matches`
+mascaram `birthdate` e `distance_km` antes do dado sair do banco. Cliente
+recebe payload sanitizado — abrir DevTools não revela campos opt-out.
+Detalhes + threat model + roteiro de validação SQL:
+**[docs/PRIVACY.md](docs/PRIVACY.md)**.
 
 **Pipeline two-stage de moderação de fotos**:
 - **Pre-upload** (client → edge fn `moderate_photo`) via **Sightengine**.
