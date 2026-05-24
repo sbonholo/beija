@@ -54,8 +54,6 @@ beija/
 ├── ICON_DESIGN.md
 ├── AppStoreMetadata.md
 ├── PlayStoreMetadata.md         Play Console listing copy + Data Safety
-├── ASSETS_SPEC.md
-├── ICON_DESIGN.md
 ├── AUDIT_REPORT.md
 ├── BUGS_FOUND.md
 ├── CLICK_FLOW_ANALYSIS.md
