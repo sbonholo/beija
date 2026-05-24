@@ -127,7 +127,7 @@ const leoUser: User = {
 };
 
 export const mockPeople: PersonAtEvent[] = [
-  { ...biaUser, sentReaction: null, receivedReaction: null, matched: false },
+  { ...biaUser, sentReaction: null, receivedReaction: 'kiss', matched: false },
   { ...carlosUser, sentReaction: 'kiss', receivedReaction: 'kiss', matched: true },
   { ...juUser, sentReaction: null, receivedReaction: 'heart', matched: false },
   { ...rafaUser, sentReaction: 'fire', receivedReaction: null, matched: false },

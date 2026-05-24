@@ -27,7 +27,12 @@ export function EventRoom() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [matchModal, setMatchModal] = useState<{ matchId: string; other: User } | null>(null);
+  const [matchModal, setMatchModal] = useState<{
+    matchId: string;
+    other: User;
+    myReaction: ReactionType | null;
+    theirReaction: ReactionType | null;
+  } | null>(null);
 
   const refreshPeople = useCallback(async () => {
     const { people } = await api.listPeople(eventId);
@@ -73,9 +78,19 @@ export function EventRoom() {
       toast({ kind: payload.type, text: `${payload.fromUser.nickname || 'Alguém'} mandou um ${LABEL[payload.type]} ${ICON[payload.type]}` });
       refreshPeople();
     };
-    const onMatch = (payload: { matchId: string; otherUser: User }) => {
+    const onMatch = (payload: {
+      matchId: string;
+      otherUser: User;
+      myReaction?: ReactionType;
+      theirReaction?: ReactionType;
+    }) => {
       hapticSuccess();
-      setMatchModal({ matchId: payload.matchId, other: payload.otherUser });
+      setMatchModal({
+        matchId: payload.matchId,
+        other: payload.otherUser,
+        myReaction: payload.myReaction ?? null,
+        theirReaction: payload.theirReaction ?? null,
+      });
       refreshPeople();
     };
 
@@ -104,7 +119,15 @@ export function EventRoom() {
       if (res.match) {
         // match modal will arrive via socket too, but trigger immediately for sender
         const other = people.find((p) => p.id === targetId);
-        if (other) setMatchModal({ matchId: res.match.id, other });
+        if (other) {
+          hapticSuccess();
+          setMatchModal({
+            matchId: res.match.id,
+            other,
+            myReaction: (res.match as { myReaction?: ReactionType }).myReaction ?? type,
+            theirReaction: (res.match as { theirReaction?: ReactionType }).theirReaction ?? other.receivedReaction ?? null,
+          });
+        }
       }
       await refreshPeople();
     } catch {
@@ -194,6 +217,8 @@ export function EventRoom() {
           me={user}
           other={matchModal.other}
           matchId={matchModal.matchId}
+          myReaction={matchModal.myReaction}
+          theirReaction={matchModal.theirReaction}
           onClose={() => setMatchModal(null)}
         />
       )}

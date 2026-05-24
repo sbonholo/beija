@@ -72,7 +72,7 @@ export const api = {
 };
 
 import type { User } from '../types';
-import { mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages, biaUser } from './mockData';
+import { mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages } from './mockData';
 
 function findMockEvent(id: string) {
   return mockEvents.find((e) => e.id === id) ?? mockEvent1;
@@ -116,9 +116,10 @@ export const mockedApi = {
     return { people: compatible };
   },
   sendReaction: async (toUserId: string, eventId: string, type: string) => {
-    // Demo affordance: a 💋 sent to Bia (mock-user-2) triggers a fake match.
-    if (toUserId === biaUser.id && type === 'kiss') {
-      const matchId = 'mock-match-fake';
+    const target = mockPeople.find((p) => p.id === toUserId);
+    // Match rule: any combination matches as long as the other person already reacted.
+    if (target && target.receivedReaction) {
+      const matchId = `mock-match-${toUserId}`;
       if (!mockMatches.some((m) => m.id === matchId)) {
         mockMatches.unshift({
           id: matchId,
@@ -127,13 +128,19 @@ export const mockedApi = {
           eventVenue: mockEvent1.venue,
           createdAt: Date.now(),
           lastMessage: null,
-          otherUser: biaUser,
+          otherUser: target,
         });
       }
       return {
         ok: true as const,
         reaction: type,
-        match: { id: matchId, eventId, otherUser: biaUser },
+        match: {
+          id: matchId,
+          eventId,
+          otherUser: target,
+          myReaction: type,
+          theirReaction: target.receivedReaction,
+        },
       };
     }
     return { ok: true as const, reaction: type, match: null };

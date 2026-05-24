@@ -141,7 +141,6 @@ export function CreateProfile() {
         onChange={onPick}
       />
 
-      <label className="muted" style={{ fontSize: 13 }}>Como te chamamos no rolê? 💋</label>
       <input
         placeholder="Seu nome ou apelido"
         value={nickname}
