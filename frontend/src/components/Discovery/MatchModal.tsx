@@ -38,7 +38,10 @@ export function MatchModal({ matchId, other, onClose }: Props) {
   const otherPhoto = other.photos?.[0] ?? null;
 
   async function send() {
-    if (sending || !text.trim()) return;
+    if (sending) return;
+    // If the user cleared the textarea, fall back to the pre-filled greeting
+    // so "Enviar mensagem" stays a true 1-tap path.
+    const content = text.trim() || `Oi ${other.name ?? ''}!`.trim();
     setSending(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -47,7 +50,7 @@ export function MatchModal({ matchId, other, onClose }: Props) {
       const { error } = await supabase.from('messages').insert({
         match_id: matchId,
         sender_id: senderId,
-        content: text.trim(),
+        content,
       });
       if (error) throw error;
       onClose();
@@ -122,7 +125,7 @@ export function MatchModal({ matchId, other, onClose }: Props) {
 
         <button
           className="btn"
-          disabled={sending || !text.trim()}
+          disabled={sending}
           onClick={send}
         >
           {sending ? 'Enviando...' : 'Enviar mensagem 💬'}

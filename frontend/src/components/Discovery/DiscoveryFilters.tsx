@@ -4,6 +4,41 @@ import { supabase } from '../../lib/supabase';
 type SeekingUI = 'women' | 'men' | 'all';
 
 const ALL_GENDERS = ['woman', 'man', 'non-binary', 'other'] as const;
+const FILTERS_CACHE_KEY = 'beija_filters_cache';
+
+interface CachedFilters {
+  minAge: number;
+  maxAge: number;
+  maxDistance: number;
+  seeking: SeekingUI;
+}
+
+function readCachedFilters(): CachedFilters | null {
+  try {
+    const raw = localStorage.getItem(FILTERS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CachedFilters>;
+    if (
+      typeof parsed.minAge === 'number' &&
+      typeof parsed.maxAge === 'number' &&
+      typeof parsed.maxDistance === 'number' &&
+      (parsed.seeking === 'women' || parsed.seeking === 'men' || parsed.seeking === 'all')
+    ) {
+      return parsed as CachedFilters;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedFilters(f: CachedFilters) {
+  try {
+    localStorage.setItem(FILTERS_CACHE_KEY, JSON.stringify(f));
+  } catch {
+    /* private mode */
+  }
+}
 
 function seekingToArray(s: SeekingUI): string[] {
   if (s === 'women') return ['woman'];
@@ -25,12 +60,15 @@ interface Props {
 }
 
 export function DiscoveryFilters({ onClose, onApplied }: Props) {
+  // Hydrate from cache immediately so the sheet shows your last values
+  // before the server round-trip; then overwrite once profile loads.
+  const cached = readCachedFilters();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [minAge, setMinAge] = useState(18);
-  const [maxAge, setMaxAge] = useState(50);
-  const [maxDistance, setMaxDistance] = useState(50);
-  const [seeking, setSeeking] = useState<SeekingUI>('all');
+  const [minAge, setMinAge] = useState(cached?.minAge ?? 18);
+  const [maxAge, setMaxAge] = useState(cached?.maxAge ?? 50);
+  const [maxDistance, setMaxDistance] = useState(cached?.maxDistance ?? 50);
+  const [seeking, setSeeking] = useState<SeekingUI>(cached?.seeking ?? 'all');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,6 +117,7 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
         })
         .eq('id', uid);
       if (updateErr) throw updateErr;
+      writeCachedFilters({ minAge, maxAge, maxDistance, seeking });
       onApplied?.();
       onClose();
     } catch (e) {
