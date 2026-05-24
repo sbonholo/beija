@@ -11,12 +11,19 @@ export function VerifyOtp() {
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const phone = sessionStorage.getItem('beija_phone') || '';
+  const rawPhone = sessionStorage.getItem('beija_phone') || '';
+  const phone = rawPhone;
+  function formatDisplay(d: string): string {
+    if (d.length <= 2) return d;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
 
   useEffect(() => {
-    if (!phone) nav('/login', { replace: true });
+    if (!rawPhone) nav('/login', { replace: true });
     inputRef.current?.focus();
-  }, [phone, nav]);
+  }, [rawPhone, nav]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +55,7 @@ export function VerifyOtp() {
       <div style={{ marginBottom: 32, textAlign: 'center' }}>
         <h1 className="brand-title">Beija</h1>
         <p className="brand-sub">Digite o código de 4 dígitos</p>
-        {phone && <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>{phone}</p>}
+        {phone && <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>{formatDisplay(phone)}</p>}
       </div>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <input
