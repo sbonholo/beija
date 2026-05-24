@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { activeApi as api, errorMessage } from '../lib/api';
+import { activeApi as api, errorMessage, isMockMode } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { PersonAtEvent, ReactionType, EventItem, User } from '../types';
 import { getSocket } from '../lib/socket';
@@ -17,7 +17,7 @@ export function EventRoom() {
   const { id } = useParams<{ id: string }>();
   const eventId = id!;
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const toast = useToast();
 
   const [event, setEvent] = useState<EventItem | null>(null);
@@ -65,7 +65,11 @@ export function EventRoom() {
         setCheckedIn(true);
         await refreshPeople();
       } catch (err) {
-        if (!cancelled) setLoadError(errorMessage(err).text);
+        if (!cancelled) {
+          const em = errorMessage(err);
+          if (em.kind === 'auth') { signOut(); nav(isMockMode ? '/' : '/login', { replace: true }); return; }
+          setLoadError(em.text);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -31,6 +31,7 @@ export function Profile() {
   const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
   const [seeking, setSeeking] = useState<Gender[]>(user?.seeking ?? []);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const everyoneSelected = ALL_GENDERS.every((g) => seeking.includes(g));
 
@@ -87,15 +88,18 @@ export function Profile() {
 
   return (
     <div className="screen">
-      <div className="header"><h2>Seu perfil</h2></div>
+      <div className="header">
+        <h2 style={{ fontFamily: 'Poppins, system-ui, sans-serif' }}>Seu perfil</h2>
+      </div>
 
+      {/* Avatar card */}
       <div
         className="card"
         style={{
           display: 'flex',
-          gap: 14,
+          gap: 16,
           alignItems: 'center',
-          marginBottom: 18,
+          marginBottom: 20,
           position: 'relative',
           opacity: isUploading ? 0.5 : 1,
           pointerEvents: isUploading ? 'none' : 'auto',
@@ -104,48 +108,38 @@ export function Profile() {
       >
         <div
           className="avatar"
-          style={{ width: 80, height: 80, backgroundImage: user?.photoUrl ? `url("${user.photoUrl}")` : undefined }}
+          style={{
+            width: 84,
+            height: 84,
+            borderRadius: '50%',
+            border: '3px solid rgba(255,59,154,0.5)',
+            boxShadow: '0 0 20px rgba(255,59,154,0.3)',
+            backgroundImage: user?.photoUrl ? `url("${user.photoUrl}")` : undefined,
+            flexShrink: 0,
+          }}
         />
         <div style={{ flex: 1 }}>
-          <strong style={{ fontSize: 18 }}>{user?.nickname || '—'}</strong>
+          <strong style={{ fontSize: 20, fontFamily: 'Poppins, system-ui, sans-serif' }}>
+            {user?.nickname || '—'}
+          </strong>
           {user?.gender && (
             <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{genderLabel[user.gender]}</div>
           )}
-          <label className="chip" style={{ marginTop: 8, display: 'inline-flex', cursor: 'pointer' }}>
-            Trocar foto
+          <label className="chip" style={{ marginTop: 10, display: 'inline-flex', cursor: 'pointer', fontSize: 13 }}>
+            {isUploading ? 'Enviando…' : '📷 Trocar foto'}
             <input type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
           </label>
         </div>
-        {isUploading && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(10, 0, 20, 0.55)',
-              borderRadius: 'var(--radius)',
-              fontWeight: 700,
-              color: 'var(--text)',
-              pointerEvents: 'auto',
-            }}
-          >
-            Enviando…
-          </div>
-        )}
       </div>
 
-      <label className="muted" style={{ fontSize: 13 }}>Apelido</label>
-      <input value={nickname} maxLength={30} onChange={(e) => setNickname(e.target.value)} />
+      <label className="field-label">Apelido</label>
+      <input value={nickname} maxLength={30} onChange={(e) => setNickname(e.target.value)} style={{ marginBottom: 14 }} />
 
-      <label className="muted" style={{ fontSize: 13, marginTop: 12, display: 'block' }}>Bio</label>
-      <textarea value={bio} maxLength={200} rows={3} onChange={(e) => setBio(e.target.value)} />
+      <label className="field-label">Bio</label>
+      <textarea value={bio} maxLength={200} rows={3} onChange={(e) => setBio(e.target.value)} style={{ marginBottom: 16 }} />
 
-      <label className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 8, display: 'block' }}>
-        Como você se identifica?
-      </label>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+      <label className="field-label">Como você se identifica?</label>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {identityOptions.map((g) => (
           <button
             key={g.value}
@@ -158,10 +152,8 @@ export function Profile() {
         ))}
       </div>
 
-      <label className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 8, display: 'block' }}>
-        Quem você quer conhecer?
-      </label>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+      <label className="field-label">Quem você quer conhecer?</label>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
         {seekingOptions.map((s) => (
           <button
             key={s.value}
@@ -176,35 +168,51 @@ export function Profile() {
 
       <button
         className="btn"
-        style={{ marginTop: 22 }}
         disabled={!dirty || !nickname.trim() || !gender || seeking.length === 0}
         onClick={save}
       >
-        Salvar
+        Salvar alterações
       </button>
 
-      <button
-        className="btn ghost"
-        style={{ marginTop: 12 }}
-        onClick={() => nav('/events')}
-      >
+      <button className="btn ghost" style={{ marginTop: 12 }} onClick={() => nav('/events')}>
         Ver eventos
       </button>
 
       <button
         className="btn ghost"
-        style={{ marginTop: 24 }}
-        onClick={() => {
-          if (confirm('Apagar seu perfil e sair?')) {
-            signOut();
-            nav('/', { replace: true });
-          }
-        }}
+        style={{ marginTop: 24, color: 'var(--danger)', borderColor: 'rgba(255,91,91,0.3)' }}
+        onClick={() => setShowDeleteConfirm(true)}
       >
         Apagar perfil
       </button>
 
       <BottomNav />
+
+      {/* In-app delete confirmation */}
+      {showDeleteConfirm && (
+        <div className="confirm-dialog-bg" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+            <h3>Apagar perfil?</h3>
+            <p className="muted" style={{ marginTop: 4, marginBottom: 20, fontSize: 14 }}>
+              Essa ação não pode ser desfeita. Você sairá do app.
+            </p>
+            <button
+              className="btn danger"
+              onClick={() => { signOut(); nav('/', { replace: true }); }}
+            >
+              Sim, apagar tudo
+            </button>
+            <button
+              className="btn ghost"
+              style={{ marginTop: 10 }}
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

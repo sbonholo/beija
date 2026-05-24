@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { activeApi as api, errorMessage } from '../lib/api';
+import { activeApi as api, errorMessage, isMockMode } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { EventItem } from '../types';
 import { getCurrentPosition } from '../platform/geolocation';
@@ -14,7 +14,7 @@ function formatDistance(m: number | null | undefined) {
 
 function formatWhen(starts: number, ends: number) {
   const now = Date.now();
-  if (starts <= now && ends > now) return 'Rolando agora';
+  if (starts <= now && ends > now) return 'Rolando agora 🔴';
   const diff = starts - now;
   const h = Math.floor(diff / 3_600_000);
   if (h < 1) return 'Daqui a pouco';
@@ -23,7 +23,7 @@ function formatWhen(starts: number, ends: number) {
 }
 
 export function Events() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const nav = useNavigate();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,11 +37,17 @@ export function Events() {
       const { events } = await api.listEvents(pos?.lat ?? null, pos?.lng ?? null);
       setEvents(events);
     } catch (err) {
-      const { text } = errorMessage(err); setError(text);
+      const em = errorMessage(err);
+      if (em.kind === 'auth') {
+        signOut();
+        nav(isMockMode ? '/' : '/login', { replace: true });
+        return;
+      }
+      setError(em.text);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [nav, signOut]);
 
   useEffect(() => {
     void load();
@@ -51,12 +57,19 @@ export function Events() {
     <div className="screen">
       <div className="header">
         <div>
-          <h2>Eai, {user?.nickname || 'você'} 💋</h2>
-          <p className="muted" style={{ margin: '4px 0 0', fontSize: 14 }}>Escolha o rolê de hoje</p>
+          <h2 style={{ fontFamily: 'Poppins, system-ui, sans-serif' }}>
+            Eai, {user?.nickname || 'você'} 💋
+          </h2>
+          <p className="muted" style={{ margin: '2px 0 0', fontSize: 13 }}>Escolha o rolê de hoje</p>
         </div>
       </div>
 
-      {loading && <p className="muted">Buscando rolês...</p>}
+      {loading && (
+        <div className="empty">
+          <div className="big" style={{ animation: 'pulse 1.2s ease-in-out infinite' }}>🎶</div>
+          <p>Buscando rolês...</p>
+        </div>
+      )}
 
       {!loading && error && (
         <div className="empty">
@@ -75,26 +88,35 @@ export function Events() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {events.map((e) => (
-          <div key={e.id} className="event-card" onClick={() => nav(`/events/${e.id}`)}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {events.map((e, i) => (
+          <div
+            key={e.id}
+            className="event-card"
+            style={{ animationDelay: `${i * 60}ms` }}
+            onClick={() => nav(`/events/${e.id}`)}
+          >
             <div
               className="thumb"
               style={e.imageUrl ? { backgroundImage: `url("${e.imageUrl}")` } : undefined}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h3>{e.name}</h3>
+              <h3 className="event-name">{e.name}</h3>
               <div className="meta">{e.venue}{e.city ? ` · ${e.city}` : ''}</div>
-              <div className="meta">{formatWhen(e.startsAt, e.endsAt)} · {e.checkinCount ?? 0} aí dentro</div>
-              <div className="row" style={{ gap: 6, marginTop: 4 }}>
+              <div className="meta" style={{ marginTop: 2 }}>
+                {formatWhen(e.startsAt, e.endsAt)}
+                {e.checkinCount ? ` · ${e.checkinCount} aí dentro` : ''}
+              </div>
+              <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 {e.category && <span className="pill">{e.category}</span>}
                 {e.distanceMeters != null && (
-                  <span className="pill" style={{ background: 'rgba(255, 138, 42, 0.18)', color: 'var(--fire)' }}>
-                    {formatDistance(e.distanceMeters)}
+                  <span className="pill pill-fire">
+                    📍 {formatDistance(e.distanceMeters)}
                   </span>
                 )}
               </div>
             </div>
+            <div className="event-arrow">›</div>
           </div>
         ))}
       </div>

@@ -102,6 +102,7 @@ export function App() {
           } />
           <Route path="/login" element={user ? <Navigate to="/events" replace /> : <Login />} />
           <Route path="/verify" element={user ? <Navigate to="/events" replace /> : <VerifyOtp />} />
+          <Route path="/profile" element={<Protected><Profile /></Protected>} />
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
