@@ -5,7 +5,7 @@ import { useAuth } from '../state/AuthContext';
 import type { PersonAtEvent, ReactionType, EventItem, User } from '../types';
 import { getSocket } from '../lib/socket';
 import { PersonCard } from '../components/PersonCard';
-import { ReactionBar } from '../components/ReactionBar';
+import { PersonSheet } from '../components/PersonSheet';
 import { MatchModal } from '../components/MatchModal';
 import { useToast } from '../components/Toast';
 import { hapticSuccess } from '../platform/haptics';
@@ -182,27 +182,11 @@ export function EventRoom() {
       )}
 
       {selected && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 'calc(env(safe-area-inset-bottom) + 8px)',
-            left: 0, right: 0,
-            zIndex: 20,
-            display: 'flex', justifyContent: 'center',
-            pointerEvents: 'none',
-          }}
-        >
-          <div className="card" style={{ pointerEvents: 'auto', minWidth: 280, textAlign: 'center' }}>
-            <div className="row center" style={{ justifyContent: 'center', gap: 10 }}>
-              <div
-                className={`avatar ${selected.matched ? 'matched' : ''}`}
-                style={{ width: 40, height: 40, backgroundImage: selected.photoUrl ? `url("${selected.photoUrl}")` : undefined }}
-              />
-              <strong>{selected.nickname || 'Alguém'}</strong>
-            </div>
-            <ReactionBar current={selected.sentReaction} onSend={react} />
-          </div>
-        </div>
+        <PersonSheet
+          person={selected}
+          onClose={() => setSelected(null)}
+          onReact={react}
+        />
       )}
 
       {matchModal && user && (

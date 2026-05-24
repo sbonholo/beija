@@ -76,7 +76,7 @@ export const api = {
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
 };
 
-import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages } from './mockData';
+import { MOCK_TOKEN, MOCK_OTP, mockUser, mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages, biaUser } from './mockData';
 
 function isMock() { return getToken() === MOCK_TOKEN; }
 
@@ -114,10 +114,18 @@ export const mockedApi = {
     isMock()
       ? { people: mockPeople.filter((p) => p.currentEventId === id) }
       : _api.listPeople(id),
-  sendReaction: async (toUserId: string, eventId: string, type: string) =>
-    isMock()
-      ? { ok: true as const, reaction: type, match: null }
-      : _api.sendReaction(toUserId, eventId, type),
+  sendReaction: async (toUserId: string, eventId: string, type: string) => {
+    if (!isMock()) return _api.sendReaction(toUserId, eventId, type);
+    // Demo affordance: a 💋 sent to Bia (mock-user-2) triggers a fake match.
+    if (toUserId === biaUser.id && type === 'kiss') {
+      return {
+        ok: true as const,
+        reaction: type,
+        match: { id: 'mock-match-fake', eventId, otherUser: biaUser } as { id: string; eventId: string; otherUser: typeof biaUser },
+      };
+    }
+    return { ok: true as const, reaction: type, match: null };
+  },
   removeReaction: async (toUserId: string, eventId: string) =>
     isMock() ? { ok: true as const } : _api.removeReaction(toUserId, eventId),
   listMatches: async (): Promise<{ matches: any[] }> =>

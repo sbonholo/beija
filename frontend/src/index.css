@@ -305,6 +305,86 @@ a { color: var(--pink-glow); }
   font-weight: 700;
 }
 
+.onboarding-progress {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.onboarding-progress-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.25s ease;
+}
+.onboarding-progress-seg.filled {
+  background: linear-gradient(90deg, var(--pink), var(--hot));
+}
+
+.person-sheet-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 0, 12, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 40;
+  animation: fadeIn 0.18s ease;
+}
+.person-sheet {
+  width: 100%;
+  max-width: 540px;
+  background: var(--card);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+  animation: sheetUp 0.22s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.person-sheet-handle {
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  align-self: center;
+  margin-bottom: 6px;
+}
+.person-sheet-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, #3a0029, #1c0a2b) center/cover no-repeat;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.person-sheet-photo.matched {
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 6px rgba(255, 213, 74, 0.18), 0 0 30px rgba(255, 213, 74, 0.55);
+}
+.person-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.person-sheet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .match-modal-bg {
   position: fixed;
   inset: 0;

@@ -72,7 +72,19 @@ export function Onboarding() {
   return (
     <div className="screen">
       <h2 style={{ marginTop: 12, marginBottom: 4 }}>Vamos te conhecer</h2>
-      <p className="muted" style={{ marginBottom: 22 }}>Passo {step + 1} de 3</p>
+      <div
+        className="onboarding-progress"
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={3}
+        aria-valuenow={step + 1}
+        aria-label={`Passo ${step + 1} de 3`}
+      >
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`onboarding-progress-seg ${i <= step ? 'filled' : ''}`} />
+        ))}
+      </div>
+      <p className="muted" style={{ marginTop: 6, marginBottom: 22, fontSize: 12 }}>Passo {step + 1} de 3</p>
 
       {step === 0 && (
         <>

@@ -54,7 +54,7 @@ export const mockEvents: EventItem[] = [mockEvent1, mockEvent2];
 // Backward-compatible alias.
 export const mockEvent = mockEvent1;
 
-const biaUser: User = {
+export const biaUser: User = {
   id: 'mock-user-2',
   nickname: 'Bia',
   gender: 'woman',

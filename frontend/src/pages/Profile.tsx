@@ -3,21 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { mockedApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import { BottomNav } from '../components/BottomNav';
-import type { Gender } from '../types';
-
-const genderLabel: Record<Gender, string> = {
-  woman: 'Mulher',
-  man: 'Homem',
-  'non-binary': 'Não-binário/a',
-  other: 'Outro',
-};
-
-const seekingLabel: Record<Gender, string> = {
-  woman: 'Mulheres',
-  man: 'Homens',
-  'non-binary': 'Não-binárias',
-  other: 'Outros',
-};
+import { genderLabel, seekingLabel } from '../lib/labels';
 
 export function Profile() {
   const { user, setUser, signOut } = useAuth();
