@@ -35,9 +35,11 @@ if (!isProd) {
   if (!explicitOrigins.includes('http://localhost:4173')) explicitOrigins.push('http://localhost:4173');
 }
 
+const DEFAULT_JWT_SECRET = 'beija-dev-secret-change-me';
+
 export const config = {
   port: parseInt(process.env.PORT || '4000', 10),
-  jwtSecret: process.env.JWT_SECRET || 'beija-dev-secret-change-me',
+  jwtSecret: process.env.JWT_SECRET || DEFAULT_JWT_SECRET,
   otpTtlSeconds: parseInt(process.env.OTP_TTL_SECONDS || '300', 10),
   devReturnOtp: (process.env.DEV_RETURN_OTP || (isProd ? 'false' : 'true')) === 'true',
   databaseFile,
@@ -47,6 +49,10 @@ export const config = {
   smsProvider: process.env.SMS_PROVIDER || 'mock',
   isProd,
 };
+
+if (config.isProd && config.jwtSecret === DEFAULT_JWT_SECRET) {
+  throw new Error('[beija] JWT_SECRET must be set in production. Refusing to start with default secret.');
+}
 
 fs.mkdirSync(path.dirname(config.databaseFile), { recursive: true });
 fs.mkdirSync(config.uploadDir, { recursive: true });

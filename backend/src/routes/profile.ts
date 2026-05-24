@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import { db } from '../db.js';
@@ -77,8 +78,13 @@ router.put('/me', authRequired, (req: AuthedRequest, res) => {
 
 router.post('/me/photo', authRequired, upload.single('photo'), (req: AuthedRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
+  const existing = db.prepare('SELECT photo_url FROM users WHERE id = ?').get(req.userId!) as any;
   const url = `${config.publicUrl}/uploads/${req.file.filename}`;
   db.prepare('UPDATE users SET photo_url = ? WHERE id = ?').run(url, req.userId);
+  if (existing?.photo_url) {
+    const oldFile = existing.photo_url.split('/uploads/').pop();
+    if (oldFile) fs.unlink(`${config.uploadDir}/${oldFile}`, () => { /* best-effort */ });
+  }
   res.json({ photoUrl: url });
 });
 

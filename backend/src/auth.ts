@@ -8,7 +8,7 @@ export interface AuthedRequest extends Request {
 }
 
 export function signToken(userId: string) {
-  return jwt.sign({ sub: userId }, config.jwtSecret, { expiresIn: '30d' });
+  return jwt.sign({ sub: userId }, config.jwtSecret, { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): string | null {

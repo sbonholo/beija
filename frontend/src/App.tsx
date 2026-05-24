@@ -93,7 +93,7 @@ export function App() {
           ⚡ Modo Demo — dados fictícios
         </div>
       )}
-      <div className="app">
+      <div className="app" style={isMockMode ? { paddingTop: 30 } : undefined}>
         <Routes>
           <Route path="/" element={
             !user

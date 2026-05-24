@@ -46,6 +46,7 @@ router.get('/', authRequired, (req, res) => {
 router.get('/:id', authRequired, (req, res) => {
   const r = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id) as any;
   if (!r) return res.status(404).json({ error: 'not_found' });
+  if (r.ends_at < Date.now()) return res.status(410).json({ error: 'event_ended' });
   res.json({
     event: {
       id: r.id,
