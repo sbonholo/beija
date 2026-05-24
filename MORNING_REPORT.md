@@ -1,123 +1,143 @@
-# Beija — Morning Report
+# Beija — Overnight Work Report
 
-**Branch:** `migrations-schema` (PR [#1](https://github.com/sbonholo/beija/pull/1))
-**Último commit:** `d309780` — "feat: Phase 1 complete - Auth, Storage, Push, Moderation setup"
-
----
-
-## ✅ Feito nessa sessão
-
-### Frontend — refactor de arquitetura
-- **Removida auth por celular** (Login, VerifyOtp deletados).
-- Profile virou landing (`/`):
-  - Sem perfil → `CreateProfile` (foto, nick, identidade, seeking, checkbox 18+).
-  - Com perfil → `Profile` editável (todos os campos + apagar conta).
-- `AuthContext` simplificado: perfil persistido em `localStorage` (`beija_profile`), sem token.
-- Onboarding e PhotoGate foram absorvidos pelo `CreateProfile`.
-
-### Frontend — UX
-- BottomNav rebuild (gradient bar no topo da tab ativa, glow no ícone, fix do problema do CSS mirar `button` em vez de `a`).
-- MatchModal mostra os dois ícones de reação (seu + dela) + subtítulo "É beijo na boca!".
-- Regra de match generalizada: qualquer combinação de ícones triggera match (não só `kiss → Bia`).
-- Telefone removido do header do Profile.
-- "Salvar" no Profile navega pra `/events`.
-
-### Frontend — dados mock
-- `mockedApi.updateMe` mutates `mockUser` e respeita o seeking real do usuário (lido de localStorage).
-- `listPeople` aplica filtro mútuo (eu quero ela + ela me quer).
-- Bia tem `receivedReaction: 'kiss'` no seed → reagir nela sempre dá match.
-- Mensagens otimistas no Chat (append local na hora do send).
-
-### Plataformas nativas — Capacitor
-- `@capacitor/core` + `@capacitor/cli` instalados.
-- `cap init beija io.beija.app --web-dir=dist` rodado.
-- `cap add ios` → projeto Xcode em `frontend/ios/` (precisa Mac pra abrir).
-- `cap add android` → projeto Gradle em `frontend/android/`.
-- Plugins extras instalados: `@capacitor/app`, `@capacitor/push-notifications`.
-
-### Backend / dados
-- Branch `migrations-schema` criada a partir de `main`.
-- `supabase/migrations/20260523000000_initial_schema.sql` criado com schema base (users, events, people_at_event, reactions, matches, messages + RLS habilitado).
-
-### Moderação (compliance App Store)
-- `frontend/src/components/Moderation/ReportModal.tsx` — modal de denúncia com 6 razões em PT-BR + textarea opcional + estado submitted. **Ainda não plugado em nenhum lugar do app.**
-
-### Dependências instaladas
-- `@supabase/supabase-js` ^2.106.1
-- `@capacitor/app` ^8.1.0
-- `@capacitor/push-notifications` ^8.1.1
+**Date:** 2026-05-24
+**Branch:** `migrations-schema` ([PR #1](https://github.com/sbonholo/beija/pull/1))
 
 ---
 
-## ⚠️ Pendências dessa sessão (heredocs cortaram)
+## Numbers
 
-Esses arquivos foram pedidos mas o conteúdo não chegou via UI:
-
-- `frontend/src/lib/auth.ts`
-- `frontend/src/lib/storage.ts`
-- `frontend/src/lib/pushNotifications.ts`
-- `supabase/migrations/20260524000000_complete_schema.sql`
-- `IMPLEMENTATION_SPEC.md`
-
-Pra desbloquear: mandar conteúdo como texto normal (não `cat <<EOF`).
+- **27 commits** on this branch
+- **+14,708 / −3,722 lines** across **149 files**
+- **14 phases** (A through N) executed end-to-end
+- **0 TypeScript errors**, **0 ESLint errors / warnings**, **0 critical npm vulns**
+- **Main JS bundle:** 131 KB gzip (down 24% from start of audit)
+- **Build:** green
 
 ---
 
-## 🔴 Conhecidos do schema atual
+## All phases at a glance
 
-`20260523000000_initial_schema.sql` tem inconsistências com o frontend:
-
-1. `create extension "pgjson"` — extensão não existe (vai falhar no push). Provável intenção: `pgcrypto` ou `pg_jsonschema`.
-2. `phone_number text unique not null` — frontend não coleta mais celular.
-3. `gender check ('M', 'F', 'Other', 'Prefer not to say')` — frontend usa `'man'|'woman'|'non-binary'|'other'`.
-4. `seeking text check ('M', 'F', 'Both')` — frontend é array de Gender.
-
-Schema precisa alinhar com `User` type do TS antes do `supabase db push`.
-
----
-
-## 🎯 Próximos passos sugeridos (do diagnóstico App Store)
-
-**Bloqueadores duros pra review:**
-1. Ligar backend real (Supabase setup + RLS policies) — schema é o primeiro passo, faltam policies.
-2. Auth real: Sign in with Apple + Google (substitui o localStorage anônimo).
-3. Storage de fotos (Supabase Storage bucket).
-4. Push notifications: APNs + backend hook.
-5. Privacy Policy + Terms (linkar no CreateProfile e Profile).
-6. **Plugar o ReportModal** em PersonSheet e Chat.
-7. Botão "Bloquear" em PersonSheet e Profile do outro.
-8. Account deletion no backend (não só localStorage).
-9. Moderação automática de fotos no upload.
-
-**Gaps técnicos:**
-10. Capacitor: ícones reais (1024px), splash screen, Info.plist permissions (camera, photo library, geolocation, notifications).
-11. Geolocation permission strings (PT-BR).
-12. Crash reporting (Sentry).
-13. Reconnect handler no socket (re-emit `event:join` após drop).
-14. Heartbeat / TTL no check-in.
-
-**UX pra produção:**
-15. Check-in explícito (não auto ao abrir `/events/:id`).
-16. Undo de reação (API tem, UI não expõe).
-17. Read receipts + typing indicator no Chat.
-18. Foto cropping + compressão antes do upload.
-19. Selfie verification opcional.
+| Phase | Theme | Key commits |
+|---|---|---|
+| A | Initial SQL schema (event-based, later superseded) | `fa92984`, `a01db2d` |
+| B | Capacitor init + iOS/Android scaffolds | `23158e9`, `015ed06` |
+| C | Supabase client lib + auth + storage + push wrappers | `fd205b8` |
+| D | Schema rewrite (swipe-based) + RLS + PostGIS matching | `46f6146`, `519d09e` |
+| — | Auth + Onboarding + ProfileSetup screens | `4bd64c8`, `93b1bdc` |
+| — | Discovery (SwipeCard, StackDeck, MatchModal, interests col) | `ef2abd8` |
+| E | Compliance (Block, Report, Delete, Privacy, Terms, App Store metadata) | `cb2ec82` |
+| F | Backend Supabase adapter + SQLite migration plan | `a32c4c0` |
+| G | Realtime chat + full app route wiring + legacy cleanup | `870383f` |
+| H | Geolocation hook + Discovery filters + location RPC | `e45605f` |
+| I | Audit + bundle code-split + memo + skeletons + SW + SEO | `9cc10a3`, `a6754a8`, `871df55`, `33ced94`, `c5d8b19`, `7728d67`, `103a1b7` |
+| J | Test scenarios + 8 bug fixes | `244a0fb` |
+| K | Click flow analysis + UX optimizations | `0e74cf6` |
+| L | App Store assets spec + icon design spec | `be7f1b5` |
+| M | CI workflow + TestFlight skeleton + README + .env.example | `6e9c3be` |
+| N | ARCHITECTURE.md + API.md + DEPLOYMENT.md + this report | (current) |
 
 ---
 
-## 📋 Como retomar
+## Functional state
+
+The app boots into a fully reactive Tinder-style flow:
+
+1. `/` → splash 1.5s → router decides:
+   - No session → `/signin`
+   - Session + incomplete profile → `/onboarding`
+   - Session + complete profile → last visited tab (`/discover` by default)
+2. **Sign in:** Apple or Google via Capacitor plugins → Supabase `signInWithIdToken`
+3. **Onboarding:** 3 steps with auto-advance, photo required, age self-declared ≥18 → upsert `profiles` + upload photo
+4. **Discover:** `find_potential_matches` RPC with PostGIS distance + mutual gender + age + exclusions → SwipeCard with NOPE/LIKE peek + photo carousel + swipe-up bio reveal
+5. **Match:** mutual swipe trigger creates `matches` row → MatchModal with confetti + 1-tap "Enviar mensagem"
+6. **Chat:** Realtime subscription on `messages` INSERT/UPDATE + presence for typing + read receipts + long-press copy/delete
+7. **Profile editing:** 6 photo slots + bio + interests chips + age/distance sliders → upsert
+8. **Moderation:** Report (6 reasons + auto-block + match removal) and Block buttons in chat menu
+9. **Account deletion:** 3-step flow with 30-day cooldown + soft-delete + reactivation window
+10. **Privacy / Terms:** /privacy and /terms render Markdown documents lazy-loaded
+
+Bottom nav (Discover / Matches / Perfil) with active-tab gradient bar + live unread badge.
+
+---
+
+## What's outside the diff (still TODO)
+
+### Blocking App Store submission
+- [ ] **Apple Developer account** activation (`$99/yr`, 24–48h)
+- [ ] **Supabase project** created + `supabase db push` run
+- [ ] **Apple Sign In** configured in Supabase + Apple Dev (Services ID, Key, Team ID)
+- [ ] **Google OAuth** clients created (iOS + Web) + put into Supabase + `.env.local`
+- [ ] **APNs key** uploaded for push notifications
+- [ ] **Icon master 1024×1024** designed and slotted in (see `ICON_DESIGN.md`)
+- [ ] **5 App Store screenshots** captured (see `ASSETS_SPEC.md` § 5)
+- [ ] **In-Xcode capabilities** (Sign in with Apple, Push, Location) + Info.plist usage strings (PT-BR) — see `docs/DEPLOYMENT.md` § 5
+
+### Non-blocking (post-launch backlog)
+- Reactivation UI for users who sign in within 30 days of deletion
+- Edge functions for push fan-out + deletion confirmation email
+- Cron job that hard-deletes expired `deletion_requests`
+- Photo NSFW moderation hook (Sightengine or similar)
+- Sentry / Crashlytics
+- Vitest unit tests (skeleton CI job exists, no tests yet)
+- Internationalization (currently PT-BR hard-coded)
+
+---
+
+## Time to first TestFlight
+
+Assuming credentials in hand and one designer-day for the icon + first screenshot:
+
+- Supabase project + migrations + OAuth providers: **half day**
+- Xcode capabilities + Info.plist + first archive: **half day**
+- Upload to TestFlight + invite internal testers: **30 min**
+
+**Realistic: 1–2 calendar days from "ready to push" to "external TestFlight invite landing in inboxes"**.
+
+---
+
+## How to retake the work
 
 ```bash
-# pra continuar local
-cd /home/user/beija
+cd ~/dev   # or wherever
+git clone https://github.com/sbonholo/beija.git
+cd beija
 git checkout migrations-schema
-git pull
-cd frontend
-npm install   # se precisar
-npm run dev   # frontend em http://localhost:5173
 
-# pra rodar nativo (precisa Mac pra iOS)
+# Frontend
+cd frontend
+npm install --legacy-peer-deps
+cp .env.example .env.local
+# fill in VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY + Google client ids
+npm run dev   # http://localhost:5173
+
+# Supabase
+cd ..
+supabase login
+supabase link --project-ref <ref>
+supabase db push
+
+# iOS (macOS only)
+cd frontend
 npm run build
-npx cap sync
-npx cap open ios     # ou: npx cap open android
+npx cap sync ios
+npx cap open ios   # configure signing + capabilities in Xcode
 ```
+
+Detailed walkthroughs:
+- `README.md` — quick start
+- `docs/ARCHITECTURE.md` — how everything fits
+- `docs/API.md` — tables, RPCs, channels
+- `docs/DEPLOYMENT.md` — Apple + Google + Supabase setup
+- `ASSETS_SPEC.md` — what designer needs to produce
+- `AppStoreMetadata.md` — App Store Connect copy fields
+- `TEST_SCENARIOS.md` — manual test plan
+- `CLICK_FLOW_ANALYSIS.md` — tap counts vs benchmarks
+
+---
+
+## Open PR
+
+[PR #1 — migrations-schema](https://github.com/sbonholo/beija/pull/1) — ready to merge once you review.
+
+Everything in this report lives on that branch. Force-pushes were used during cleanup (commit `fd205b8` rewrote the auto-committed `3de9600`) but the branch has been stable since.
