@@ -15,7 +15,7 @@ function formatHM(ts: number): string {
 
 function startOfDay(ts: number): number {
   const d = new Date(messageTime(ts));
-  d.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);h
   return d.getTime();
 }
 
@@ -56,10 +56,10 @@ export function Chat() {
       if (m.matchId && m.matchId !== matchId) return;
       setMessages((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]));
     };
-    sock.on('message:new', onMsg);
+    sock?.on('message:new', onMsg);
     return () => {
       cancelled = true;
-      sock.off('message:new', onMsg);
+      sock?.off('message:new', onMsg);
     };
   }, [matchId]);
 
