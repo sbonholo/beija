@@ -253,8 +253,9 @@ export function ProfileSetup() {
         ))}
       </div>
 
-      <label className="muted" style={{ fontSize: 13, display: 'block' }}>Bio</label>
+      <label htmlFor="profile-bio" className="muted" style={{ fontSize: 13, display: 'block' }}>Bio</label>
       <textarea
+        id="profile-bio"
         value={bio}
         onChange={(e) => setBio(e.target.value)}
         rows={3}
@@ -265,10 +266,10 @@ export function ProfileSetup() {
         {bio.length}/{MAX_BIO}
       </p>
 
-      <label className="muted" style={{ fontSize: 13, marginTop: 14, marginBottom: 8, display: 'block' }}>
+      <div id="profile-interests-label" className="muted" style={{ fontSize: 13, marginTop: 14, marginBottom: 8 }}>
         Interesses
-      </label>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+      </div>
+      <div className="row" role="group" aria-labelledby="profile-interests-label" style={{ flexWrap: 'wrap', gap: 8 }}>
         {INTERESTS.map((it) => (
           <button
             key={it}

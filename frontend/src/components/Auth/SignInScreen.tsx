@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { signInWithApple, signInWithGoogle } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { track } from '../../lib/analytics';
@@ -90,9 +91,9 @@ export function SignInScreen() {
 
         <p className="muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 18 }}>
           Ao continuar você concorda com os{' '}
-          <a href="#" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Termos</a>
+          <Link to="/terms" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Termos</Link>
           {' '}·{' '}
-          <a href="#" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Privacidade</a>
+          <Link to="/privacy" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Privacidade</Link>
         </p>
       </div>
     </div>

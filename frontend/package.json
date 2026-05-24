@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "audit:a11y": "node tests/a11y.smoke.mjs"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
@@ -40,8 +41,10 @@
     "@typescript-eslint/parser": "^8.59.4",
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^9.39.4",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "jsdom": "^29.1.1",
     "serve": "^14.2.6",
     "tsx": "^4.20.6",
     "typescript": "~5.8.2",

@@ -131,10 +131,11 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
               ))}
             </div>
 
-            <label className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
+            <label htmlFor="report-details" className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
               Detalhes (opcional)
             </label>
             <textarea
+              id="report-details"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               maxLength={500}

@@ -124,7 +124,10 @@ export function App() {
   return (
     <ToastProvider>
       <RouteMemory />
-      <div className="app">
+      <a href="#beija-main" className="skip-link">
+        Pular para o conteúdo principal
+      </a>
+      <div className="app" id="beija-main">
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/signin" element={<SignInScreen />} />

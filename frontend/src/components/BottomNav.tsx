@@ -20,6 +20,8 @@ export function BottomNav() {
             key={t.to}
             to={t.to}
             className={({ isActive }) => (isActive ? 'active' : '')}
+            aria-label={t.label}
+            end
           >
             <span className="icon" aria-hidden style={{ position: 'relative' }}>
               {t.icon}

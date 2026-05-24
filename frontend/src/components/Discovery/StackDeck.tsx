@@ -92,6 +92,7 @@ export function StackDeck() {
   const [match, setMatch] = useState<NewMatch | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [firstCardTracked, setFirstCardTracked] = useState(false);
+  const [liveAnnouncement, setLiveAnnouncement] = useState('');
   useGeolocation({ autoUpdate: true });
 
   const top = useMemo(() => deck.slice(0, STACK_VISIBLE), [deck]);
@@ -192,6 +193,14 @@ export function StackDeck() {
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
     track(`swipe_${direction}`, { card_index: history.length });
+    const name = target.name ?? 'perfil';
+    setLiveAnnouncement(
+      direction === 'left'
+        ? `Você passou ${name}`
+        : direction === 'super'
+          ? `Super like enviado para ${name}`
+          : `Você curtiu ${name}`,
+    );
     setDeck((cur) => cur.filter((p) => p.id !== target.id));
     void bumpLastActive(userId);
     let matchedId: string | null = null;
@@ -222,6 +231,7 @@ export function StackDeck() {
           if (Date.now() - created < 5000) {
             matchedId = matchRow.id as string;
             track('match_created', { direction });
+            setLiveAnnouncement(`É beijo na boca! Você deu match com ${target.name ?? 'alguém'}`);
             setMatch({ matchId: matchRow.id as string, other: target });
             try {
               await supabase.functions.invoke('notify_match', {
@@ -355,6 +365,14 @@ export function StackDeck() {
 
   return (
     <div className="screen" style={{ paddingBottom: 140 }}>
+      <div
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {liveAnnouncement}
+      </div>
       <div className="header" style={{ marginBottom: 12, gap: 8 }}>
         <h2 style={{ margin: 0 }}>Discover</h2>
         <div style={{ display: 'flex', gap: 8 }}>

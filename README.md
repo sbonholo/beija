@@ -215,6 +215,18 @@ Style conventions:
 
 ---
 
+## Accessibility
+
+WCAG AA validado via `eslint-plugin-jsx-a11y` (0 warnings) + axe-core smoke
+em CI + manual axe DevTools por rota. Skip-link, `:focus-visible`, focus
+traps em modais, `aria-live` no StackDeck pra anunciar swipes/matches,
+respeita `prefers-reduced-motion`. Touch targets 44×44px (chips 32×32).
+
+Audit local: `cd frontend && npm run audit:a11y` (axe-core smoke).
+Procedimento completo + checklist WCAG: **[docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md)**.
+
+---
+
 ## Observability
 
 Sentry (errors + session replay com PII mascarado) + PostHog (funil

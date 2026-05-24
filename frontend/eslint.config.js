@@ -2,6 +2,7 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import js from '@eslint/js';
 
 export default [
@@ -30,7 +31,12 @@ export default [
         JSX: 'readonly',
       },
     },
-    plugins: { '@typescript-eslint': tsPlugin, react: reactPlugin, 'react-hooks': reactHooks },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      react: reactPlugin,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+    },
     settings: { react: { version: '18.3' } },
     rules: {
       'react/react-in-jsx-scope': 'off',
@@ -40,6 +46,15 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      ...jsxA11y.flatConfigs.recommended.rules,
+      // Modal backdrops (div with onClick→close) and message-bubble context
+      // menus are legitimate UI patterns here: every modal ships an explicit
+      // close button + ESC handler, every long-press context menu has a
+      // mouseup-anywhere dismiss. Keyboard paths are covered, just not by
+      // these elements. See docs/ACCESSIBILITY.md.
+      'jsx-a11y/no-static-element-interactions': 'off',
+      'jsx-a11y/click-events-have-key-events': 'off',
+      'jsx-a11y/no-noninteractive-element-interactions': 'off',
     },
   },
 ];

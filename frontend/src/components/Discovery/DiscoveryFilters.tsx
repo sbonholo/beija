@@ -141,10 +141,10 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
           <p className="muted">Carregando…</p>
         ) : (
           <>
-            <label className="muted" style={{ fontSize: 13, display: 'block' }}>
+            <div id="df-seeking-label" className="muted" style={{ fontSize: 13 }}>
               Quem você quer conhecer
-            </label>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            </div>
+            <div className="row" role="group" aria-labelledby="df-seeking-label" style={{ flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               <button
                 type="button"
                 className={`chip ${seeking === 'women' ? 'selected' : ''}`}

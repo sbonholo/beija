@@ -11,6 +11,13 @@
     <meta name="apple-mobile-web-app-title" content="Beija" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <!-- Performance: warm DNS + TLS for the heaviest 3rd-party origins
+         (Supabase, photo CDN, PostHog EU, Sentry). Each is conditional on
+         env config at runtime; preconnect-now / cancel-if-unused is cheap. -->
+    <link rel="preconnect" href="https://eu.posthog.com" crossorigin />
+    <link rel="preconnect" href="https://picsum.photos" crossorigin />
+    <link rel="dns-prefetch" href="https://o.ingest.sentry.io" />
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-512.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="./icons/icon-512.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-192.png" />

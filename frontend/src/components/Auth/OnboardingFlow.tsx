@@ -154,23 +154,30 @@ export function OnboardingFlow() {
 
       {step === 0 && (
         <>
-          <label className="muted" style={{ fontSize: 13 }}>Seu nome</label>
+          <label htmlFor="onb-name" className="muted" style={{ fontSize: 13 }}>Seu nome</label>
           <input
-            autoFocus
+            id="onb-name"
             placeholder="Como te chamam"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={40}
+            autoComplete="given-name"
           />
 
-          <label className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
+          <label
+            htmlFor="onb-birthdate"
+            className="muted"
+            style={{ fontSize: 13, marginTop: 14, display: 'block' }}
+          >
             Data de nascimento
           </label>
           <input
+            id="onb-birthdate"
             type="date"
             max={maxBirthdate}
             value={birthdate}
             onChange={(e) => setBirthdate(e.target.value)}
+            autoComplete="bday"
           />
           <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>
             Você precisa ter 18+ pra continuar.
@@ -180,10 +187,10 @@ export function OnboardingFlow() {
 
       {step === 1 && (
         <>
-          <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+          <div id="onb-gender-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
             Você é
-          </label>
-          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          </div>
+          <div className="row" role="group" aria-labelledby="onb-gender-label" style={{ flexWrap: 'wrap', gap: 8 }}>
             <button
               type="button"
               className={`chip ${gender === 'woman' ? 'selected' : ''}`}
@@ -209,10 +216,10 @@ export function OnboardingFlow() {
 
           <div style={{ height: 18 }} />
 
-          <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+          <div id="onb-seeking-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
             Quer conhecer
-          </label>
-          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          </div>
+          <div className="row" role="group" aria-labelledby="onb-seeking-label" style={{ flexWrap: 'wrap', gap: 8 }}>
             <button
               type="button"
               className={`chip ${seeking === 'women' ? 'selected' : ''}`}
@@ -240,18 +247,19 @@ export function OnboardingFlow() {
 
       {step === 2 && (
         <>
-          <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
+          <div id="onb-photo-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
             Foto principal
-          </label>
-          <div
+          </div>
+          <button
+            type="button"
             onClick={onPickPhoto}
-            role="button"
-            aria-label="Escolher foto"
+            aria-labelledby="onb-photo-label"
             style={{
               width: '100%',
               aspectRatio: '1 / 1',
               maxWidth: 280,
               margin: '0 auto 12px',
+              padding: 0,
               borderRadius: 'var(--radius)',
               backgroundImage: photoPreview ? `url("${photoPreview}")` : undefined,
               backgroundColor: photoPreview ? undefined : '#1c0a2b',
@@ -262,16 +270,22 @@ export function OnboardingFlow() {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
+              color: '#fff',
               boxShadow: photoPreview ? 'var(--shadow)' : undefined,
             }}
           >
-            {!photoPreview && <span style={{ fontSize: 48 }}>📷</span>}
-          </div>
+            {!photoPreview && <span style={{ fontSize: 48 }} aria-hidden>📷</span>}
+          </button>
 
-          <label className="muted" style={{ fontSize: 13, marginTop: 10, display: 'block' }}>
+          <label
+            htmlFor="onb-bio"
+            className="muted"
+            style={{ fontSize: 13, marginTop: 10, display: 'block' }}
+          >
             Bio (opcional)
           </label>
           <textarea
+            id="onb-bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
