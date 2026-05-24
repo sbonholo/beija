@@ -58,7 +58,6 @@ export function Profile() {
         />
         <div style={{ flex: 1 }}>
           <strong style={{ fontSize: 18 }}>{user?.nickname || '—'}</strong>
-          <div className="muted" style={{ fontSize: 13 }}>{user?.phone}</div>
           <label className="chip" style={{ marginTop: 8, display: 'inline-flex', cursor: 'pointer' }}>
             Trocar foto
             <input type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
