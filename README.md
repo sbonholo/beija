@@ -1,5 +1,8 @@
 # Beija
 
+[![CI](https://github.com/sbonholo/beija/actions/workflows/ci.yml/badge.svg)](https://github.com/sbonholo/beija/actions/workflows/ci.yml)
+[![Lighthouse](https://github.com/sbonholo/beija/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/sbonholo/beija/actions/workflows/lighthouse.yml)
+
 App de relacionamentos feito pra brasileiros. React + Capacitor 8 + Supabase.
 
 > **Status:** pre-MVP. Schema + UI completos, faltam credenciais de produção (Supabase project, Apple Dev, Google Console) e assets visuais finais. See `AppStoreMetadata.md` and `ASSETS_SPEC.md`.
@@ -189,13 +192,18 @@ bundle exec fastlane beta
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and PR to `main`:
+`.github/workflows/ci.yml` roda em push/PR pra `main`:
 
 - **lint:** ESLint (max-warnings 0) + `tsc --noEmit`
 - **build:** `npm run build` + uploads `dist/` artifact + reports bundle sizes
 - **test:** placeholder (vitest TBD)
+- **a11y:** `npm run audit:a11y` (axe-core via jsdom)
+- **android-debug:** `npx cap sync android` + `./gradlew assembleDebug` com SDK 36 instalado on-demand via `android-actions/setup-android@v3` + cache de gradle
 
-All three jobs run in parallel after `lint` succeeds.
+Workflows secundários (não bloqueantes): `lighthouse.yml` (Performance/A11y/SEO scores), `release-play.yml` (Play Store AAB, manual), `release-testflight.yml` (iOS skeleton), `deploy-pages.yml` (GitHub Pages), `process-deletions.yml` (cron diário).
+
+Detalhes, comandos pra rodar local, troubleshooting do Android build,
+secrets necessários: **[docs/CI.md](docs/CI.md)**.
 
 ---
 

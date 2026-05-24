@@ -109,6 +109,10 @@ jobs:
     name: Android debug build
     runs-on: ubuntu-latest
     needs: lint
+    # The pre-launch app builds against compileSdk 36 (Android 16). Some runner
+    # snapshots are missing that platform — setup-android@v3 below installs it
+    # on-demand. continue-on-error=false now that the install step is in place;
+    # flip to true if SDK availability stops being reliable.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -120,6 +124,23 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: Set up Android SDK (API 36 + build-tools 36.0.0)
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: latest
+          packages: |
+            platforms;android-36
+            build-tools;36.0.0
+            platform-tools
+      - name: Cache Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
       - name: Install frontend deps
         working-directory: frontend
         run: npm ci --legacy-peer-deps
@@ -132,12 +153,25 @@ jobs:
       - name: Sync Capacitor
         working-directory: frontend
         run: npx cap sync android
+      - name: Accept Android SDK licenses
+        # Safety net — setup-android@v3 normally handles this, but some plugin
+        # versions need an explicit second pass.
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
       - name: Gradle debug build
         working-directory: frontend/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+      - name: Upload Gradle build report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-reports
+          path: |
+            frontend/android/app/build/reports
+            frontend/android/build/reports
           retention-days: 7
