@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from './state/AuthContext';
 import { ToastProvider } from './components/Toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SignInScreen } from './components/Auth/SignInScreen';
 import { StackDeck } from './components/Discovery/StackDeck';
 import { ChatScreen } from './components/Chat/ChatScreen';
@@ -53,7 +54,13 @@ function Protected() {
   const location = useLocation();
   if (loading) return <Splash />;
   if (!session) return <Navigate to="/signin" replace state={{ from: location }} />;
-  return <Outlet />;
+  // Per-route ErrorBoundary: a screen-level crash doesn't take down the auth shell
+  // or any sibling tab — user can still navigate via the bottom nav.
+  return (
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
+  );
 }
 
 function NeedsProfile() {
