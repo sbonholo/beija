@@ -76,6 +76,26 @@ router.put('/me', authRequired, (req: AuthedRequest, res) => {
   res.json({ user: serializeUser(user) });
 });
 
+router.delete('/me', authRequired, (req: AuthedRequest, res) => {
+  const userId = req.userId!;
+  const user = db.prepare('SELECT photo_url FROM users WHERE id = ?').get(userId) as any;
+  if (user?.photo_url) {
+    const filename = user.photo_url.split('/uploads/').pop();
+    if (filename) fs.unlink(`${config.uploadDir}/${filename}`, () => { /* best-effort */ });
+  }
+  db.transaction(() => {
+    db.prepare('DELETE FROM messages WHERE from_user_id = ?').run(userId);
+    db.prepare('DELETE FROM matches WHERE user1_id = ? OR user2_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM reactions WHERE from_user_id = ? OR to_user_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM checkins WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM reports WHERE reporter_id = ? OR reported_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM otp_codes WHERE phone = (SELECT phone FROM users WHERE id = ?)').run(userId);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
+  res.json({ ok: true });
+});
+
 router.post('/me/photo', authRequired, upload.single('photo'), (req: AuthedRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
   const existing = db.prepare('SELECT photo_url FROM users WHERE id = ?').get(req.userId!) as any;

@@ -81,6 +81,11 @@ export const api = {
   removeReaction: (toUserId: string, eventId: string) =>
     request<{ ok: true }>('DELETE', '/reactions', { toUserId, eventId }),
 
+  deleteMe: () => request<{ ok: true }>('DELETE', '/profile/me'),
+  blockUser: (userId: string) => request<{ ok: true }>('POST', `/users/${userId}/block`),
+  reportUser: (userId: string, reason: string) =>
+    request<{ ok: true }>('POST', `/users/${userId}/report`, { reason }),
+
   listMatches: () => request<{ matches: any[] }>('GET', '/matches'),
   listMessages: (matchId: string) => request<{ messages: any[] }>('GET', `/matches/${matchId}/messages`),
   sendMessage: (matchId: string, text: string) =>
@@ -179,6 +184,10 @@ export const mockedApi = {
     if (target) target.sentReaction = null;
     return { ok: true as const };
   },
+  deleteMe: async () => ({ ok: true as const }),
+  blockUser: async (_userId: string) => ({ ok: true as const }),
+  reportUser: async (_userId: string, _reason: string) => ({ ok: true as const }),
+
   listMatches: async (): Promise<{ matches: any[] }> => ({ matches: mockMatches }),
   listMessages: async (matchId: string): Promise<{ messages: any[] }> => ({
     messages: matchId === 'mock-match-1' ? mockMessages : [],

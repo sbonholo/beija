@@ -1040,6 +1040,79 @@ a { color: var(--pink-glow); }
 }
 .cp-adult-check:hover { border-color: rgba(255,59,154,0.25); }
 
+/* ─── PersonSheet safety (block / report) ──────────────────────── */
+.person-sheet-safety {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 14px;
+}
+
+.safety-toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  width: 100%;
+  text-align: center;
+  transition: color 0.15s ease;
+  font-family: inherit;
+}
+.safety-toggle:hover { color: var(--danger); }
+
+.safety-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  animation: fadeIn 0.15s ease;
+}
+
+.safety-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  text-align: left;
+}
+
+.block-btn {
+  background: rgba(255,91,91,0.12);
+  border-color: rgba(255,91,91,0.25);
+  color: var(--danger);
+}
+.block-btn:hover { background: rgba(255,91,91,0.22); }
+
+.report-btn {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: var(--text);
+}
+.report-btn:hover { background: rgba(255,255,255,0.1); }
+
+.reason-btn {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: var(--text);
+  text-align: center;
+}
+.reason-btn:hover { background: rgba(255,138,42,0.18); border-color: rgba(255,138,42,0.35); color: var(--fire); }
+
+.cancel-btn {
+  background: none;
+  border-color: rgba(255,255,255,0.08);
+  color: var(--muted);
+  text-align: center;
+  font-weight: 400;
+}
+.cancel-btn:hover { background: rgba(255,255,255,0.05); }
+
 /* ─── Shared animations ─────────────────────────────────────────── */
 @keyframes fadeIn  { from { opacity: 0; }            to { opacity: 1; } }
 @keyframes pulse   { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }

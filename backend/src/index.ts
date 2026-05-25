@@ -9,6 +9,7 @@ import profileRoutes from './routes/profile.js';
 import eventRoutes from './routes/events.js';
 import reactionRoutes from './routes/reactions.js';
 import matchRoutes from './routes/matches.js';
+import userRoutes from './routes/users.js';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/reactions', reactionRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/users', userRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[error]', err?.message || err);

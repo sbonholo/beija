@@ -1,16 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { PersonAtEvent, ReactionType } from '../types';
 import { ReactionBar } from './ReactionBar';
 import { genderLabel, seekingLabel, ageFromBirthdate } from '../lib/labels';
+
+const REPORT_REASONS = [
+  { value: 'spam', label: 'Spam ou golpe' },
+  { value: 'inappropriate', label: 'Conteúdo inapropriado' },
+  { value: 'harassment', label: 'Assédio' },
+  { value: 'other', label: 'Outro' },
+];
 
 interface Props {
   person: PersonAtEvent;
   onClose: () => void;
   onReact: (type: ReactionType) => void;
+  onBlock: () => void;
+  onReport: (reason: string) => void;
 }
 
-export function PersonSheet({ person, onClose, onReact }: Props) {
+export function PersonSheet({ person, onClose, onReact, onBlock, onReport }: Props) {
   const age = ageFromBirthdate(person.birthdate);
+  const [showSafety, setShowSafety] = useState(false);
+  const [showReasons, setShowReasons] = useState(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -19,6 +30,17 @@ export function PersonSheet({ person, onClose, onReact }: Props) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  function handleBlock() {
+    setShowSafety(false);
+    onBlock();
+  }
+
+  function handleReport(reason: string) {
+    setShowReasons(false);
+    setShowSafety(false);
+    onReport(reason);
+  }
 
   return (
     <div className="person-sheet-bg" role="dialog" aria-modal="true" onClick={onClose}>
@@ -60,6 +82,44 @@ export function PersonSheet({ person, onClose, onReact }: Props) {
         </div>
 
         <ReactionBar current={person.sentReaction} onSend={onReact} />
+
+        {/* Safety section */}
+        <div className="person-sheet-safety">
+          <button
+            type="button"
+            className="safety-toggle"
+            onClick={() => { setShowSafety((v) => !v); setShowReasons(false); }}
+          >
+            ⚠️ Bloquear ou denunciar
+          </button>
+
+          {showSafety && !showReasons && (
+            <div className="safety-actions">
+              <button type="button" className="safety-btn block-btn" onClick={handleBlock}>
+                🚫 Bloquear {person.nickname || 'esta pessoa'}
+              </button>
+              <button type="button" className="safety-btn report-btn" onClick={() => setShowReasons(true)}>
+                🏳️ Denunciar
+              </button>
+            </div>
+          )}
+
+          {showSafety && showReasons && (
+            <div className="safety-actions">
+              <p className="muted" style={{ fontSize: 13, margin: '0 0 8px', textAlign: 'center' }}>
+                Qual o motivo?
+              </p>
+              {REPORT_REASONS.map((r) => (
+                <button key={r.value} type="button" className="safety-btn reason-btn" onClick={() => handleReport(r.value)}>
+                  {r.label}
+                </button>
+              ))}
+              <button type="button" className="safety-btn cancel-btn" onClick={() => setShowReasons(false)}>
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

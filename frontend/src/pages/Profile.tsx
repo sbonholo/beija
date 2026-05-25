@@ -199,7 +199,11 @@ export function Profile() {
             </p>
             <button
               className="btn danger"
-              onClick={() => { signOut(); nav('/', { replace: true }); }}
+              onClick={async () => {
+                try { await activeApi.deleteMe(); } catch { /* proceed regardless */ }
+                signOut();
+                nav('/', { replace: true });
+              }}
             >
               Sim, apagar tudo
             </button>

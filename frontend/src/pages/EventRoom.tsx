@@ -118,6 +118,31 @@ export function EventRoom() {
     nav('/events');
   }
 
+  async function blockPerson() {
+    if (!selected) return;
+    const targetId = selected.id;
+    setSelected(null);
+    try {
+      await api.blockUser(targetId);
+      setPeople((prev) => prev.filter((p) => p.id !== targetId));
+      toast({ kind: 'info', text: 'Pessoa bloqueada' });
+    } catch {
+      toast({ kind: 'info', text: 'Não rolou bloquear' });
+    }
+  }
+
+  async function reportPerson(reason: string) {
+    if (!selected) return;
+    const targetId = selected.id;
+    setSelected(null);
+    try {
+      await api.reportUser(targetId, reason);
+      toast({ kind: 'info', text: 'Denúncia enviada. Obrigado!' });
+    } catch {
+      toast({ kind: 'info', text: 'Não rolou enviar a denúncia' });
+    }
+  }
+
   async function react(type: ReactionType) {
     if (!selected) return;
     const targetId = selected.id;
@@ -226,6 +251,8 @@ export function EventRoom() {
           person={selected}
           onClose={() => setSelected(null)}
           onReact={react}
+          onBlock={blockPerson}
+          onReport={reportPerson}
         />
       )}
 
