@@ -1,6 +1,12 @@
 import { db } from './db.js';
 import { newId } from './lib/ids.js';
 
+const existing = db.prepare("SELECT COUNT(*) as cnt FROM users WHERE phone LIKE '11900000%'").get() as any;
+if (existing.cnt >= 20) {
+  console.log('[seed] seed users already present, skipping');
+  process.exit(0);
+}
+
 const now = Date.now();
 const hours = (h: number) => h * 60 * 60 * 1000;
 

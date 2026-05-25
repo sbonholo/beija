@@ -6,17 +6,19 @@ import { sendSms } from '../lib/sms.js';
 import { config } from '../config.js';
 
 
-// In-memory OTP rate limit: 5 requests per phone per minute
-const otpRequests = new Map<string, { count: number; until: number }>();
-function checkOtpLimit(key: string): boolean {
+function checkOtpLimit(phone: string): boolean {
   const now = Date.now();
-  const entry = otpRequests.get(key);
-  if (!entry || entry.until < now) {
-    otpRequests.set(key, { count: 1, until: now + 60_000 });
+  const key = `otp:${phone}`;
+  const row = db.prepare('SELECT count, reset_at FROM rate_limits WHERE key = ?').get(key) as any;
+  if (!row || row.reset_at < now) {
+    db.prepare(
+      `INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
+       ON CONFLICT(key) DO UPDATE SET count = 1, reset_at = excluded.reset_at`
+    ).run(key, now + 60_000);
     return true;
   }
-  if (entry.count >= 5) return false;
-  entry.count++;
+  if (row.count >= 5) return false;
+  db.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').run(key);
   return true;
 }
 

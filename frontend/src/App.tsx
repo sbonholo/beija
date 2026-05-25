@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './state/AuthContext';
 import { useUnread } from './state/UnreadContext';
@@ -25,6 +25,7 @@ function GlobalSocketListeners() {
   const { bump, clear } = useUnread();
   const location = useLocation();
   const nav = useNavigate();
+  const [socketOffline, setSocketOffline] = useState(false);
 
   useEffect(() => {
     if (location.pathname === '/matches' || location.pathname.startsWith('/chat/')) {
@@ -66,9 +67,27 @@ function GlobalSocketListeners() {
   }, [user, toast, location.pathname, nav, bump]);
 
   useEffect(() => {
-    if (!user) closeSocket();
+    if (!user) { closeSocket(); return; }
+    if (isMockMode) return;
+    const sock = getSocket();
+    if (!sock) return;
+    const onConnect = () => setSocketOffline(false);
+    const onDisconnect = () => setSocketOffline(true);
+    sock.on('connect', onConnect);
+    sock.on('disconnect', onDisconnect);
+    return () => {
+      sock.off('connect', onConnect);
+      sock.off('disconnect', onDisconnect);
+    };
   }, [user]);
 
+  if (socketOffline) {
+    return (
+      <div className="socket-offline-bar">
+        ⚡ Reconectando em tempo real…
+      </div>
+    );
+  }
   return null;
 }
 

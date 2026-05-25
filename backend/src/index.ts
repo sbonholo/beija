@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import { initSocket } from './socket.js';
-import './seed.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import eventRoutes from './routes/events.js';
@@ -13,6 +14,11 @@ import userRoutes from './routes/users.js';
 
 const app = express();
 
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
 app.use(
   cors({
     origin: config.corsOrigins.length ? config.corsOrigins : false,
@@ -21,6 +27,43 @@ app.use(
 );
 app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(config.uploadDir, { maxAge: '7d' }));
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api', globalLimiter);
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api/reactions', writeLimiter);
+app.use('/api/matches', writeLimiter);
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api/profile/me/photo', uploadLimiter);
+
+const safetyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api/users', safetyLimiter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'beija', time: Date.now() }));
 

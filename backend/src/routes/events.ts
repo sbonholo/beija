@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
 import { serializeUser } from './profile.js';
 import { haversineMeters } from '../lib/distance.js';
+import { emitToEvent } from '../socket.js';
 
 const router = Router();
 
@@ -76,6 +77,8 @@ router.post('/:id/checkin', authRequired, (req: AuthedRequest, res) => {
      ON CONFLICT(user_id, event_id) DO UPDATE SET checked_in_at = excluded.checked_in_at`
   ).run(req.userId, eventId, now);
   db.prepare('UPDATE users SET current_event_id = ?, last_active = ? WHERE id = ?').run(eventId, now, req.userId);
+  const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
+  emitToEvent(eventId, 'checkin:update', { type: 'join', user: serializeUser(userRow) });
   res.json({ ok: true });
 });
 
@@ -85,6 +88,7 @@ router.post('/:id/checkout', authRequired, (req: AuthedRequest, res) => {
     req.userId,
     req.params.id
   );
+  emitToEvent(req.params.id, 'checkin:update', { type: 'leave', userId: req.userId });
   res.json({ ok: true });
 });
 
@@ -105,9 +109,12 @@ router.get('/:id/people', authRequired, (req: AuthedRequest, res) => {
     )
     .all(eventId, meId, meId, meId) as any[];
 
+  const myGender: string | null = me?.gender ?? null;
   const filtered = rows.filter((r) => {
-    if (mySeeking.length === 0) return true;
-    return r.gender && mySeeking.includes(r.gender);
+    const iWantThem = mySeeking.length === 0 || (r.gender && mySeeking.includes(r.gender));
+    const theirSeeking: string[] = r.seeking ? JSON.parse(r.seeking) : [];
+    const theyWantMe = theirSeeking.length === 0 || !myGender || theirSeeking.includes(myGender);
+    return iWantThem && theyWantMe;
   });
 
   const myReactions = db

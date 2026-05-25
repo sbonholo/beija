@@ -1040,6 +1040,22 @@ a { color: var(--pink-glow); }
 }
 .cp-adult-check:hover { border-color: rgba(255,59,154,0.25); }
 
+/* ─── Socket offline indicator ─────────────────────────────────── */
+.socket-offline-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9998;
+  background: rgba(30, 10, 50, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 138, 42, 0.35);
+  color: var(--fire);
+  text-align: center;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
 /* ─── PersonSheet safety (block / report) ──────────────────────── */
 .person-sheet-safety {
   margin-top: 20px;

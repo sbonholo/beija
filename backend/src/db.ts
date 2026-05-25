@@ -104,6 +104,12 @@ CREATE INDEX IF NOT EXISTS idx_reactions_to ON reactions(to_user_id, event_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user1 ON matches(user1_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user2 ON matches(user2_id);
 CREATE INDEX IF NOT EXISTS idx_messages_match ON messages(match_id, created_at);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 1,
+  reset_at INTEGER NOT NULL
+);
 `);
 
 export function pairKey(a: string, b: string): [string, string] {

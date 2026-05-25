@@ -97,10 +97,13 @@ export function EventRoom() {
       refreshPeople();
     };
 
+    const onCheckinUpdate = () => { refreshPeople(); };
+
     if (sock) {
       sock.emit('event:join', eventId);
       sock.on('reaction:incoming', onReaction);
       sock.on('match:new', onMatch);
+      sock.on('checkin:update', onCheckinUpdate);
     }
 
     return () => {
@@ -109,6 +112,7 @@ export function EventRoom() {
         sock.emit('event:leave', eventId);
         sock.off('reaction:incoming', onReaction);
         sock.off('match:new', onMatch);
+        sock.off('checkin:update', onCheckinUpdate);
       }
     };
   }, [eventId, nav, refreshPeople, toast]);

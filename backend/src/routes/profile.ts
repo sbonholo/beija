@@ -98,6 +98,19 @@ router.delete('/me', authRequired, (req: AuthedRequest, res) => {
 
 router.post('/me/photo', authRequired, upload.single('photo'), (req: AuthedRequest, res) => {
   if (!req.file) return res.status(400).json({ error: 'no_file' });
+
+  const buf = Buffer.alloc(12);
+  const fd = fs.openSync(req.file.path, 'r');
+  const read = fs.readSync(fd, buf, 0, 12, 0);
+  fs.closeSync(fd);
+  const isJpeg = buf[0] === 0xff && buf[1] === 0xd8;
+  const isPng  = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  const isWebp = read >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP';
+  if (!isJpeg && !isPng && !isWebp) {
+    fs.unlink(req.file.path, () => { /* best-effort */ });
+    return res.status(400).json({ error: 'invalid_image_type' });
+  }
+
   const existing = db.prepare('SELECT photo_url FROM users WHERE id = ?').get(req.userId!) as any;
   const url = `${config.publicUrl}/uploads/${req.file.filename}`;
   db.prepare('UPDATE users SET photo_url = ? WHERE id = ?').run(url, req.userId);
