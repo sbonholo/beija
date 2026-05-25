@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { activeApi as api } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { ChatMessage, MatchSummary } from '../types';
@@ -31,10 +31,14 @@ function daySeparatorLabel(ts: number): string {
 export function Chat() {
   const { matchId } = useParams<{ matchId: string }>();
   const nav = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
-  const [match, setMatch] = useState<MatchSummary | null>(null);
+  // Seed match header from navigation state — avoids a round-trip when coming from Matches page
+  const [match, setMatch] = useState<MatchSummary | null>(
+    (location.state as { match?: MatchSummary } | null)?.match ?? null
+  );
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -42,13 +46,13 @@ export function Chat() {
     if (!matchId) return;
     let cancelled = false;
     (async () => {
-      const [{ messages }, { matches }] = await Promise.all([
+      const [{ messages: msgs }, { match: m }] = await Promise.all([
         api.listMessages(matchId),
-        api.listMatches(),
+        api.getMatch(matchId),
       ]);
       if (cancelled) return;
-      setMessages(messages);
-      setMatch(matches.find((m: MatchSummary) => m.id === matchId) || null);
+      setMessages(msgs);
+      if (m) setMatch(m);
     })();
 
     const sock = getSocket();

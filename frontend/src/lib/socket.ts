@@ -4,7 +4,9 @@ import { getToken } from './api';
 let socket: Socket | null = null;
 
 export function getSocket(): Socket | null {
-  if (socket && socket.connected) return socket;
+  // Return existing socket even when disconnected — socket.io-client handles
+  // reconnection internally. Creating a new instance on disconnect leaks listeners.
+  if (socket) return socket;
   const url =
     import.meta.env.VITE_SOCKET_URL ||
     import.meta.env.VITE_API_URL ||

@@ -87,6 +87,7 @@ export const api = {
     request<{ ok: true }>('POST', `/users/${userId}/report`, { reason }),
 
   listMatches: () => request<{ matches: any[] }>('GET', '/matches'),
+  getMatch: (matchId: string) => request<{ match: any }>('GET', `/matches/${matchId}`),
   listMessages: (matchId: string) => request<{ messages: any[] }>('GET', `/matches/${matchId}/messages`),
   sendMessage: (matchId: string, text: string) =>
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
@@ -189,6 +190,7 @@ export const mockedApi = {
   reportUser: async (_userId: string, _reason: string) => ({ ok: true as const }),
 
   listMatches: async (): Promise<{ matches: any[] }> => ({ matches: mockMatches }),
+  getMatch: async (matchId: string) => ({ match: mockMatches.find((m) => m.id === matchId) ?? null }),
   listMessages: async (matchId: string): Promise<{ messages: any[] }> => ({
     messages: matchId === 'mock-match-1' ? mockMessages : [],
   }),

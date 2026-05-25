@@ -83,7 +83,7 @@ export function Matches() {
             key={m.id}
             className="match-row"
             style={{ animationDelay: `${i * 50}ms` }}
-            onClick={() => nav(`/chat/${m.id}`)}
+            onClick={() => nav(`/chat/${m.id}`, { state: { match: m } })}
           >
             <div className="match-avatar-wrap">
               <div

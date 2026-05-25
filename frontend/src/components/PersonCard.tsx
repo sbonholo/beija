@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import type { PersonAtEvent, ReactionType } from '../types';
 
 const ICON: Record<ReactionType, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
 
-export function PersonCard({
+export const PersonCard = memo(function PersonCard({
   person,
   selected,
   onSelect,
@@ -37,4 +38,4 @@ export function PersonCard({
       </div>
     </button>
   );
-}
+});

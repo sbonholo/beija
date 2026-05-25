@@ -101,9 +101,12 @@ CREATE TABLE IF NOT EXISTS reports (
 
 CREATE INDEX IF NOT EXISTS idx_checkins_event ON checkins(event_id);
 CREATE INDEX IF NOT EXISTS idx_reactions_to ON reactions(to_user_id, event_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_from ON reactions(from_user_id, event_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user1 ON matches(user1_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user2 ON matches(user2_id);
+CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id);
 CREATE INDEX IF NOT EXISTS idx_messages_match ON messages(match_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_blocks_blocked ON blocks(blocked_id);
 
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,

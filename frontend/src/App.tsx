@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './state/AuthContext';
 import { useUnread } from './state/UnreadContext';
@@ -24,8 +24,12 @@ function GlobalSocketListeners() {
   const { user } = useAuth();
   const { bump, clear } = useUnread();
   const location = useLocation();
-  const nav = useNavigate();
   const [socketOffline, setSocketOffline] = useState(false);
+
+  // Track current path in a ref so socket handlers always see the latest
+  // pathname without needing to be re-registered on every navigation.
+  const pathRef = useRef(location.pathname);
+  pathRef.current = location.pathname;
 
   useEffect(() => {
     if (location.pathname === '/matches' || location.pathname.startsWith('/chat/')) {
@@ -39,18 +43,18 @@ function GlobalSocketListeners() {
     if (!sock) return;
 
     const onReaction = (payload: { fromUser: User; type: ReactionType; eventId: string }) => {
-      if (location.pathname.startsWith(`/events/${payload.eventId}`)) return;
+      if (pathRef.current.startsWith(`/events/${payload.eventId}`)) return;
       toast({ kind: payload.type, text: `${payload.fromUser.nickname || 'Alguém'} mandou um ${LABEL[payload.type]} ${ICON[payload.type]}` });
     };
     const onMatch = (payload: { otherUser: User; matchId: string }) => {
-      if (location.pathname.startsWith(`/chat/${payload.matchId}`)) return;
+      if (pathRef.current.startsWith(`/chat/${payload.matchId}`)) return;
       hapticSuccess();
       bump();
       toast({ kind: 'match', text: `Match com ${payload.otherUser.nickname || 'alguém'} ✨` });
     };
     const onMessage = (payload: { fromUserId: string; matchId: string; text: string }) => {
       if (payload.fromUserId === user.id) return;
-      if (location.pathname.startsWith(`/chat/${payload.matchId}`)) return;
+      if (pathRef.current.startsWith(`/chat/${payload.matchId}`)) return;
       bump();
       toast({ kind: 'info', text: `Nova mensagem 💬` });
     };
@@ -64,7 +68,7 @@ function GlobalSocketListeners() {
       sock.off('match:new', onMatch);
       sock.off('message:new', onMessage);
     };
-  }, [user, toast, location.pathname, nav, bump]);
+  }, [user, toast, bump]); // no location.pathname — pathRef stays current without re-registration
 
   useEffect(() => {
     if (!user) { closeSocket(); return; }
