@@ -81,7 +81,7 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport }: Pro
           )}
         </div>
 
-        <ReactionBar current={person.sentReaction} onSend={(type) => { onReact(type); onClose(); }} />
+        <ReactionBar current={person.sentReaction} onSend={(type) => { onReact(type); setTimeout(onClose, 1000); }} />
 
         {/* Safety section */}
         <div className="person-sheet-safety">
