@@ -4,6 +4,7 @@ import { signToken } from '../auth.js';
 import { newId, newOtp, normalizePhone } from '../lib/ids.js';
 import { sendSms } from '../lib/sms.js';
 import { config } from '../config.js';
+import { serializeUser } from './profile.js';
 
 
 function checkOtpLimit(phone: string): boolean {
@@ -83,7 +84,7 @@ router.post('/verify-otp', (req, res) => {
 
   const token = signToken(user.id);
   const needsProfile = !user.nickname || !user.gender;
-  res.json({ token, user, isNew, needsProfile });
+  res.json({ token, user: serializeUser(user), isNew, needsProfile });
 });
 
 export default router;

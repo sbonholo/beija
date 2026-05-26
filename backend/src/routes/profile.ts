@@ -90,7 +90,9 @@ router.delete('/me', authRequired, (req: AuthedRequest, res) => {
     db.prepare('DELETE FROM checkins WHERE user_id = ?').run(userId);
     db.prepare('DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?').run(userId, userId);
     db.prepare('DELETE FROM reports WHERE reporter_id = ? OR reported_id = ?').run(userId, userId);
-    db.prepare('DELETE FROM otp_codes WHERE phone = (SELECT phone FROM users WHERE id = ?)').run(userId);
+    const phoneRow = db.prepare('SELECT phone FROM users WHERE id = ?').get(userId) as any;
+    db.prepare('DELETE FROM otp_codes WHERE phone = ?').run(phoneRow?.phone);
+    db.prepare('DELETE FROM rate_limits WHERE key = ?').run(`otp:${phoneRow?.phone}`);
     db.prepare('DELETE FROM users WHERE id = ?').run(userId);
   })();
   res.json({ ok: true });
@@ -134,6 +136,19 @@ export function serializeUser(row: any) {
     birthdate: row.birthdate,
     currentEventId: row.current_event_id,
     lastActive: row.last_active,
+  };
+}
+
+// Use for any response that goes to a different user — strips PII not meant for strangers.
+export function serializePublicUser(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    nickname: row.nickname,
+    gender: row.gender,
+    seeking: row.seeking ? JSON.parse(row.seeking) : [],
+    bio: row.bio,
+    photoUrl: row.photo_url,
   };
 }
 

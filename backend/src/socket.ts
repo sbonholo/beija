@@ -4,6 +4,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { verifyToken } from './auth.js';
 import { config } from './config.js';
+import { db } from './db.js';
 
 let io: Server | null = null;
 
@@ -34,7 +35,11 @@ export function initSocket(server: HttpServer) {
   io.on('connection', (socket) => {
     const userId = socket.data.userId as string;
     socket.on('event:join', (eventId: string) => {
-      if (typeof eventId === 'string' && eventId) socket.join(`event:${eventId}`);
+      if (typeof eventId !== 'string' || !eventId) return;
+      const checkin = db
+        .prepare('SELECT 1 FROM checkins WHERE user_id = ? AND event_id = ?')
+        .get(userId, eventId);
+      if (checkin) socket.join(`event:${eventId}`);
     });
     socket.on('event:leave', (eventId: string) => {
       if (typeof eventId === 'string' && eventId) socket.leave(`event:${eventId}`);

@@ -9,9 +9,10 @@ export interface User {
   seeking: Gender[] | null;
   bio: string | null;
   photoUrl: string | null;
-  birthdate: string | null;
-  currentEventId: string | null;
-  lastActive: number | null;
+  // Only present on own-profile responses; stripped from public/other-user payloads.
+  birthdate?: string | null;
+  currentEventId?: string | null;
+  lastActive?: number | null;
 }
 
 export interface EventItem {

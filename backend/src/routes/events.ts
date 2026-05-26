@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
-import { serializeUser } from './profile.js';
+import { serializePublicUser } from './profile.js';
 import { haversineMeters } from '../lib/distance.js';
 import { emitToEvent } from '../socket.js';
 
@@ -78,7 +78,7 @@ router.post('/:id/checkin', authRequired, (req: AuthedRequest, res) => {
   ).run(req.userId, eventId, now);
   db.prepare('UPDATE users SET current_event_id = ?, last_active = ? WHERE id = ?').run(eventId, now, req.userId);
   const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId) as any;
-  emitToEvent(eventId, 'checkin:update', { type: 'join', user: serializeUser(userRow) });
+  emitToEvent(eventId, 'checkin:update', { type: 'join', user: serializePublicUser(userRow) });
   res.json({ ok: true });
 });
 
@@ -135,7 +135,7 @@ router.get('/:id/people', authRequired, (req: AuthedRequest, res) => {
   const matchedSet = new Set(matches.map((m) => (m.user1_id === meId ? m.user2_id : m.user1_id)));
 
   const people = filtered.map((r) => ({
-    ...serializeUser(r),
+    ...serializePublicUser(r),
     sentReaction: sentMap.get(r.id) || null,
     receivedReaction: incomingMap.get(r.id) || null,
     matched: matchedSet.has(r.id),
