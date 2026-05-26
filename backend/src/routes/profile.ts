@@ -6,6 +6,14 @@ import { db } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
 import { config } from '../config.js';
 import { newId } from '../lib/ids.js';
+import { safeJsonArray } from '../lib/utils.js';
+
+function safeUnlink(filename: string) {
+  if (!/^[a-zA-Z0-9_-]+\.[a-z0-9]+$/.test(filename)) return;
+  fs.unlink(path.join(config.uploadDir, filename), (err) => {
+    if (err && err.code !== 'ENOENT') console.error('[profile] unlink failed:', err.code);
+  });
+}
 
 const router = Router();
 
@@ -21,7 +29,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!/^image\/(jpe?g|png|webp|heic|heif)$/.test(file.mimetype)) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.mimetype)) {
       return cb(new Error('invalid_image_type'));
     }
     cb(null, true);
@@ -81,7 +89,7 @@ router.delete('/me', authRequired, (req: AuthedRequest, res) => {
   const user = db.prepare('SELECT photo_url FROM users WHERE id = ?').get(userId) as any;
   if (user?.photo_url) {
     const filename = user.photo_url.split('/uploads/').pop();
-    if (filename) fs.unlink(`${config.uploadDir}/${filename}`, () => { /* best-effort */ });
+    if (filename) safeUnlink(filename);
   }
   db.transaction(() => {
     db.prepare('DELETE FROM messages WHERE from_user_id = ?').run(userId);
@@ -109,7 +117,7 @@ router.post('/me/photo', authRequired, upload.single('photo'), (req: AuthedReque
   const isPng  = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
   const isWebp = read >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP';
   if (!isJpeg && !isPng && !isWebp) {
-    fs.unlink(req.file.path, () => { /* best-effort */ });
+    safeUnlink(req.file.filename);
     return res.status(400).json({ error: 'invalid_image_type' });
   }
 
@@ -118,7 +126,7 @@ router.post('/me/photo', authRequired, upload.single('photo'), (req: AuthedReque
   db.prepare('UPDATE users SET photo_url = ? WHERE id = ?').run(url, req.userId);
   if (existing?.photo_url) {
     const oldFile = existing.photo_url.split('/uploads/').pop();
-    if (oldFile) fs.unlink(`${config.uploadDir}/${oldFile}`, () => { /* best-effort */ });
+    if (oldFile) safeUnlink(oldFile);
   }
   res.json({ photoUrl: url });
 });
@@ -130,7 +138,7 @@ export function serializeUser(row: any) {
     phone: row.phone,
     nickname: row.nickname,
     gender: row.gender,
-    seeking: row.seeking ? JSON.parse(row.seeking) : [],
+    seeking: safeJsonArray(row.seeking),
     bio: row.bio,
     photoUrl: row.photo_url,
     birthdate: row.birthdate,
@@ -146,7 +154,7 @@ export function serializePublicUser(row: any) {
     id: row.id,
     nickname: row.nickname,
     gender: row.gender,
-    seeking: row.seeking ? JSON.parse(row.seeking) : [],
+    seeking: safeJsonArray(row.seeking),
     bio: row.bio,
     photoUrl: row.photo_url,
   };

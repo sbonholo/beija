@@ -4,13 +4,16 @@ import { authRequired, AuthedRequest } from '../auth.js';
 import { serializePublicUser } from './profile.js';
 import { haversineMeters } from '../lib/distance.js';
 import { emitToEvent } from '../socket.js';
+import { safeJsonArray } from '../lib/utils.js';
 
 const router = Router();
 
 router.get('/', authRequired, (req, res) => {
   const now = Date.now();
-  const lat = req.query.lat ? Number(req.query.lat) : null;
-  const lng = req.query.lng ? Number(req.query.lng) : null;
+  const lat = req.query.lat ? parseFloat(String(req.query.lat)) : null;
+  const lng = req.query.lng ? parseFloat(String(req.query.lng)) : null;
+  if (lat !== null && (Number.isNaN(lat) || lat < -90 || lat > 90)) return res.status(400).json({ error: 'invalid_lat' });
+  if (lng !== null && (Number.isNaN(lng) || lng < -180 || lng > 180)) return res.status(400).json({ error: 'invalid_lng' });
 
   const rows = db
     .prepare(
@@ -112,7 +115,7 @@ router.get('/:id/people', authRequired, (req: AuthedRequest, res) => {
   const myGender: string | null = me?.gender ?? null;
   const filtered = rows.filter((r) => {
     const iWantThem = mySeeking.length === 0 || (r.gender && mySeeking.includes(r.gender));
-    const theirSeeking: string[] = r.seeking ? JSON.parse(r.seeking) : [];
+    const theirSeeking: string[] = safeJsonArray(r.seeking);
     const theyWantMe = theirSeeking.length === 0 || !myGender || theirSeeking.includes(myGender);
     return iWantThem && theyWantMe;
   });

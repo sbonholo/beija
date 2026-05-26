@@ -55,7 +55,7 @@ router.post('/verify-otp', (req, res) => {
     .prepare('SELECT code, expires_at, attempts FROM otp_codes WHERE phone = ?')
     .get(phone) as { code: string; expires_at: number; attempts: number } | undefined;
 
-  const bypass = config.devReturnOtp && code === '0000';
+  const bypass = !config.isProd && config.devReturnOtp && code === '0000';
   if (!bypass) {
     if (!row) return res.status(400).json({ error: 'no_otp' });
     if (row.attempts >= 5) return res.status(429).json({ error: 'too_many_attempts' });

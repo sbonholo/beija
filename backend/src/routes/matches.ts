@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
 import { newId } from '../lib/ids.js';
 import { emitToUser } from '../socket.js';
+import { safeJsonArray } from '../lib/utils.js';
 
 const router = Router();
 
@@ -39,7 +40,7 @@ function serializeMatch(r: any, meId: string) {
       id: otherId,
       nickname: nick,
       gender,
-      seeking: seeking ? JSON.parse(seeking) : [],
+      seeking: safeJsonArray(seeking),
       bio,
       photoUrl,
     },
@@ -71,15 +72,14 @@ router.get('/', authRequired, (req: AuthedRequest, res) => {
 router.get('/:id', authRequired, (req: AuthedRequest, res) => {
   const meId = req.userId!;
   const r = stmtMatchById.get(req.params.id, meId, meId) as any;
-  if (!r) return res.status(404).json({ error: 'not_found' });
+  if (!r) return res.status(403).json({ error: 'forbidden' });
   res.json({ match: serializeMatch(r, meId) });
 });
 
 router.get('/:id/messages', authRequired, (req: AuthedRequest, res) => {
   const meId = req.userId!;
   const m = stmtMatchMembership.get(req.params.id) as any;
-  if (!m) return res.status(404).json({ error: 'not_found' });
-  if (m.user1_id !== meId && m.user2_id !== meId) return res.status(403).json({ error: 'forbidden' });
+  if (!m || (m.user1_id !== meId && m.user2_id !== meId)) return res.status(403).json({ error: 'forbidden' });
 
   const rows = db
     .prepare('SELECT id, from_user_id, text, created_at FROM messages WHERE match_id = ? ORDER BY created_at ASC')
@@ -101,8 +101,7 @@ router.post('/:id/messages', authRequired, (req: AuthedRequest, res) => {
   if (!text) return res.status(400).json({ error: 'empty' });
 
   const m = stmtMatchMembership.get(req.params.id) as any;
-  if (!m) return res.status(404).json({ error: 'not_found' });
-  if (m.user1_id !== meId && m.user2_id !== meId) return res.status(403).json({ error: 'forbidden' });
+  if (!m || (m.user1_id !== meId && m.user2_id !== meId)) return res.status(403).json({ error: 'forbidden' });
 
   const id = newId('msg_');
   const now = Date.now();

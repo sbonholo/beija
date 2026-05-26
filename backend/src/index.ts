@@ -15,13 +15,26 @@ import userRoutes from './routes/users.js';
 const app = express();
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  hsts: config.isProd ? { maxAge: 31_536_000, includeSubDomains: true } : false,
 }));
 
 app.use(
   cors({
-    origin: config.corsOrigins.length ? config.corsOrigins : false,
+    origin: (origin, callback) => {
+      if (!origin || config.corsOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -36,6 +49,16 @@ const globalLimiter = rateLimit({
   message: { error: 'too_many_requests' },
 });
 app.use('/api', globalLimiter);
+
+// Stricter limit for auth endpoints to slow down OTP abuse
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api/auth', authLimiter);
 
 const writeLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -65,6 +88,16 @@ const safetyLimiter = rateLimit({
 });
 app.use('/api/users', safetyLimiter);
 
+// Rate limit event browsing to prevent attendance scraping
+const eventLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_requests' },
+});
+app.use('/api/events', eventLimiter);
+
 app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'beija', time: Date.now() }));
 
 app.use('/api/auth', authRoutes);
@@ -75,9 +108,15 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[error]', err?.message || err);
+  const msg = typeof err?.message === 'string' ? err.message : String(err ?? 'unknown');
+  if (config.isProd) {
+    // Avoid leaking internal paths or query details in production logs
+    console.error('[error]', err?.code ?? 'ERR', msg.slice(0, 120));
+  } else {
+    console.error('[error]', err);
+  }
   if (err?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'file_too_large' });
-  if (err?.message === 'invalid_image_type') return res.status(400).json({ error: 'invalid_image_type' });
+  if (msg === 'invalid_image_type') return res.status(400).json({ error: 'invalid_image_type' });
   res.status(500).json({ error: 'internal_error' });
 });
 

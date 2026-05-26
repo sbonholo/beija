@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db, pairKey } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
 import { newId } from '../lib/ids.js';
-import { serializeUser } from './profile.js';
+import { serializePublicUser } from './profile.js';
 import { emitToUser } from '../socket.js';
 
 const router = Router();
@@ -65,7 +65,7 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
   const toUser = db.prepare('SELECT * FROM users WHERE id = ?').get(toId) as any;
 
   emitToUser(toId, 'reaction:incoming', {
-    fromUser: serializeUser(fromUser),
+    fromUser: serializePublicUser(fromUser),
     eventId,
     type,
     createdAt: now,
@@ -77,8 +77,8 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
       eventId,
       createdAt: match.created_at,
     };
-    emitToUser(fromId, 'match:new', { ...payload, otherUser: serializeUser(toUser) });
-    emitToUser(toId, 'match:new', { ...payload, otherUser: serializeUser(fromUser) });
+    emitToUser(fromId, 'match:new', { ...payload, otherUser: serializePublicUser(toUser) });
+    emitToUser(toId, 'match:new', { ...payload, otherUser: serializePublicUser(fromUser) });
   }
 
   res.json({
@@ -90,8 +90,8 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
 
 router.delete('/', authRequired, (req: AuthedRequest, res) => {
   const fromId = req.userId!;
-  const toId = String(req.body?.toUserId || req.query.toUserId || '');
-  const eventId = String(req.body?.eventId || req.query.eventId || '');
+  const toId = String(req.body?.toUserId || '');
+  const eventId = String(req.body?.eventId || '');
   if (!toId || !eventId) return res.status(400).json({ error: 'invalid_request' });
   db.prepare('DELETE FROM reactions WHERE from_user_id = ? AND to_user_id = ? AND event_id = ?').run(
     fromId,
