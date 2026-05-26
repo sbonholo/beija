@@ -40,6 +40,7 @@ export function CreateProfile() {
   const [seeking, setSeeking] = useState<Gender[]>([]);
   const [isAdult, setIsAdult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const everyoneSelected = ALL_GENDERS.every((g) => seeking.includes(g));
 
@@ -69,6 +70,7 @@ export function CreateProfile() {
   async function submit() {
     if (!valid || !gender) return;
     setSaving(true);
+    setSubmitError(null);
     try {
       let uploadedUrl: string | null = null;
       if (photoFile) {
@@ -88,12 +90,20 @@ export function CreateProfile() {
           lastActive: Date.now(),
         });
       } else {
-        const r = await activeApi.updateMe({ nickname: nickname.trim(), gender, seeking, photoUrl: uploadedUrl });
+        const r = await activeApi.updateMe({ nickname: nickname.trim(), gender, seeking });
         setUser(r.user);
       }
       nav('/events', { replace: true });
-    } catch {
+    } catch (err: any) {
       setSaving(false);
+      const codeMap: Record<string, string> = {
+        too_many_requests: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+        invalid_image_type: 'Formato de imagem não suportado. Use JPG, PNG ou WebP.',
+        file_too_large: 'Foto muito grande. Máximo 5MB.',
+        unauthorized: 'Sessão expirada. Faça login novamente.',
+      };
+      const code = err?.code ?? '';
+      setSubmitError(codeMap[code] || `Não rolou criar o perfil. Tente de novo. (${code || err?.message || 'erro desconhecido'})`);
     }
   }
 
@@ -214,6 +224,11 @@ export function CreateProfile() {
       {!valid && (
         <p className="muted" style={{ marginTop: 10, fontSize: 12, textAlign: 'center', lineHeight: 1.5 }}>
           Falta: {[!photoUrl && 'foto', !nickname.trim() && 'apelido', !gender && 'identidade', seeking.length === 0 && 'quem procura', !isAdult && '18+'].filter(Boolean).join(', ')}.
+        </p>
+      )}
+      {submitError && (
+        <p className="auth-error" style={{ marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
+          {submitError}
         </p>
       )}
     </div>

@@ -29,7 +29,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!/^image\/(jpeg|png|webp)$/.test(file.mimetype)) {
+    if (!/^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(file.mimetype)) {
       return cb(new Error('invalid_image_type'));
     }
     cb(null, true);
