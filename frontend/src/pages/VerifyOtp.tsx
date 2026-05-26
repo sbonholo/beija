@@ -27,7 +27,7 @@ export function VerifyOtp() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (code.length !== 4) return;
+    if (code.length < 4) return;
     setLoading(true);
     setError('');
     try {
@@ -50,7 +50,7 @@ export function VerifyOtp() {
     }
   }
 
-  const isReady = code.length === 4;
+  const isReady = code.length >= 4;
 
   return (
     <div className="auth-screen">
@@ -66,7 +66,7 @@ export function VerifyOtp() {
         )}
 
         <p className="auth-tagline" style={{ marginTop: 12 }}>
-          Digite o código de 4 dígitos que chegou por SMS.
+          Digite o código de 6 dígitos que chegou por SMS.
         </p>
       </div>
 
@@ -76,10 +76,10 @@ export function VerifyOtp() {
           ref={inputRef}
           type="tel"
           inputMode="numeric"
-          maxLength={4}
-          placeholder="· · · ·"
+          maxLength={6}
+          placeholder="· · · · · ·"
           value={code}
-          onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+          onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
           className={`otp-input${isReady ? ' otp-ready' : ''}`}
         />
 
