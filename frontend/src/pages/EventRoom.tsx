@@ -162,8 +162,9 @@ export function EventRoom() {
     try {
       const res = await api.sendReaction(targetId, eventId, type);
       toast({ kind: type, text: `Você mandou um ${LABEL[type]} ${ICON[type]}` });
+      // Close the sheet after 1s only on success so the user sees the feedback
+      setTimeout(() => setSelected(null), 1000);
       if (res.match) {
-        // match modal will arrive via socket too, but trigger immediately for sender
         const other = people.find((p) => p.id === targetId);
         if (other) {
           hapticSuccess();
@@ -176,8 +177,15 @@ export function EventRoom() {
         }
       }
       await refreshPeople();
-    } catch {
-      toast({ kind: 'info', text: 'Não rolou enviar agora' });
+    } catch (err: any) {
+      const errorMap: Record<string, string> = {
+        not_at_event: 'Você ou a outra pessoa saiu do evento',
+        blocked: 'Não é possível reagir a esta pessoa',
+        user_not_found: 'Usuário não encontrado',
+        rate_limited: 'Muitas reações seguidas. Aguarde um momento.',
+      };
+      const code = err?.code ?? '';
+      toast({ kind: 'info', text: errorMap[code] || 'Não rolou enviar. Tente de novo.' });
     }
   }
 
