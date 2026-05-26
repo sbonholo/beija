@@ -489,6 +489,8 @@ a { color: var(--pink-glow); }
   justify-content: center;
   z-index: 40;
   animation: fadeIn 0.18s ease;
+  /* Reserve space at top so the sheet never hides behind the browser address bar */
+  padding-top: max(env(safe-area-inset-top, 0px), 56px);
 }
 .person-sheet {
   width: 100%; max-width: 540px;
@@ -504,7 +506,9 @@ a { color: var(--pink-glow); }
   gap: 12px;
   box-shadow: 0 -16px 60px rgba(0,0,0,0.6);
   animation: sheetUp 0.24s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* dvh = dynamic viewport height (excludes browser chrome on mobile) */
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
 }
 @keyframes sheetUp {
