@@ -84,11 +84,16 @@ CREATE TABLE IF NOT EXISTS messages (
   FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
 );
 
+-- TODO: existing DBs do not have FK CASCADE on blocks/reports; SQLite does not
+-- support ALTER TABLE ADD CONSTRAINT. A manual migration (table rebuild) is
+-- required to backfill cascade behavior. Fresh deploys get it via the schema below.
 CREATE TABLE IF NOT EXISTS blocks (
   blocker_id TEXT NOT NULL,
   blocked_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  PRIMARY KEY (blocker_id, blocked_id)
+  PRIMARY KEY (blocker_id, blocked_id),
+  FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reports (
@@ -96,7 +101,9 @@ CREATE TABLE IF NOT EXISTS reports (
   reporter_id TEXT NOT NULL,
   reported_id TEXT NOT NULL,
   reason TEXT,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reported_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_checkins_event ON checkins(event_id);
