@@ -122,3 +122,22 @@ try { db.exec('ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0
 export function pairKey(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
+
+// Incremental migrations — safe on fresh and existing DBs
+try { db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0'); } catch {}
+
+// Bootstrap admins from ADMIN_PHONES env var (CSV of E.164 phones)
+const _adminPhones = (process.env.ADMIN_PHONES || '')
+  .split(',')
+  .map((p) => p.trim())
+  .filter(Boolean);
+if (_adminPhones.length > 0) {
+  const stmt = db.prepare('UPDATE users SET is_admin = 1 WHERE phone = ?');
+  let _marked = 0;
+  for (const phone of _adminPhones) {
+    const result = stmt.run(phone);
+    if (result.changes > 0) _marked++;
+  }
+  console.log(`[admin-bootstrap] marked ${_marked} admin(s)`);
+}
