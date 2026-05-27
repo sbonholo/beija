@@ -4,6 +4,13 @@ function redact(phone: string): string {
   return phone.slice(0, 4) + '****' + phone.slice(-2);
 }
 
+// Twilio's WhatsApp API requires both From and To to be prefixed with "whatsapp:"
+// e.g. "whatsapp:+14155238886". Strip any existing prefix so config can be set either way.
+function toWhatsAppAddress(phone: string): string {
+  const bare = phone.replace(/^whatsapp:/i, '').trim();
+  return `whatsapp:${bare}`;
+}
+
 async function sendViaTwilio(to: string, body: string): Promise<void> {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
@@ -13,8 +20,8 @@ async function sendViaTwilio(to: string, body: string): Promise<void> {
   }
 
   const params = new URLSearchParams({
-    To: `whatsapp:${to}`,
-    From: `whatsapp:${from}`,
+    To: toWhatsAppAddress(to),
+    From: toWhatsAppAddress(from),
     Body: body,
   });
   const resp = await fetch(
