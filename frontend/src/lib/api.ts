@@ -80,6 +80,7 @@ export const api = {
     request<{ ok: true; reaction: any; match: any | null }>('POST', '/reactions', { toUserId, eventId, type }),
   removeReaction: (toUserId: string, eventId: string) =>
     request<{ ok: true }>('DELETE', '/reactions', { toUserId, eventId }),
+  getReceivedReactions: () => request<{ reactions: any[] }>('GET', '/reactions/received'),
 
   deleteMe: () => request<{ ok: true }>('DELETE', '/profile/me'),
   blockUser: (userId: string) => request<{ ok: true }>('POST', `/users/${userId}/block`),
@@ -197,6 +198,7 @@ export const mockedApi = {
     if (target) target.sentReaction = null;
     return { ok: true as const };
   },
+  getReceivedReactions: async () => ({ reactions: [] as any[] }),
   deleteMe: async () => ({ ok: true as const }),
   blockUser: async (_userId: string) => ({ ok: true as const }),
   reportUser: async (_userId: string, _reason: string) => ({ ok: true as const }),
