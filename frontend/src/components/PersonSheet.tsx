@@ -13,7 +13,8 @@ const REPORT_REASONS = [
 const REACTION_ICON: Record<ReactionType, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
 const REACTION_LABEL: Record<ReactionType, string> = { kiss: 'BEIJO', heart: 'CURTIDA', fire: 'FOGO' };
 
-const SWIPE_THRESHOLD = 90;        // px past origin to commit
+const SWIPE_THRESHOLD = 90;        // px past origin to commit horizontal
+const SWIPE_DOWN_THRESHOLD = 110;  // px past origin to commit down-to-close
 const SWIPE_INTENT_THRESHOLD = 8;  // px before deciding horizontal vs vertical
 const SWIPE_COMMIT_MS = 220;       // CSS transition duration for fly-off
 
@@ -34,13 +35,17 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
   const [showReasons, setShowReasons] = useState(false);
 
   const [dragX, setDragX] = useState(0);
+  const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     startX: number;
     startY: number;
+    startScrollTop: number;
     lockedAxis: 'x' | 'y' | null;
     pointerId: number;
     dx: number;
+    dy: number;
     committed: boolean;
   } | null>(null);
 
@@ -71,9 +76,11 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
+      startScrollTop: sheetRef.current?.scrollTop ?? 0,
       lockedAxis: null,
       pointerId: e.pointerId,
       dx: 0,
+      dy: 0,
       committed: false,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -90,11 +97,17 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
       if (Math.abs(dx) < SWIPE_INTENT_THRESHOLD && Math.abs(dy) < SWIPE_INTENT_THRESHOLD) return;
       s.lockedAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
       if (s.lockedAxis === 'x') setIsDragging(true);
+      // Vertical drag-to-close only kicks in when the sheet is scrolled to the top
+      // and the user is pulling down. Otherwise let native scroll handle it.
+      else if (dy > 0 && s.startScrollTop <= 0) setIsDragging(true);
     }
 
     if (s.lockedAxis === 'x') {
       s.dx = dx;
       setDragX(dx);
+    } else if (s.lockedAxis === 'y' && dy > 0 && s.startScrollTop <= 0) {
+      s.dy = dy;
+      setDragY(dy);
     }
   }
 
@@ -103,41 +116,59 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
     if (!s || e.pointerId !== s.pointerId) return;
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
 
-    if (s.lockedAxis !== 'x') {
-      dragRef.current = null;
-      setIsDragging(false);
-      setDragX(0);
+    setIsDragging(false);
+
+    if (s.lockedAxis === 'x') {
+      const dx = s.dx;
+      if (dx > SWIPE_THRESHOLD) {
+        s.committed = true;
+        setDragX(window.innerWidth);
+        setTimeout(() => { onSwipeRight(); }, SWIPE_COMMIT_MS);
+      } else if (dx < -SWIPE_THRESHOLD) {
+        s.committed = true;
+        setDragX(-window.innerWidth);
+        setTimeout(() => { onSwipeLeft(); }, SWIPE_COMMIT_MS);
+      } else {
+        setDragX(0);
+        dragRef.current = null;
+      }
       return;
     }
 
-    const dx = s.dx;
-    setIsDragging(false);
-
-    if (dx > SWIPE_THRESHOLD) {
+    if (s.lockedAxis === 'y' && s.dy > SWIPE_DOWN_THRESHOLD) {
       s.committed = true;
-      setDragX(window.innerWidth);
-      setTimeout(() => { onSwipeRight(); }, SWIPE_COMMIT_MS);
-    } else if (dx < -SWIPE_THRESHOLD) {
-      s.committed = true;
-      setDragX(-window.innerWidth);
-      setTimeout(() => { onSwipeLeft(); }, SWIPE_COMMIT_MS);
-    } else {
-      setDragX(0);
-      dragRef.current = null;
+      setDragY(window.innerHeight);
+      setTimeout(() => { onClose(); }, SWIPE_COMMIT_MS);
+      return;
     }
+
+    setDragX(0);
+    setDragY(0);
+    dragRef.current = null;
   }
 
   const rotation = dragX * 0.04;
-  const sheetStyle: React.CSSProperties = dragX
-    ? { transform: `translateX(${dragX}px) rotate(${rotation}deg)` }
+  const transforms: string[] = [];
+  if (dragX) transforms.push(`translateX(${dragX}px)`, `rotate(${rotation}deg)`);
+  if (dragY) transforms.push(`translateY(${dragY}px)`);
+  const sheetStyle: React.CSSProperties = transforms.length
+    ? { transform: transforms.join(' ') }
     : {};
 
   const rightOpacity = Math.min(Math.max(dragX, 0) / 100, 1);
   const leftOpacity = Math.min(Math.max(-dragX, 0) / 100, 1);
+  const bgOpacity = dragY > 0 ? Math.max(1 - dragY / 400, 0.3) : 1;
 
   return (
-    <div className="person-sheet-bg" role="dialog" aria-modal="true" onClick={onClose}>
+    <div
+      className="person-sheet-bg"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      style={bgOpacity < 1 ? { opacity: bgOpacity } : undefined}
+    >
       <div
+        ref={sheetRef}
         className={`person-sheet${isDragging ? ' dragging' : ''}`}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={onPointerDown}
@@ -196,7 +227,7 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
         <ReactionBar current={person.sentReaction} onSend={onReact} />
 
         <p className="muted swipe-hint" data-no-swipe>
-          ← passar · curtir →
+          ← passar · curtir → · ↓ fechar
         </p>
 
         {/* Safety section */}
