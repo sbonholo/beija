@@ -93,6 +93,18 @@ export const api = {
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
 };
 
+export const adminApi = {
+  getStats: () => request<any>('GET', '/admin/stats'),
+  getReports: (offset = 0) => request<any>('GET', `/admin/reports?offset=${offset}`),
+  getUsers: (q = '', offset = 0) =>
+    request<any>('GET', `/admin/users?q=${encodeURIComponent(q)}&offset=${offset}`),
+  banUser: (id: string) => request<{ ok: true }>('POST', `/admin/users/${id}/ban`),
+  unbanUser: (id: string) => request<{ ok: true }>('POST', `/admin/users/${id}/unban`),
+  listEvents: () => request<any>('GET', '/admin/events'),
+  createEvent: (data: any) => request<any>('POST', '/admin/events', data),
+  deleteEvent: (id: string) => request<{ ok: true }>('DELETE', `/admin/events/${id}`),
+};
+
 import type { User } from '../types';
 import { mockEvents, mockEvent1, mockPeople, mockMatches, mockMessages } from './mockData';
 

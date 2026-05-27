@@ -13,6 +13,7 @@ export interface User {
   birthdate?: string | null;
   currentEventId?: string | null;
   lastActive?: number | null;
+  isAdmin?: boolean;
 }
 
 export interface EventItem {

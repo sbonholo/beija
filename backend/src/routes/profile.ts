@@ -157,6 +157,7 @@ export function serializeUser(row: any) {
     birthdate: row.birthdate,
     currentEventId: row.current_event_id,
     lastActive: row.last_active,
+    isAdmin: !!row.is_admin,
   };
 }
 
