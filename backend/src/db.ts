@@ -129,11 +129,27 @@ const _adminPhones = (process.env.ADMIN_PHONES || '')
   .map((p) => p.trim())
   .filter(Boolean);
 if (_adminPhones.length > 0) {
-  const stmt = db.prepare('UPDATE users SET is_admin = 1 WHERE phone = ?');
+  console.log(`[admin-bootstrap] databaseFile = ${config.databaseFile}`);
+  console.log(`[admin-bootstrap] DATA_DIR env = ${process.env.DATA_DIR || '(unset)'}`);
+  console.log(`[admin-bootstrap] ADMIN_PHONES env = ${process.env.ADMIN_PHONES || '(unset)'}`);
+
+  const selectStmt = db.prepare('SELECT id, phone, is_admin FROM users WHERE phone = ?');
+  const updateStmt = db.prepare('UPDATE users SET is_admin = 1 WHERE phone = ?');
   let _marked = 0;
   for (const phone of _adminPhones) {
-    const result = stmt.run(phone);
+    const before = selectStmt.get(phone);
+    console.log(`[admin-bootstrap] BEFORE phone=${phone}: ${JSON.stringify(before || null)}`);
+
+    const result = updateStmt.run(phone);
+    console.log(`[admin-bootstrap] UPDATE phone=${phone}: changes=${result.changes}`);
+
+    const after = selectStmt.get(phone);
+    console.log(`[admin-bootstrap] AFTER phone=${phone}: ${JSON.stringify(after || null)}`);
+
     if (result.changes > 0) _marked++;
   }
   console.log(`[admin-bootstrap] marked ${_marked} admin(s)`);
+
+  const countRow = db.prepare('SELECT COUNT(*) as n FROM users').get() as { n: number };
+  console.log(`[admin-bootstrap] total users in db = ${countRow.n}`);
 }
