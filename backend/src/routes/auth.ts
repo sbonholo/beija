@@ -72,16 +72,24 @@ router.post('/verify-otp', (req, res) => {
 
   let user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone) as any;
   let isNew = false;
+  const now = Date.now();
   if (!user) {
     const id = newId('u_');
     db.prepare('INSERT INTO users (id, phone, created_at, last_active) VALUES (?, ?, ?, ?)').run(
       id,
       phone,
-      Date.now(),
-      Date.now()
+      now,
+      now
     );
     user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     isNew = true;
+  } else {
+    db.prepare('UPDATE users SET last_active = ? WHERE id = ?').run(now, user.id);
+    user.last_active = now;
+  }
+
+  if (config.isProd) {
+    console.log(`[auth] login user=${user.id} phone=<redacted>`);
   }
 
   const token = signToken(user.id);
