@@ -84,6 +84,12 @@ export const api = {
 
   deleteMe: () => request<{ ok: true }>('DELETE', '/profile/me'),
   blockUser: (userId: string) => request<{ ok: true }>('POST', `/users/${userId}/block`),
+  unblockUser: (userId: string) => request<{ ok: true }>('DELETE', `/users/${userId}/block`),
+  listBlocks: () =>
+    request<{ blocks: { id: string; nickname: string | null; photoUrl: string | null; createdAt: number }[] }>(
+      'GET',
+      '/users/blocks'
+    ),
   reportUser: (userId: string, reason: string) =>
     request<{ ok: true }>('POST', `/users/${userId}/report`, { reason }),
 
@@ -201,6 +207,8 @@ export const mockedApi = {
   getReceivedReactions: async () => ({ reactions: [] as any[] }),
   deleteMe: async () => ({ ok: true as const }),
   blockUser: async (_userId: string) => ({ ok: true as const }),
+  unblockUser: async (_userId: string) => ({ ok: true as const }),
+  listBlocks: async () => ({ blocks: [] as { id: string; nickname: string | null; photoUrl: string | null; createdAt: number }[] }),
   reportUser: async (_userId: string, _reason: string) => ({ ok: true as const }),
 
   listMatches: async (): Promise<{ matches: any[] }> => ({ matches: mockMatches }),

@@ -1,9 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { activeApi, isMockMode } from '../lib/api';
 import { genderLabel } from '../lib/labels';
 import type { Gender } from '../types';
+
+interface BlockedUser {
+  id: string;
+  nickname: string | null;
+  photoUrl: string | null;
+  createdAt: number;
+}
 
 const identityOptions: { value: Gender; label: string; icon: string }[] = [
   { value: 'woman', label: 'Mulher', icon: '♀️' },
@@ -31,6 +38,28 @@ export function Profile() {
   const [seeking, setSeeking] = useState<Gender[]>(user?.seeking ?? []);
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
+  const [blocked, setBlocked] = useState<BlockedUser[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+
+  useEffect(() => {
+    if (!showBlocked) return;
+    let cancelled = false;
+    setBlockedLoading(true);
+    activeApi
+      .listBlocks()
+      .then((r) => { if (!cancelled) setBlocked(r.blocks); })
+      .catch(() => { if (!cancelled) setBlocked([]); })
+      .finally(() => { if (!cancelled) setBlockedLoading(false); });
+    return () => { cancelled = true; };
+  }, [showBlocked]);
+
+  async function unblock(id: string) {
+    try {
+      await activeApi.unblockUser(id);
+      setBlocked((cur) => cur.filter((b) => b.id !== id));
+    } catch { /* leave list as-is on failure */ }
+  }
 
   const everyoneSelected = ALL_GENDERS.every((g) => seeking.includes(g));
 
@@ -176,6 +205,50 @@ export function Profile() {
       <button className="btn ghost" style={{ marginTop: 12 }} onClick={() => nav('/events')}>
         Ver eventos
       </button>
+
+      <button
+        className="btn ghost"
+        style={{ marginTop: 12 }}
+        onClick={() => setShowBlocked((v) => !v)}
+      >
+        {showBlocked ? 'Ocultar bloqueados' : 'Bloqueados 🚫'}
+      </button>
+
+      {showBlocked && (
+        <div style={{ marginTop: 12 }}>
+          {blockedLoading && <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>}
+          {!blockedLoading && blocked.length === 0 && (
+            <p className="muted" style={{ fontSize: 13 }}>Nenhum usuário bloqueado.</p>
+          )}
+          {!blockedLoading && blocked.map((b) => (
+            <div
+              key={b.id}
+              className="card"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, padding: 12 }}
+            >
+              <div
+                className="avatar"
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  backgroundImage: b.photoUrl ? `url("${b.photoUrl}")` : undefined,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  flexShrink: 0,
+                }}
+              />
+              <strong style={{ flex: 1, fontSize: 15 }}>{b.nickname || 'Alguém'}</strong>
+              <button
+                className="chip"
+                style={{ fontSize: 13 }}
+                onClick={() => unblock(b.id)}
+              >
+                Desbloquear
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button
         className="btn ghost"
