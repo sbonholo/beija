@@ -11,6 +11,7 @@ import eventRoutes from './routes/events.js';
 import reactionRoutes from './routes/reactions.js';
 import matchRoutes from './routes/matches.js';
 import userRoutes from './routes/users.js';
+import adminRoutes from './routes/admin.js';
 
 const app = express();
 
@@ -106,6 +107,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/reactions', reactionRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const msg = typeof err?.message === 'string' ? err.message : String(err ?? 'unknown');

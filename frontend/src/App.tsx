@@ -9,9 +9,12 @@ import { Login } from './pages/Login';
 import { VerifyOtp } from './pages/VerifyOtp';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
+import { Admin } from './pages/Admin';
 import { Events } from './pages/Events';
 import { EventRoom } from './pages/EventRoom';
+import { Likes } from './pages/Likes';
 import { Matches } from './pages/Matches';
+import { Chats } from './pages/Chats';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
 import { getSocket, closeSocket } from './lib/socket';
@@ -25,20 +28,17 @@ const LABEL: Record<ReactionType, string> = { kiss: 'beijo', heart: 'curtida', f
 function GlobalSocketListeners() {
   const toast = useToast();
   const { user } = useAuth();
-  const { bump, clear } = useUnread();
+  const { bumpLikes, bumpMatches, bumpChats, clearMatches, clearChats } = useUnread();
   const location = useLocation();
   const [socketOffline, setSocketOffline] = useState(false);
 
-  // Track current path in a ref so socket handlers always see the latest
-  // pathname without needing to be re-registered on every navigation.
   const pathRef = useRef(location.pathname);
   pathRef.current = location.pathname;
 
   useEffect(() => {
-    if (location.pathname === '/matches' || location.pathname.startsWith('/chat/')) {
-      clear();
-    }
-  }, [location.pathname, clear]);
+    if (location.pathname === '/matches') clearMatches();
+    if (location.pathname === '/chats' || location.pathname.startsWith('/chat/')) clearChats();
+  }, [location.pathname, clearMatches, clearChats]);
 
   useEffect(() => {
     if (!user) return;
@@ -47,18 +47,19 @@ function GlobalSocketListeners() {
 
     const onReaction = (payload: { fromUser: User; type: ReactionType; eventId: string }) => {
       if (pathRef.current.startsWith(`/events/${payload.eventId}`)) return;
+      bumpLikes();
       toast({ kind: payload.type, text: `${payload.fromUser.nickname || 'Alguém'} mandou um ${LABEL[payload.type]} ${ICON[payload.type]}` });
     };
     const onMatch = (payload: { otherUser: User; matchId: string }) => {
       if (pathRef.current.startsWith(`/chat/${payload.matchId}`)) return;
       hapticSuccess();
-      bump();
+      bumpMatches();
       toast({ kind: 'match', text: `Match com ${payload.otherUser.nickname || 'alguém'} ✨` });
     };
     const onMessage = (payload: { fromUserId: string; matchId: string; text: string }) => {
       if (payload.fromUserId === user.id) return;
       if (pathRef.current.startsWith(`/chat/${payload.matchId}`)) return;
-      bump();
+      if (!pathRef.current.startsWith('/chats')) bumpChats();
       toast({ kind: 'info', text: `Nova mensagem 💬` });
     };
 
@@ -71,7 +72,7 @@ function GlobalSocketListeners() {
       sock.off('match:new', onMatch);
       sock.off('message:new', onMessage);
     };
-  }, [user, toast, bump]); // no location.pathname — pathRef stays current without re-registration
+  }, [user, toast, bumpLikes, bumpMatches, bumpChats]);
 
   useEffect(() => {
     if (!user) { closeSocket(); return; }
@@ -136,12 +137,15 @@ export function App() {
           <Route path="/profile" element={<Protected><Profile /></Protected>} />
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
+          <Route path="/likes" element={<Protected><Likes /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
+          <Route path="/chats" element={<Protected><Chats /></Protected>} />
           <Route path="/chat/:matchId" element={<Protected hideNav><Chat /></Protected>} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/termos" element={<Terms />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to={isMockMode ? '/' : '/login'} replace />} />
         </Routes>
       </div>

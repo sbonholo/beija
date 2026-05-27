@@ -80,6 +80,7 @@ export const api = {
     request<{ ok: true; reaction: any; match: any | null }>('POST', '/reactions', { toUserId, eventId, type }),
   removeReaction: (toUserId: string, eventId: string) =>
     request<{ ok: true }>('DELETE', '/reactions', { toUserId, eventId }),
+  getReceivedReactions: () => request<{ reactions: any[] }>('GET', '/reactions/received'),
 
   deleteMe: () => request<{ ok: true }>('DELETE', '/profile/me'),
   blockUser: (userId: string) => request<{ ok: true }>('POST', `/users/${userId}/block`),
@@ -91,6 +92,18 @@ export const api = {
   listMessages: (matchId: string) => request<{ messages: any[] }>('GET', `/matches/${matchId}/messages`),
   sendMessage: (matchId: string, text: string) =>
     request<{ message: any }>('POST', `/matches/${matchId}/messages`, { text }),
+};
+
+export const adminApi = {
+  getStats: () => request<any>('GET', '/admin/stats'),
+  getReports: (offset = 0) => request<any>('GET', `/admin/reports?offset=${offset}`),
+  getUsers: (q = '', offset = 0) =>
+    request<any>('GET', `/admin/users?q=${encodeURIComponent(q)}&offset=${offset}`),
+  banUser: (id: string) => request<{ ok: true }>('POST', `/admin/users/${id}/ban`),
+  unbanUser: (id: string) => request<{ ok: true }>('POST', `/admin/users/${id}/unban`),
+  listEvents: () => request<any>('GET', '/admin/events'),
+  createEvent: (data: any) => request<any>('POST', '/admin/events', data),
+  deleteEvent: (id: string) => request<{ ok: true }>('DELETE', `/admin/events/${id}`),
 };
 
 import type { User } from '../types';
@@ -185,6 +198,7 @@ export const mockedApi = {
     if (target) target.sentReaction = null;
     return { ok: true as const };
   },
+  getReceivedReactions: async () => ({ reactions: [] as any[] }),
   deleteMe: async () => ({ ok: true as const }),
   blockUser: async (_userId: string) => ({ ok: true as const }),
   reportUser: async (_userId: string, _reason: string) => ({ ok: true as const }),

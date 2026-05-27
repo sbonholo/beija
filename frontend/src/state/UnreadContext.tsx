@@ -1,17 +1,27 @@
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
 
-const KEY = 'beija_unread';
+const KEYS = { likes: 'beija_unread_likes', matches: 'beija_unread_matches', chats: 'beija_unread_chats' } as const;
 
-function readCount(): number {
-  try { return parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch { return 0; }
+function readCount(key: string): number {
+  try { return parseInt(localStorage.getItem(key) || '0', 10) || 0; } catch { return 0; }
 }
-
-function writeCount(n: number) {
-  try { localStorage.setItem(KEY, String(n)); } catch { /* quota */ }
+function writeCount(key: string, n: number) {
+  try { localStorage.setItem(key, String(n)); } catch { /* quota */ }
 }
 
 interface UnreadCtx {
+  unreadLikes: number;
   unreadMatches: number;
+  unreadChats: number;
+  /** @deprecated use unreadMatches */
+  unreadMatches_legacy: number;
+  bumpLikes: () => void;
+  bumpMatches: () => void;
+  bumpChats: () => void;
+  clearLikes: () => void;
+  clearMatches: () => void;
+  clearChats: () => void;
+  /** @deprecated clears matches+chats for backward compat */
   bump: () => void;
   clear: () => void;
 }
@@ -19,20 +29,30 @@ interface UnreadCtx {
 const Ctx = createContext<UnreadCtx | null>(null);
 
 export function UnreadProvider({ children }: { children: ReactNode }) {
-  const [unreadMatches, setUnreadMatches] = useState<number>(readCount);
+  const [unreadLikes,   setUnreadLikes]   = useState(() => readCount(KEYS.likes));
+  const [unreadMatches, setUnreadMatches] = useState(() => readCount(KEYS.matches));
+  const [unreadChats,   setUnreadChats]   = useState(() => readCount(KEYS.chats));
 
-  const bump = useCallback(() => setUnreadMatches((n) => {
-    const next = n + 1;
-    writeCount(next);
-    return next;
-  }), []);
+  const bumpLikes   = useCallback(() => setUnreadLikes  ((n) => { const v = n + 1; writeCount(KEYS.likes,   v); return v; }), []);
+  const bumpMatches = useCallback(() => setUnreadMatches((n) => { const v = n + 1; writeCount(KEYS.matches, v); return v; }), []);
+  const bumpChats   = useCallback(() => setUnreadChats  ((n) => { const v = n + 1; writeCount(KEYS.chats,   v); return v; }), []);
 
-  const clear = useCallback(() => {
-    writeCount(0);
-    setUnreadMatches(0);
-  }, []);
+  const clearLikes   = useCallback(() => { writeCount(KEYS.likes,   0); setUnreadLikes(0);   }, []);
+  const clearMatches = useCallback(() => { writeCount(KEYS.matches, 0); setUnreadMatches(0); }, []);
+  const clearChats   = useCallback(() => { writeCount(KEYS.chats,   0); setUnreadChats(0);   }, []);
 
-  const value = useMemo(() => ({ unreadMatches, bump, clear }), [unreadMatches, bump, clear]);
+  // Legacy shims so existing callers in App.tsx don't break before we update them
+  const bump  = useCallback(() => { bumpMatches(); bumpChats(); }, [bumpMatches, bumpChats]);
+  const clear = useCallback(() => { clearMatches(); clearChats(); }, [clearMatches, clearChats]);
+
+  const value = useMemo(() => ({
+    unreadLikes, unreadMatches, unreadChats,
+    unreadMatches_legacy: unreadMatches,
+    bumpLikes, bumpMatches, bumpChats,
+    clearLikes, clearMatches, clearChats,
+    bump, clear,
+  }), [unreadLikes, unreadMatches, unreadChats, bumpLikes, bumpMatches, bumpChats, clearLikes, clearMatches, clearChats, bump, clear]);
+
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

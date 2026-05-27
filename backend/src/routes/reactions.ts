@@ -2,11 +2,65 @@ import { Router } from 'express';
 import { db, pairKey } from '../db.js';
 import { authRequired, AuthedRequest } from '../auth.js';
 import { newId } from '../lib/ids.js';
+import { safeJsonArray } from '../lib/utils.js';
 import { serializePublicUser } from './profile.js';
 import { emitToUser } from '../socket.js';
 
 const router = Router();
 const REACTION_TYPES = ['kiss', 'heart', 'fire'];
+const REACTION_EMOJI: Record<string, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
+
+// GET /api/reactions/received — who reacted to me
+router.get('/received', authRequired, (req: AuthedRequest, res) => {
+  const meId = req.userId!;
+
+  const rows = db.prepare(`
+    SELECT r.id, r.type, r.event_id, r.created_at,
+           u.id AS sender_id, u.nickname, u.gender, u.seeking, u.bio, u.photo_url,
+           e.name AS event_name, e.ends_at AS event_ends_at,
+           EXISTS(
+             SELECT 1 FROM matches m
+             WHERE (m.user1_id = r.from_user_id AND m.user2_id = ?)
+                OR (m.user2_id = r.from_user_id AND m.user1_id = ?)
+           ) AS is_matched,
+           (SELECT id FROM matches m2
+            WHERE (m2.user1_id = r.from_user_id AND m2.user2_id = ?)
+               OR (m2.user2_id = r.from_user_id AND m2.user1_id = ?)
+            LIMIT 1) AS match_id
+    FROM reactions r
+    JOIN users u ON u.id = r.from_user_id
+    JOIN events e ON e.id = r.event_id
+    WHERE r.to_user_id = ?
+      AND u.is_banned = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id = ? AND b.blocked_id = r.from_user_id)
+           OR (b.blocker_id = r.from_user_id AND b.blocked_id = ?)
+      )
+    ORDER BY r.created_at DESC
+  `).all(meId, meId, meId, meId, meId, meId, meId) as any[];
+
+  res.json({
+    reactions: rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      eventId: r.event_id,
+      eventName: r.event_name,
+      eventEndsAt: r.event_ends_at,
+      createdAt: r.created_at,
+      isMatched: !!r.is_matched,
+      matchId: r.match_id ?? null,
+      user: {
+        id: r.sender_id,
+        nickname: r.nickname,
+        gender: r.gender,
+        seeking: safeJsonArray(r.seeking),
+        bio: r.bio,
+        photoUrl: r.photo_url,
+      },
+    })),
+  });
+});
 
 router.post('/', authRequired, (req: AuthedRequest, res) => {
   const fromId = req.userId!;
@@ -45,6 +99,7 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
     .get(toId, fromId, eventId);
 
   let match: any = null;
+  let isNewMatch = false;
   if (reverse) {
     const [u1, u2] = pairKey(fromId, toId);
     const existing = db
@@ -58,6 +113,7 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
         'INSERT INTO matches (id, user1_id, user2_id, event_id, created_at) VALUES (?, ?, ?, ?, ?)'
       ).run(matchId, u1, u2, eventId, now);
       match = { id: matchId, user1_id: u1, user2_id: u2, event_id: eventId, created_at: now };
+      isNewMatch = true;
     }
   }
 
@@ -72,13 +128,21 @@ router.post('/', authRequired, (req: AuthedRequest, res) => {
   });
 
   if (match) {
-    const payload = {
-      matchId: match.id,
-      eventId,
-      createdAt: match.created_at,
-    };
+    const payload = { matchId: match.id, eventId, createdAt: match.created_at };
     emitToUser(fromId, 'match:new', { ...payload, otherUser: serializePublicUser(toUser) });
     emitToUser(toId, 'match:new', { ...payload, otherUser: serializePublicUser(fromUser) });
+
+    // Auto-send reaction emoji as the opening message on a brand-new match
+    if (isNewMatch) {
+      const emoji = REACTION_EMOJI[type] ?? '💋';
+      const msgId = newId('msg_');
+      db.prepare(
+        'INSERT INTO messages (id, match_id, from_user_id, text, created_at) VALUES (?, ?, ?, ?, ?)'
+      ).run(msgId, match.id, fromId, emoji, now);
+      const autoMsg = { id: msgId, matchId: match.id, fromUserId: fromId, text: emoji, createdAt: now };
+      emitToUser(fromId, 'message:new', autoMsg);
+      emitToUser(toId, 'message:new', autoMsg);
+    }
   }
 
   res.json({
