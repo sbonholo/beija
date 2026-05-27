@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { activeApi } from '../lib/api';
+import { activeApi, ApiError } from '../lib/api';
 
 // Format any international number as the user types. Keeps a single leading '+'.
 // Applies BR-specific spacing for +55 numbers; leaves other country codes as raw digits.
@@ -72,11 +72,30 @@ export function Login() {
       await activeApi.requestOtp(e164);
       sessionStorage.setItem('beija_phone', e164);
       nav('/verify');
-    } catch {
-      setError('Não foi possível enviar o código. Tente de novo.');
+    } catch (err) {
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }
+  }
+
+  function loginErrorMessage(err: unknown): string {
+    if (err instanceof ApiError) {
+      if (err.code === 'rate_limited' || err.status === 429) {
+        return 'Muitas tentativas, aguarde alguns minutos.';
+      }
+      if (err.code === 'invalid_phone') {
+        return 'Número inválido. Use formato internacional.';
+      }
+      const blob = `${err.code} ${err.message || ''}`.toLowerCase();
+      if (err.status >= 500 || blob.includes('twilio') || blob.includes('whatsapp')) {
+        return 'Serviço de WhatsApp indisponível. Tente em alguns minutos.';
+      }
+    }
+    if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+      return 'Sem conexão. Verifique sua internet.';
+    }
+    return 'Não foi possível enviar o código. Tente de novo.';
   }
 
   const e164 = toE164(phone);
