@@ -75,6 +75,19 @@ router.post('/:id/checkin', authRequired, (req: AuthedRequest, res) => {
   if (event.ends_at < Date.now()) return res.status(400).json({ error: 'event_ended' });
 
   const now = Date.now();
+
+  const prev = db
+    .prepare('SELECT current_event_id FROM users WHERE id = ?')
+    .get(req.userId) as { current_event_id: string | null } | undefined;
+  const prevId = prev?.current_event_id;
+  if (prevId && prevId !== eventId) {
+    const prevEvent = db.prepare('SELECT ends_at FROM events WHERE id = ?').get(prevId) as any;
+    if (prevEvent && prevEvent.ends_at > now) {
+      db.prepare('DELETE FROM checkins WHERE user_id = ? AND event_id = ?').run(req.userId, prevId);
+      emitToEvent(prevId, 'checkin:update', { type: 'leave', userId: req.userId });
+    }
+  }
+
   db.prepare(
     `INSERT INTO checkins (user_id, event_id, checked_in_at) VALUES (?, ?, ?)
      ON CONFLICT(user_id, event_id) DO UPDATE SET checked_in_at = excluded.checked_in_at`
