@@ -106,6 +106,7 @@ router.get('/:id/people', authRequired, (req: AuthedRequest, res) => {
       `SELECT u.*, c.checked_in_at FROM checkins c
        JOIN users u ON u.id = c.user_id
        WHERE c.event_id = ? AND u.id != ?
+         AND u.is_banned = 0
          AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?)
          AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?)
        ORDER BY c.checked_in_at DESC, u.id ASC`
