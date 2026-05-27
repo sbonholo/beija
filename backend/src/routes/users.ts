@@ -7,6 +7,27 @@ const router = Router();
 
 const REPORT_REASONS = ['spam', 'inappropriate', 'harassment', 'other'];
 
+router.get('/blocks', authRequired, (req: AuthedRequest, res) => {
+  const meId = req.userId!;
+  const rows = db
+    .prepare(
+      `SELECT u.id, u.nickname, u.photo_url, b.created_at
+       FROM blocks b
+       JOIN users u ON u.id = b.blocked_id
+       WHERE b.blocker_id = ?
+       ORDER BY b.created_at DESC`
+    )
+    .all(meId) as any[];
+  res.json({
+    blocks: rows.map((r) => ({
+      id: r.id,
+      nickname: r.nickname,
+      photoUrl: r.photo_url,
+      createdAt: r.created_at,
+    })),
+  });
+});
+
 router.post('/:id/block', authRequired, (req: AuthedRequest, res) => {
   const blockerId = req.userId!;
   const blockedId = req.params.id;
