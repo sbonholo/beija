@@ -9,6 +9,7 @@ import { PersonSheet } from '../components/PersonSheet';
 import { MatchModal } from '../components/MatchModal';
 import { useToast } from '../components/Toast';
 import { hapticSuccess } from '../platform/haptics';
+import { getLastReaction, setLastReaction } from '../lib/lastReaction';
 
 const ICON: Record<ReactionType, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
 const LABEL: Record<ReactionType, string> = { kiss: 'beijo', heart: 'curtida', fire: 'fogo' };
@@ -33,6 +34,7 @@ export function EventRoom() {
     myReaction: ReactionType | null;
     theirReaction: ReactionType | null;
   } | null>(null);
+  const [lastReaction, setLastReactionState] = useState<ReactionType>(() => getLastReaction());
 
   const refreshPeople = useCallback(async () => {
     const { people } = await api.listPeople(eventId);
@@ -147,6 +149,58 @@ export function EventRoom() {
     }
   }
 
+  function goToNext(currentId: string) {
+    const idx = people.findIndex((p) => p.id === currentId);
+    const next = idx >= 0 ? people[idx + 1] : null;
+    if (next) {
+      setSelected(next);
+    } else {
+      setSelected(null);
+      toast({ kind: 'info', text: 'Você viu todo mundo aqui! ✨' });
+    }
+  }
+
+  async function swipeRight() {
+    if (!selected) return;
+    const targetId = selected.id;
+    const type = lastReaction;
+    // Optimistic UX: persist the reaction choice and advance immediately
+    setLastReaction(type);
+    setLastReactionState(type);
+    hapticSuccess();
+    goToNext(targetId);
+    try {
+      const res = await api.sendReaction(targetId, eventId, type);
+      if (res.match) {
+        const other = people.find((p) => p.id === targetId);
+        if (other) {
+          hapticSuccess();
+          setMatchModal({
+            matchId: res.match.id,
+            other,
+            myReaction: (res.match as { myReaction?: ReactionType }).myReaction ?? type,
+            theirReaction: (res.match as { theirReaction?: ReactionType }).theirReaction ?? other.receivedReaction ?? null,
+          });
+        }
+      }
+      await refreshPeople();
+    } catch (err: any) {
+      const errorMap: Record<string, string> = {
+        not_at_event: 'Você ou a outra pessoa saiu do evento',
+        blocked: 'Não é possível reagir a esta pessoa',
+        user_not_found: 'Usuário não encontrado',
+        rate_limited: 'Muitas reações seguidas. Aguarde um momento.',
+      };
+      const code = err?.code ?? '';
+      toast({ kind: 'info', text: errorMap[code] || 'Não rolou enviar.' });
+    }
+  }
+
+  function swipeLeft() {
+    if (!selected) return;
+    goToNext(selected.id);
+  }
+
   async function react(type: ReactionType) {
     if (!selected) return;
     const targetId = selected.id;
@@ -161,6 +215,8 @@ export function EventRoom() {
     }
     try {
       const res = await api.sendReaction(targetId, eventId, type);
+      setLastReaction(type);
+      setLastReactionState(type);
       toast({ kind: type, text: `Você mandou um ${LABEL[type]} ${ICON[type]}` });
       // Close the sheet after 1s only on success so the user sees the feedback
       setTimeout(() => setSelected(null), 1000);
@@ -260,11 +316,15 @@ export function EventRoom() {
 
       {selected && (
         <PersonSheet
+          key={selected.id}
           person={selected}
           onClose={() => setSelected(null)}
           onReact={react}
           onBlock={blockPerson}
           onReport={reportPerson}
+          onSwipeRight={swipeRight}
+          onSwipeLeft={swipeLeft}
+          lastReaction={lastReaction}
         />
       )}
 

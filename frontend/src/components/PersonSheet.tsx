@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PersonAtEvent, ReactionType } from '../types';
 import { ReactionBar } from './ReactionBar';
 import { genderLabel, seekingLabel, ageFromBirthdate } from '../lib/labels';
@@ -10,18 +10,39 @@ const REPORT_REASONS = [
   { value: 'other', label: 'Outro' },
 ];
 
+const REACTION_ICON: Record<ReactionType, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
+const REACTION_LABEL: Record<ReactionType, string> = { kiss: 'BEIJO', heart: 'CURTIDA', fire: 'FOGO' };
+
+const SWIPE_THRESHOLD = 90;        // px past origin to commit
+const SWIPE_INTENT_THRESHOLD = 8;  // px before deciding horizontal vs vertical
+const SWIPE_COMMIT_MS = 220;       // CSS transition duration for fly-off
+
 interface Props {
   person: PersonAtEvent;
   onClose: () => void;
   onReact: (type: ReactionType) => void;
   onBlock: () => void;
   onReport: (reason: string) => void;
+  onSwipeRight: () => void;
+  onSwipeLeft: () => void;
+  lastReaction: ReactionType;
 }
 
-export function PersonSheet({ person, onClose, onReact, onBlock, onReport }: Props) {
+export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwipeRight, onSwipeLeft, lastReaction }: Props) {
   const age = ageFromBirthdate(person.birthdate);
   const [showSafety, setShowSafety] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
+
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    lockedAxis: 'x' | 'y' | null;
+    pointerId: number;
+    dx: number;
+    committed: boolean;
+  } | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -42,15 +63,106 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport }: Pro
     onReport(reason);
   }
 
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // Skip swipe when the user is targeting an interactive element (buttons, links, inputs)
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, textarea, [data-no-swipe]')) return;
+
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      lockedAxis: null,
+      pointerId: e.pointerId,
+      dx: 0,
+      committed: false,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const s = dragRef.current;
+    if (!s || s.committed || e.pointerId !== s.pointerId) return;
+
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+
+    if (!s.lockedAxis) {
+      if (Math.abs(dx) < SWIPE_INTENT_THRESHOLD && Math.abs(dy) < SWIPE_INTENT_THRESHOLD) return;
+      s.lockedAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (s.lockedAxis === 'x') setIsDragging(true);
+    }
+
+    if (s.lockedAxis === 'x') {
+      s.dx = dx;
+      setDragX(dx);
+    }
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const s = dragRef.current;
+    if (!s || e.pointerId !== s.pointerId) return;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+
+    if (s.lockedAxis !== 'x') {
+      dragRef.current = null;
+      setIsDragging(false);
+      setDragX(0);
+      return;
+    }
+
+    const dx = s.dx;
+    setIsDragging(false);
+
+    if (dx > SWIPE_THRESHOLD) {
+      s.committed = true;
+      setDragX(window.innerWidth);
+      setTimeout(() => { onSwipeRight(); }, SWIPE_COMMIT_MS);
+    } else if (dx < -SWIPE_THRESHOLD) {
+      s.committed = true;
+      setDragX(-window.innerWidth);
+      setTimeout(() => { onSwipeLeft(); }, SWIPE_COMMIT_MS);
+    } else {
+      setDragX(0);
+      dragRef.current = null;
+    }
+  }
+
+  const rotation = dragX * 0.04;
+  const sheetStyle: React.CSSProperties = dragX
+    ? { transform: `translateX(${dragX}px) rotate(${rotation}deg)` }
+    : {};
+
+  const rightOpacity = Math.min(Math.max(dragX, 0) / 100, 1);
+  const leftOpacity = Math.min(Math.max(-dragX, 0) / 100, 1);
+
   return (
     <div className="person-sheet-bg" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="person-sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`person-sheet${isDragging ? ' dragging' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={sheetStyle}
+      >
         <div className="person-sheet-handle" aria-hidden />
 
         <div
           className={`person-sheet-photo ${person.matched ? 'matched' : ''}`}
           style={person.photoUrl ? { backgroundImage: `url("${person.photoUrl}")` } : undefined}
-        />
+        >
+          {rightOpacity > 0 && (
+            <div className="swipe-label swipe-label-like" style={{ opacity: rightOpacity }}>
+              {REACTION_ICON[lastReaction]} {REACTION_LABEL[lastReaction]}
+            </div>
+          )}
+          {leftOpacity > 0 && (
+            <div className="swipe-label swipe-label-pass" style={{ opacity: leftOpacity }}>
+              ✗ PASSAR
+            </div>
+          )}
+        </div>
 
         <div className="person-sheet-header">
           <h2 style={{ margin: 0, fontSize: 22 }}>
@@ -82,6 +194,10 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport }: Pro
         </div>
 
         <ReactionBar current={person.sentReaction} onSend={onReact} />
+
+        <p className="muted swipe-hint" data-no-swipe>
+          ← passar · curtir →
+        </p>
 
         {/* Safety section */}
         <div className="person-sheet-safety">

@@ -510,6 +510,13 @@ a { color: var(--pink-glow); }
   max-height: 90vh;
   max-height: 90dvh;
   overflow-y: auto;
+  transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.person-sheet.dragging {
+  transition: none;
 }
 @keyframes sheetUp {
   from { transform: translateY(100%); }
@@ -523,10 +530,50 @@ a { color: var(--pink-glow); }
   margin-bottom: 4px;
 }
 .person-sheet-photo {
+  position: relative;
   width: 100%; aspect-ratio: 1/1;
   border-radius: var(--radius);
   background: linear-gradient(160deg, #3a0029, #1c0a2b) center/cover no-repeat;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.swipe-label {
+  position: absolute;
+  top: 22px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 3px solid;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  transition: opacity 0.05s linear;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.swipe-label-like {
+  right: 22px;
+  color: #ff3b9a;
+  border-color: #ff3b9a;
+  transform: rotate(12deg);
+  box-shadow: 0 0 32px rgba(255, 59, 154, 0.4);
+}
+.swipe-label-pass {
+  left: 22px;
+  color: #b39cc6;
+  border-color: #b39cc6;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 32px rgba(0, 0, 0, 0.5);
+}
+.swipe-hint {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: -4px 0 0;
+  opacity: 0.55;
 }
 .person-sheet-photo.matched {
   outline: 3px solid var(--gold);
