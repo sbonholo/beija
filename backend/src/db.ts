@@ -114,6 +114,9 @@ CREATE INDEX IF NOT EXISTS idx_matches_user2 ON matches(user2_id);
 CREATE INDEX IF NOT EXISTS idx_matches_event ON matches(event_id);
 CREATE INDEX IF NOT EXISTS idx_messages_match ON messages(match_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_blocks_blocked ON blocks(blocked_id);
+CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+CREATE INDEX IF NOT EXISTS idx_reports_reported ON reports(reported_id);
 
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
