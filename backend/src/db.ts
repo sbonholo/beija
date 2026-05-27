@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { config } from './config.js';
+import { normalizePhone } from './lib/ids.js';
 
 export const db = new Database(config.databaseFile);
 db.pragma('journal_mode = WAL');
@@ -136,8 +137,8 @@ try { db.exec('ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0
 // Bootstrap admins from ADMIN_PHONES env var (CSV of E.164 phones)
 const _adminPhones = (process.env.ADMIN_PHONES || '')
   .split(',')
-  .map((p) => p.trim())
-  .filter(Boolean);
+  .map((p) => normalizePhone(p.trim()))
+  .filter((p): p is string => p !== null);
 if (_adminPhones.length > 0) {
   console.log(`[admin-bootstrap] databaseFile = ${config.databaseFile}`);
   console.log(`[admin-bootstrap] DATA_DIR env = ${process.env.DATA_DIR || '(unset)'}`);
