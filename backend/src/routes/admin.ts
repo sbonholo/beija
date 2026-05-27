@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { adminRequired, AuthedRequest } from '../auth.js';
 import { newId } from '../lib/ids.js';
+import { deletePhoto } from './profile.js';
 
 const router = Router();
 router.use(adminRequired);
@@ -129,6 +130,30 @@ router.post('/users/:id/unban', (req, res) => {
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'not_found' });
   db.prepare('UPDATE users SET is_banned = 0 WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/users/:id', (req: AuthedRequest, res) => {
+  if (req.params.id === req.userId) return res.status(400).json({ error: 'cannot_delete_self' });
+  const userId = req.params.id;
+  const user = db.prepare('SELECT phone, photo_url FROM users WHERE id = ?').get(userId) as any;
+  if (!user) return res.status(404).json({ error: 'not_found' });
+
+  db.transaction(() => {
+    db.prepare('DELETE FROM messages WHERE from_user_id = ?').run(userId);
+    db.prepare('DELETE FROM matches WHERE user1_id = ? OR user2_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM reactions WHERE from_user_id = ? OR to_user_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM checkins WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM reports WHERE reporter_id = ? OR reported_id = ?').run(userId, userId);
+    if (user.phone) {
+      db.prepare('DELETE FROM otp_codes WHERE phone = ?').run(user.phone);
+      db.prepare('DELETE FROM rate_limits WHERE key = ?').run(`otp:${user.phone}`);
+    }
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
+
+  if (user.photo_url) deletePhoto(user.photo_url).catch(() => {});
   res.json({ ok: true });
 });
 

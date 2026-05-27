@@ -16,7 +16,7 @@ function safeUnlink(filename: string) {
   });
 }
 
-async function deletePhoto(photoUrl: string): Promise<void> {
+export async function deletePhoto(photoUrl: string): Promise<void> {
   if (!photoUrl) return;
   const r2Base = process.env.R2_PUBLIC_URL;
   if (r2Base && photoUrl.startsWith(r2Base + '/')) {
