@@ -77,8 +77,13 @@ router.put('/me', authRequired, (req: AuthedRequest, res) => {
     values.push(String(bio).slice(0, 200));
   }
   if (birthdate !== undefined) {
+    const bdStr = String(birthdate);
+    const bdMs = new Date(bdStr).getTime();
+    if (Number.isNaN(bdMs)) return res.status(400).json({ error: 'invalid_birthdate' });
+    const ageYears = (Date.now() - bdMs) / (1000 * 60 * 60 * 24 * 365.25);
+    if (ageYears < 18) return res.status(400).json({ error: 'underage' });
     updates.push('birthdate = ?');
-    values.push(String(birthdate));
+    values.push(bdStr);
   }
 
   if (updates.length === 0) return res.json({ ok: true });
