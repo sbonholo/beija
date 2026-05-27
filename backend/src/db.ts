@@ -115,10 +115,6 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 );
 `);
 
-// Incremental migrations — safe on fresh and existing DBs
-try { db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0'); } catch {}
-try { db.exec('ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0'); } catch {}
-
 export function pairKey(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
