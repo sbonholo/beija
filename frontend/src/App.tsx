@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { useAuth } from './state/AuthContext';
 import { useUnread } from './state/UnreadContext';
 import { ToastProvider, useToast } from './components/Toast';
+import { BottomNav } from './components/BottomNav';
 import { CreateProfile } from './pages/CreateProfile';
 import { Login } from './pages/Login';
 import { VerifyOtp } from './pages/VerifyOtp';
@@ -95,10 +96,15 @@ function GlobalSocketListeners() {
   return null;
 }
 
-function Protected({ children }: { children: React.ReactNode }) {
+function Protected({ children, hideNav = false }: { children: React.ReactNode; hideNav?: boolean }) {
   const { user } = useAuth();
   if (!user) return <Navigate to={isMockMode ? '/' : '/login'} replace />;
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {!hideNav && <BottomNav />}
+    </>
+  );
 }
 
 export function App() {
@@ -129,7 +135,7 @@ export function App() {
           <Route path="/events" element={<Protected><Events /></Protected>} />
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
-          <Route path="/chat/:matchId" element={<Protected><Chat /></Protected>} />
+          <Route path="/chat/:matchId" element={<Protected hideNav><Chat /></Protected>} />
           <Route path="*" element={<Navigate to={isMockMode ? '/' : '/login'} replace />} />
         </Routes>
       </div>

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { activeApi, isMockMode } from '../lib/api';
-import { BottomNav } from '../components/BottomNav';
 import { genderLabel } from '../lib/labels';
 import type { Gender } from '../types';
 
@@ -185,8 +184,6 @@ export function Profile() {
       >
         Apagar perfil
       </button>
-
-      <BottomNav />
 
       {/* In-app delete confirmation */}
       {showDeleteConfirm && (

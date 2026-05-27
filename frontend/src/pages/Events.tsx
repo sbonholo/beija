@@ -4,7 +4,6 @@ import { activeApi as api, errorMessage, isMockMode } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 import type { EventItem } from '../types';
 import { getCurrentPosition } from '../platform/geolocation';
-import { BottomNav } from '../components/BottomNav';
 
 function formatDistance(m: number | null | undefined) {
   if (m == null) return '';
@@ -120,8 +119,6 @@ export function Events() {
           </div>
         ))}
       </div>
-
-      <BottomNav />
     </div>
   );
 }
