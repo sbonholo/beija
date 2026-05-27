@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { activeApi } from '../lib/api';
 
 // Format any international number as the user types. Keeps a single leading '+'.
@@ -136,7 +136,15 @@ export function Login() {
         </button>
 
         <p className="auth-disclaimer">
-          Ao entrar, você confirma ter 18+ anos e aceita os termos de uso.
+          Ao continuar, você confirma ter 18+ anos e concorda com nossos{' '}
+          <Link to="/termos">Termos de Uso</Link> e{' '}
+          <Link to="/privacidade">Política de Privacidade</Link>.
+        </p>
+
+        <p className="auth-footer-links">
+          <Link to="/termos">Termos</Link>
+          {' · '}
+          <Link to="/privacidade">Privacidade</Link>
         </p>
       </form>
     </div>

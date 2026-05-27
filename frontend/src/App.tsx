@@ -7,6 +7,8 @@ import { BottomNav } from './components/BottomNav';
 import { CreateProfile } from './pages/CreateProfile';
 import { Login } from './pages/Login';
 import { VerifyOtp } from './pages/VerifyOtp';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
 import { Events } from './pages/Events';
 import { EventRoom } from './pages/EventRoom';
 import { Matches } from './pages/Matches';
@@ -136,6 +138,10 @@ export function App() {
           <Route path="/events/:id" element={<Protected><EventRoom /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
           <Route path="/chat/:matchId" element={<Protected hideNav><Chat /></Protected>} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/privacidade" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/termos" element={<Terms />} />
           <Route path="*" element={<Navigate to={isMockMode ? '/' : '/login'} replace />} />
         </Routes>
       </div>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { activeApi, isMockMode } from '../lib/api';
 import type { Gender } from '../types';
@@ -209,7 +209,12 @@ export function CreateProfile() {
           onChange={(e) => setIsAdult(e.target.checked)}
           style={{ width: 20, height: 20, accentColor: 'var(--pink)', flexShrink: 0 }}
         />
-        <span>Tenho 18 anos ou mais e aceito os termos de uso</span>
+        <span>
+          Tenho 18 anos ou mais e aceito os{' '}
+          <Link to="/termos" target="_blank" rel="noopener">Termos de Uso</Link>
+          {' e a '}
+          <Link to="/privacidade" target="_blank" rel="noopener">Política de Privacidade</Link>
+        </span>
       </label>
 
       <button
