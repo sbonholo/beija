@@ -39,7 +39,11 @@ router.post('/request-otp', async (req, res) => {
      ON CONFLICT(phone) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at, attempts=0`
   ).run(phone, code, expiresAt);
 
-  await sendSms(phone, `Beija: seu código é ${code}`);
+  const isWhatsApp = config.smsProvider.includes('whatsapp');
+  const smsBody = isWhatsApp
+    ? `*Beija* — seu código de acesso: *${code}*\n\nVálido por 5 minutos. Não compartilhe este código. 🔐`
+    : `Beija: seu codigo e ${code}`;
+  await sendSms(phone, smsBody);
 
   const body: Record<string, unknown> = { ok: true, phone };
   if (config.devReturnOtp) body.devCode = code;
