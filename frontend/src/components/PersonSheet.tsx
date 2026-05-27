@@ -179,6 +179,16 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
       >
         <div className="person-sheet-handle" aria-hidden />
 
+        <button
+          type="button"
+          className="person-sheet-close"
+          onClick={onClose}
+          aria-label="Fechar perfil"
+          data-no-swipe
+        >
+          ✕
+        </button>
+
         <div
           className={`person-sheet-photo ${person.matched ? 'matched' : ''}`}
           style={person.photoUrl ? { backgroundImage: `url("${person.photoUrl}")` } : undefined}
@@ -227,7 +237,7 @@ export function PersonSheet({ person, onClose, onReact, onBlock, onReport, onSwi
         <ReactionBar current={person.sentReaction} onSend={onReact} />
 
         <p className="muted swipe-hint" data-no-swipe>
-          ← passar · curtir → · ↓ fechar
+          ← passar · curtir → · ✕ fechar
         </p>
 
         {/* Safety section */}

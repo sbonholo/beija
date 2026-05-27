@@ -495,6 +495,7 @@ a { color: var(--pink-glow); }
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 56px);
 }
 .person-sheet {
+  position: relative;
   width: 100%; max-width: 540px;
   background: rgba(18, 4, 30, 0.95);
   backdrop-filter: blur(30px);
@@ -529,6 +530,28 @@ a { color: var(--pink-glow); }
   background: rgba(255,255,255,0.16);
   align-self: center;
   margin-bottom: 4px;
+}
+.person-sheet-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.15s;
+}
+.person-sheet-close:hover {
+  background: rgba(0,0,0,0.65);
 }
 .person-sheet-photo {
   position: relative;
