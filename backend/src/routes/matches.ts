@@ -62,11 +62,18 @@ const stmtMatchesByUser = db.prepare(
 const stmtMatchMembership = db.prepare(
   'SELECT user1_id, user2_id FROM matches WHERE id = ?'
 );
+const stmtIsBlocked = db.prepare(
+  'SELECT 1 FROM blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)'
+);
 
 router.get('/', authRequired, (req: AuthedRequest, res) => {
   const meId = req.userId!;
   const rows = stmtMatchesByUser.all(meId, meId) as any[];
-  res.json({ matches: rows.map((r) => serializeMatch(r, meId)) });
+  const visible = rows.filter((r) => {
+    const otherId = r.user1_id === meId ? r.user2_id : r.user1_id;
+    return !stmtIsBlocked.get(meId, otherId, otherId, meId);
+  });
+  res.json({ matches: visible.map((r) => serializeMatch(r, meId)) });
 });
 
 router.get('/:id', authRequired, (req: AuthedRequest, res) => {
@@ -80,6 +87,9 @@ router.get('/:id/messages', authRequired, (req: AuthedRequest, res) => {
   const meId = req.userId!;
   const m = stmtMatchMembership.get(req.params.id) as any;
   if (!m || (m.user1_id !== meId && m.user2_id !== meId)) return res.status(403).json({ error: 'forbidden' });
+
+  const otherId = m.user1_id === meId ? m.user2_id : m.user1_id;
+  if (stmtIsBlocked.get(meId, otherId, otherId, meId)) return res.status(403).json({ error: 'blocked' });
 
   const rows = db
     .prepare('SELECT id, from_user_id, text, created_at FROM messages WHERE match_id = ? ORDER BY created_at ASC')
@@ -103,6 +113,9 @@ router.post('/:id/messages', authRequired, (req: AuthedRequest, res) => {
   const m = stmtMatchMembership.get(req.params.id) as any;
   if (!m || (m.user1_id !== meId && m.user2_id !== meId)) return res.status(403).json({ error: 'forbidden' });
 
+  const otherId = m.user1_id === meId ? m.user2_id : m.user1_id;
+  if (stmtIsBlocked.get(meId, otherId, otherId, meId)) return res.status(403).json({ error: 'blocked' });
+
   const id = newId('msg_');
   const now = Date.now();
   db.prepare(
@@ -110,7 +123,6 @@ router.post('/:id/messages', authRequired, (req: AuthedRequest, res) => {
   ).run(id, req.params.id, meId, text, now);
 
   const message = { id, matchId: req.params.id, fromUserId: meId, text, createdAt: now };
-  const otherId = m.user1_id === meId ? m.user2_id : m.user1_id;
   emitToUser(otherId, 'message:new', message);
   emitToUser(meId, 'message:new', message);
 
