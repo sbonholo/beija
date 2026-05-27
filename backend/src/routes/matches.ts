@@ -53,7 +53,12 @@ const stmtMatchById = db.prepare(
 );
 const stmtMatchesByUser = db.prepare(
   `${MATCH_SELECT}
-   WHERE m.user1_id = ? OR m.user2_id = ?
+   WHERE (m.user1_id = ? OR m.user2_id = ?)
+     AND NOT EXISTS (
+       SELECT 1 FROM blocks
+       WHERE (blocker_id = m.user1_id AND blocked_id = m.user2_id)
+          OR (blocker_id = m.user2_id AND blocked_id = m.user1_id)
+     )
    ORDER BY COALESCE(
      (SELECT created_at FROM messages WHERE match_id = m.id ORDER BY created_at DESC LIMIT 1),
      m.created_at
@@ -69,11 +74,7 @@ const stmtIsBlocked = db.prepare(
 router.get('/', authRequired, (req: AuthedRequest, res) => {
   const meId = req.userId!;
   const rows = stmtMatchesByUser.all(meId, meId) as any[];
-  const visible = rows.filter((r) => {
-    const otherId = r.user1_id === meId ? r.user2_id : r.user1_id;
-    return !stmtIsBlocked.get(meId, otherId, otherId, meId);
-  });
-  res.json({ matches: visible.map((r) => serializeMatch(r, meId)) });
+  res.json({ matches: rows.map((r) => serializeMatch(r, meId)) });
 });
 
 router.get('/:id', authRequired, (req: AuthedRequest, res) => {

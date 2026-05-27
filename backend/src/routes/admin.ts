@@ -135,6 +135,7 @@ router.post('/users/:id/unban', (req, res) => {
 
 router.delete('/users/:id', (req: AuthedRequest, res) => {
   if (req.params.id === req.userId) return res.status(400).json({ error: 'cannot_delete_self' });
+  if (!/^u_/.test(req.params.id)) return res.status(400).json({ error: 'invalid_id' });
   const userId = req.params.id;
   const user = db.prepare('SELECT phone, photo_url FROM users WHERE id = ?').get(userId) as any;
   if (!user) return res.status(404).json({ error: 'not_found' });

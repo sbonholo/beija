@@ -41,15 +41,17 @@ export function Profile() {
   const [showBlocked, setShowBlocked] = useState(false);
   const [blocked, setBlocked] = useState<BlockedUser[]>([]);
   const [blockedLoading, setBlockedLoading] = useState(false);
+  const [blockedError, setBlockedError] = useState('');
 
   useEffect(() => {
     if (!showBlocked) return;
     let cancelled = false;
     setBlockedLoading(true);
+    setBlockedError('');
     activeApi
       .listBlocks()
       .then((r) => { if (!cancelled) setBlocked(r.blocks); })
-      .catch(() => { if (!cancelled) setBlocked([]); })
+      .catch(() => { if (!cancelled) setBlockedError('Não foi possível carregar a lista. Tente de novo.'); })
       .finally(() => { if (!cancelled) setBlockedLoading(false); });
     return () => { cancelled = true; };
   }, [showBlocked]);
@@ -217,7 +219,10 @@ export function Profile() {
       {showBlocked && (
         <div style={{ marginTop: 12 }}>
           {blockedLoading && <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>}
-          {!blockedLoading && blocked.length === 0 && (
+          {!blockedLoading && blockedError && (
+            <p style={{ fontSize: 13, color: 'var(--danger)' }}>{blockedError}</p>
+          )}
+          {!blockedLoading && !blockedError && blocked.length === 0 && (
             <p className="muted" style={{ fontSize: 13 }}>Nenhum usuário bloqueado.</p>
           )}
           {!blockedLoading && blocked.map((b) => (
