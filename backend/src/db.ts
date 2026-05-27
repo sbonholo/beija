@@ -133,6 +133,14 @@ export function pairKey(a: string, b: string): [string, string] {
 // Incremental migrations — safe on fresh and existing DBs
 try { db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0'); } catch {}
 try { db.exec('ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0'); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN last_lat REAL"); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN last_lng REAL"); } catch {}
+try { db.exec("ALTER TABLE users ADD COLUMN last_location_at INTEGER"); } catch {}
+try { db.exec("ALTER TABLE events ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"); } catch {}
+try { db.exec("ALTER TABLE events ADD COLUMN external_id TEXT"); } catch {}
+try { db.exec("ALTER TABLE events ADD COLUMN created_at INTEGER"); } catch {}
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_events_external_id ON events(external_id) WHERE external_id IS NOT NULL"); } catch {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_users_location ON users(last_location_at) WHERE last_location_at IS NOT NULL"); } catch {}
 
 // Bootstrap admins from ADMIN_PHONES env var (CSV of E.164 phones)
 const _adminPhones = (process.env.ADMIN_PHONES || '')

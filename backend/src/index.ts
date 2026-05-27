@@ -12,6 +12,8 @@ import reactionRoutes from './routes/reactions.js';
 import matchRoutes from './routes/matches.js';
 import userRoutes from './routes/users.js';
 import adminRoutes from './routes/admin.js';
+import locationRoutes from './routes/location.js';
+import { runSync } from './lib/eventSync.js';
 
 const app = express();
 
@@ -108,6 +110,7 @@ app.use('/api/reactions', reactionRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/location', locationRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const msg = typeof err?.message === 'string' ? err.message : String(err ?? 'unknown');
@@ -127,4 +130,11 @@ initSocket(server);
 
 server.listen(config.port, () => {
   console.log(`[beija] listening on http://localhost:${config.port}`);
+  // Start external event sync: first run 15s after boot, then every 6h
+  if (!config.disableEventSync) {
+    setTimeout(() => {
+      void runSync();
+      setInterval(() => void runSync(), 6 * 60 * 60 * 1_000);
+    }, 15_000);
+  }
 });

@@ -48,6 +48,13 @@ export const config = {
   corsOrigins: explicitOrigins,
   whatsappProvider: process.env.WHATSAPP_PROVIDER || 'mock',
   isProd,
+  // Event sync (Ticketmaster / Eventbrite)
+  ticketmasterApiKey: process.env.TICKETMASTER_API_KEY || '',
+  eventbriteToken: process.env.EVENTBRITE_TOKEN || '',
+  syncLat: parseFloat(process.env.SYNC_LAT || '-23.5505'),   // default: São Paulo
+  syncLng: parseFloat(process.env.SYNC_LNG || '-46.6333'),
+  syncRadiusKm: parseInt(process.env.SYNC_RADIUS_KM || '100', 10),
+  disableEventSync: process.env.DISABLE_EVENT_SYNC === 'true',
 };
 
 if (config.isProd && config.jwtSecret === DEFAULT_JWT_SECRET) {

@@ -8,6 +8,11 @@ import { safeJsonArray } from '../lib/utils.js';
 
 const router = Router();
 
+// Adaptive radius: try each tier until ≥3 results, cap at MAX_RESULTS
+const RADIUS_TIERS = [1000, 3000, 5000]; // metres
+const MIN_NEARBY = 3;
+const MAX_RESULTS = 5;
+
 router.get('/', authRequired, (req, res) => {
   const now = Date.now();
   const lat = req.query.lat ? parseFloat(String(req.query.lat)) : null;
@@ -36,15 +41,29 @@ router.get('/', authRequired, (req, res) => {
     endsAt: r.ends_at,
     imageUrl: r.image_url,
     category: r.category,
+    source: r.source ?? 'manual',
     checkinCount: r.checkin_count,
     distanceMeters: lat != null && lng != null ? Math.round(haversineMeters(lat, lng, r.lat, r.lng)) : null,
   }));
 
-  if (lat != null && lng != null) {
-    events.sort((a, b) => (a.distanceMeters! - b.distanceMeters!));
+  if (lat == null || lng == null) {
+    // No GPS: return all sorted by start time, capped
+    return res.json({ events: events.slice(0, MAX_RESULTS), radiusMeters: null });
   }
 
-  res.json({ events });
+  events.sort((a, b) => a.distanceMeters! - b.distanceMeters!);
+
+  // Adaptive radius expansion
+  let result = events;
+  let radiusMeters = RADIUS_TIERS[RADIUS_TIERS.length - 1];
+  for (const r of RADIUS_TIERS) {
+    const within = events.filter((e) => e.distanceMeters! <= r);
+    radiusMeters = r;
+    if (within.length >= MIN_NEARBY) { result = within; break; }
+    result = within; // keep expanding even if under MIN_NEARBY
+  }
+
+  res.json({ events: result.slice(0, MAX_RESULTS), radiusMeters });
 });
 
 router.get('/:id', authRequired, (req, res) => {

@@ -69,8 +69,10 @@ export const api = {
 
   listEvents: (lat?: number | null, lng?: number | null) => {
     const qs = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : '';
-    return request<{ events: any[] }>('GET', `/events${qs}`);
+    return request<{ events: any[]; radiusMeters: number | null }>('GET', `/events${qs}`);
   },
+  updateLocation: (lat: number, lng: number) =>
+    request<{ ok: true; autoEventId: string | null }>('POST', '/location', { lat, lng }),
   getEvent: (id: string) => request<{ event: any }>('GET', `/events/${id}`),
   checkIn: (id: string) => request<{ ok: true }>('POST', `/events/${id}/checkin`),
   checkOut: (id: string) => request<{ ok: true }>('POST', `/events/${id}/checkout`),
@@ -152,7 +154,8 @@ export const mockedApi = {
       reader.readAsDataURL(file);
     });
   },
-  listEvents: async (_lat?: number | null, _lng?: number | null) => ({ events: mockEvents }),
+  listEvents: async (_lat?: number | null, _lng?: number | null) => ({ events: mockEvents, radiusMeters: null as number | null }),
+  updateLocation: async (_lat: number, _lng: number) => ({ ok: true as const, autoEventId: null as string | null }),
   getEvent: async (id: string) => ({ event: findMockEvent(id) }),
   checkIn: async (_id: string) => ({ ok: true as const }),
   checkOut: async (_id: string) => ({ ok: true as const }),
