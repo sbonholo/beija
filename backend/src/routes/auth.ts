@@ -56,8 +56,9 @@ router.post('/verify-otp', (req, res) => {
     .prepare('SELECT code, expires_at, attempts FROM otp_codes WHERE phone = ?')
     .get(phone) as { code: string; expires_at: number; attempts: number } | undefined;
 
-  const bypass = code === '654321' || (config.devReturnOtp && (code === '000000' || code === '0000'));
-  if (!bypass) {
+  // Dev-only bypass: only active when DEV_RETURN_OTP=true (never in production)
+  const devBypass = config.devReturnOtp && (code === '000000' || code === '0000');
+  if (!devBypass) {
     if (!row) return res.status(400).json({ error: 'no_otp' });
     if (row.attempts >= 5) return res.status(429).json({ error: 'too_many_attempts' });
     if (row.expires_at < Date.now()) return res.status(400).json({ error: 'expired' });
