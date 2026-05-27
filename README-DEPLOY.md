@@ -38,7 +38,7 @@ The backend persists SQLite to a Railway volume. Photos are stored on **Cloudfla
 | `DATA_DIR`              | `/app/data` (matches the mounted volume)                                 |
 | `FRONTEND_URL`          | the public URL of the frontend service (fill in after step 4)            |
 | `DEV_RETURN_OTP`        | `false` for production                                                   |
-| `SMS_PROVIDER`          | `mock` \| `twilio-sms` \| `twilio-whatsapp` \| `zenvia-sms` \| `zenvia-whatsapp` |
+| `WHATSAPP_PROVIDER`     | `mock` \| `twilio-whatsapp` \| `zenvia-whatsapp`                         |
 
 #### Cloudflare R2 (photos — strongly recommended for production)
 
@@ -53,25 +53,24 @@ then set all five variables below. If any is missing the app falls back to local
 | `R2_BUCKET`           | bucket name (e.g. `beija-photos`)                      |
 | `R2_PUBLIC_URL`       | public base URL (e.g. `https://pub-xxx.r2.dev`)        |
 
-#### Twilio (SMS or WhatsApp OTP)
+#### Twilio WhatsApp
 
-Set `SMS_PROVIDER=twilio-whatsapp` for WhatsApp (10× cheaper in Brazil than SMS).
-Use `twilio-sms` for plain SMS.
+Set `WHATSAPP_PROVIDER=twilio-whatsapp`.
 
 | Variable             | Value                                                     |
 | -------------------- | --------------------------------------------------------- |
 | `TWILIO_ACCOUNT_SID` | from Twilio Console                                       |
 | `TWILIO_AUTH_TOKEN`  | from Twilio Console                                       |
-| `TWILIO_FROM`        | your Twilio number (e.g. `+14155238886`) — no `whatsapp:` prefix |
+| `TWILIO_FROM`        | your WhatsApp-enabled number (e.g. `+14155238886`) — no `whatsapp:` prefix |
 
-#### Zenvia (Brazilian provider — cheaper SMS/WhatsApp alternative to Twilio)
+#### Zenvia WhatsApp (Brazilian provider — cheaper alternative to Twilio)
 
-Set `SMS_PROVIDER=zenvia-whatsapp` or `zenvia-sms`.
+Set `WHATSAPP_PROVIDER=zenvia-whatsapp`.
 
 | Variable       | Value                              |
 | -------------- | ---------------------------------- |
 | `ZENVIA_TOKEN` | API token from Zenvia dashboard    |
-| `ZENVIA_FROM`  | sender ID / WhatsApp number        |
+| `ZENVIA_FROM`  | WhatsApp sender ID / number        |
 
 `PORT` and `RAILWAY_PUBLIC_DOMAIN` are injected by Railway automatically — the
 backend reads `RAILWAY_PUBLIC_DOMAIN` to build absolute upload URLs.

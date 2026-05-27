@@ -46,7 +46,7 @@ export const config = {
   uploadDir,
   publicUrl,
   corsOrigins: explicitOrigins,
-  smsProvider: process.env.SMS_PROVIDER || 'mock',
+  whatsappProvider: process.env.WHATSAPP_PROVIDER || 'mock',
   isProd,
 };
 

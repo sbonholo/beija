@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { signToken } from '../auth.js';
 import { newId, newOtp, normalizePhone } from '../lib/ids.js';
-import { sendSms } from '../lib/sms.js';
+import { sendWhatsApp } from '../lib/whatsapp.js';
 import { config } from '../config.js';
 import { serializeUser } from './profile.js';
 
@@ -39,11 +39,8 @@ router.post('/request-otp', async (req, res) => {
      ON CONFLICT(phone) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at, attempts=0`
   ).run(phone, code, expiresAt);
 
-  const isWhatsApp = config.smsProvider.includes('whatsapp');
-  const smsBody = isWhatsApp
-    ? `*Beija* — seu código de acesso: *${code}*\n\nVálido por 5 minutos. Não compartilhe este código. 🔐`
-    : `Beija: seu codigo e ${code}`;
-  await sendSms(phone, smsBody);
+  const message = `*Beija* — seu código de acesso: *${code}*\n\nEnviamos seu código via WhatsApp. Válido por 5 minutos. Não compartilhe com ninguém. 🔐`;
+  await sendWhatsApp(phone, message);
 
   const body: Record<string, unknown> = { ok: true, phone };
   if (config.devReturnOtp) body.devCode = code;

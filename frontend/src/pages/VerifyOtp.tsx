@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { activeApi, setToken } from '../lib/api';
 import { useAuth } from '../state/AuthContext';
 
-function formatDisplay(d: string): string {
-  if (d.length <= 2) return d;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+// Format an E.164 phone for display. BR numbers get nice grouping; others show as-is.
+function formatDisplay(e164: string): string {
+  if (!e164) return '';
+  const raw = e164.startsWith('+') ? e164 : '+' + e164.replace(/\D/g, '');
+  if (raw.startsWith('+55')) {
+    const d = raw.slice(3).replace(/\D/g, '');
+    if (d.length === 11) return `+55 ${d.slice(0, 2)} ${d.slice(2, 7)}-${d.slice(7)}`;
+    if (d.length === 10) return `+55 ${d.slice(0, 2)} ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `+55 ${d}`;
+  }
+  return raw;
 }
 
 export function VerifyOtp() {
@@ -61,12 +67,12 @@ export function VerifyOtp() {
 
         {rawPhone && (
           <div className="verify-sent-badge">
-            <span>✓</span> Código enviado para {formatDisplay(rawPhone)}
+            <span>✓</span> Código enviado via WhatsApp para {formatDisplay(rawPhone)}
           </div>
         )}
 
         <p className="auth-tagline" style={{ marginTop: 12 }}>
-          Digite o código de 6 dígitos que chegou por SMS.
+          Digite o código de 6 dígitos que chegou no WhatsApp.
         </p>
       </div>
 

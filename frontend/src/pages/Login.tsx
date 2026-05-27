@@ -2,12 +2,37 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { activeApi } from '../lib/api';
 
-function maskPhone(value: string): string {
-  const d = value.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d ? `(${d}` : '';
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+// Format any international number as the user types. Keeps a single leading '+'.
+// Applies BR-specific spacing for +55 numbers; leaves other country codes as raw digits.
+function maskInternational(value: string): string {
+  // Strip everything except digits and '+'
+  let raw = value.replace(/[^\d+]/g, '');
+  // Collapse multiple '+' into one at position 0
+  const hadPlus = raw.includes('+');
+  raw = raw.replace(/\+/g, '');
+  if (hadPlus) raw = '+' + raw;
+
+  if (!raw) return '';
+  if (!raw.startsWith('+')) raw = '+' + raw;
+
+  // Cap to E.164 max: '+' followed by 15 digits
+  const digits = raw.slice(1).slice(0, 15);
+
+  // BR-specific formatting
+  if (digits.startsWith('55')) {
+    const d = digits.slice(2);
+    if (d.length === 0) return '+55 ';
+    if (d.length <= 2) return `+55 ${d}`;
+    if (d.length <= 6) return `+55 ${d.slice(0, 2)} ${d.slice(2)}`;
+    if (d.length <= 10) return `+55 ${d.slice(0, 2)} ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `+55 ${d.slice(0, 2)} ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+  }
+
+  return '+' + digits;
+}
+
+function toE164(value: string): string {
+  return value.replace(/[^\d+]/g, '');
 }
 
 const FLOATIES: { emoji: string; left: string; top: string; dur: string; delay: string }[] = [
@@ -26,22 +51,26 @@ export function Login() {
   const [error, setError] = useState('');
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setPhone(maskPhone(e.target.value));
+    setPhone(maskInternational(e.target.value));
     setError('');
+  }
+
+  function handleFocus() {
+    if (!phone) setPhone('+55 ');
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const raw = phone.replace(/\D/g, '');
-    if (raw.length < 10 || raw.length > 11) {
-      setError('Digite um número válido com DDD (ex: 11 99999-9999).');
+    const e164 = toE164(phone);
+    if (!/^\+\d{8,15}$/.test(e164)) {
+      setError('Digite um número válido em formato internacional. Ex: +55 11 91234-5678');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      await activeApi.requestOtp(raw);
-      sessionStorage.setItem('beija_phone', raw);
+      await activeApi.requestOtp(e164);
+      sessionStorage.setItem('beija_phone', e164);
       nav('/verify');
     } catch {
       setError('Não foi possível enviar o código. Tente de novo.');
@@ -50,8 +79,8 @@ export function Login() {
     }
   }
 
-  const digits = phone.replace(/\D/g, '');
-  const isValid = digits.length === 10 || digits.length === 11;
+  const e164 = toE164(phone);
+  const isValid = /^\+\d{8,15}$/.test(e164);
 
   return (
     <div className="auth-screen">
@@ -81,14 +110,18 @@ export function Login() {
         <div className="phone-input-wrap">
           <input
             type="tel"
-            inputMode="numeric"
-            placeholder="(11) 99999-9999"
+            inputMode="tel"
+            placeholder="+55 11 91234-5678"
             value={phone}
             onChange={handleChange}
+            onFocus={handleFocus}
             autoFocus
             className={`phone-input${isValid ? ' phone-valid' : ''}`}
           />
         </div>
+        <p className="muted" style={{ fontSize: 12, marginTop: 6, textAlign: 'center', lineHeight: 1.5 }}>
+          Use formato internacional. Ex: +55 11 91234-5678 ou +1 555 123 4567
+        </p>
 
         {error && (
           <p className="auth-error">{error}</p>
@@ -99,7 +132,7 @@ export function Login() {
           type="submit"
           disabled={loading || !isValid}
         >
-          {loading ? 'Enviando…' : 'Receber código 📱'}
+          {loading ? 'Enviando…' : 'Receber código no WhatsApp 💬'}
         </button>
 
         <p className="auth-disclaimer">
