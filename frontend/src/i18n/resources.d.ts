@@ -12,6 +12,7 @@ import settings from './locales/pt-BR/settings.json';
 import profile from './locales/pt-BR/profile.json';
 import moderation from './locales/pt-BR/moderation.json';
 import errors from './locales/pt-BR/errors.json';
+import events from './locales/pt-BR/events.json';
 
 declare module 'react-i18next' {
   interface CustomTypeOptions {
@@ -26,6 +27,7 @@ declare module 'react-i18next' {
       profile: typeof profile;
       moderation: typeof moderation;
       errors: typeof errors;
+      events: typeof events;
     };
   }
 }

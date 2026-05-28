@@ -98,3 +98,36 @@ export interface Message {
   created_at: string;
   deleted_at: string | null;
 }
+
+export type EventCategory = 'festival' | 'concert' | 'bar' | 'nightclub' | 'show' | 'other';
+export type ReactionKind  = 'kiss' | 'heart' | 'fire';
+
+export interface Event {
+  id:          string;
+  name:        string;
+  venue:       string | null;
+  city:        string | null;
+  address:     string | null;
+  category:    EventCategory;
+  starts_at:   string;
+  ends_at:     string | null;
+  image_url:   string | null;
+  is_verified: boolean;
+  created_at:  string;
+}
+
+/** Returned by the `get_nearby_events` RPC */
+export interface NearbyEvent extends Event {
+  distance_km:    number | null;
+  attendee_count: number;
+  is_checked_in:  boolean;
+}
+
+/** Returned by the `get_event_attendees` RPC */
+export interface EventAttendee {
+  user_id:     string;
+  name:        string | null;
+  age:         number | null;
+  photo_url:   string | null;
+  my_reaction: ReactionKind | null;
+}

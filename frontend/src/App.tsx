@@ -23,6 +23,12 @@ const DeleteAccountFlow = lazy(() =>
 const BlockedUsersScreen = lazy(() =>
   import('./components/Settings/BlockedUsersScreen').then((m) => ({ default: m.BlockedUsersScreen })),
 );
+const EventsScreen = lazy(() =>
+  import('./components/Events/EventsScreen').then((m) => ({ default: m.EventsScreen })),
+);
+const EventDetailScreen = lazy(() =>
+  import('./components/Events/EventDetailScreen').then((m) => ({ default: m.EventDetailScreen })),
+);
 const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./components/pages/TermsPage'));
 const CommunityGuidelinesPage = lazy(
@@ -43,7 +49,7 @@ function Splash() {
 }
 
 const LAST_ROUTE_KEY = 'beija_last_route';
-const VALID_RESUME_ROUTES = new Set(['/discover', '/matches', '/profile', '/settings']);
+const VALID_RESUME_ROUTES = new Set(['/discover', '/events', '/matches', '/profile', '/settings']);
 
 function getLastRoute(): string {
   try {
@@ -165,8 +171,16 @@ export function App() {
             <Route element={<NeedsProfile />}>
               <Route path="/chat/:id" element={<ChatScreen />} />
               <Route path="/likes-you" element={<LikesYouScreen />} />
+              <Route
+                path="/events/:id"
+                element={<Suspense fallback={<Splash />}><EventDetailScreen /></Suspense>}
+              />
               <Route element={<TabLayout />}>
                 <Route path="/discover" element={<StackDeck />} />
+                <Route
+                  path="/events"
+                  element={<Suspense fallback={<Splash />}><EventsScreen /></Suspense>}
+                />
                 <Route path="/matches" element={<MatchesList />} />
                 <Route path="/profile" element={<ProfileSetup />} />
                 <Route

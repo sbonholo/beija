@@ -4,8 +4,9 @@ import { useUnread } from '../state/UnreadContext';
 
 const tabs = [
   { to: '/discover', icon: '🔥', key: 'discover' as const },
-  { to: '/matches', icon: '💋', key: 'matches' as const },
-  { to: '/profile', icon: '👤', key: 'profile' as const },
+  { to: '/events',   icon: '🎪', key: 'events'   as const },
+  { to: '/matches',  icon: '💋', key: 'matches'  as const },
+  { to: '/profile',  icon: '👤', key: 'profile'  as const },
   { to: '/settings', icon: '⚙', key: 'settings' as const },
 ];
 
