@@ -45,6 +45,7 @@ export function EventDetailScreen() {
 
   const [event,    setEvent]    = useState<NearbyEvent | null>(null);
   const [attendees,setAttendees]= useState<EventAttendee[]>([]);
+  const [attendeeError, setAttendeeError] = useState(false);
   const [loading,  setLoading]  = useState(true);
   const [me,       setMe]       = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -84,8 +85,10 @@ export function EventDetailScreen() {
 
     if (attResult.error) {
       toast({ kind: 'info', text: t('error_loading') });
+      setAttendeeError(true);
     } else {
       setAttendees((attResult.data ?? []) as unknown as EventAttendee[]);
+      setAttendeeError(false);
     }
 
     setLoading(false);
@@ -98,8 +101,13 @@ export function EventDetailScreen() {
     setCheckingIn(true);
 
     if (isCheckedIn) {
-      await supabase.from('check_ins')
+      const { error: delErr } = await supabase.from('check_ins')
         .delete().eq('event_id', eventId).eq('user_id', me);
+      if (delErr) {
+        toast({ kind: 'info', text: t('error_checkin') });
+        setCheckingIn(false);
+        return;
+      }
       setIsCheckedIn(false);
       setEvent((ev) => ev ? { ...ev, attendee_count: ev.attendee_count - 1, is_checked_in: false } : ev);
     } else {
@@ -251,7 +259,15 @@ export function EventDetailScreen() {
         {t('attendees_title')}
       </h3>
 
-      {attendees.length === 0 ? (
+      {attendeeError ? (
+        <div className="empty" style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 40 }}>⚠️</div>
+          <p className="muted" style={{ marginBottom: 8 }}>{t('error_loading')}</p>
+          <button className="btn ghost" style={{ width: 'auto', padding: '8px 20px' }} onClick={() => void loadData()}>
+            Tentar de novo
+          </button>
+        </div>
+      ) : attendees.length === 0 ? (
         <div className="empty" style={{ marginTop: 20 }}>
           <div style={{ fontSize: 40 }}>🎵</div>
           <p className="muted" style={{ marginBottom: 4 }}>{t('no_attendees')}</p>

@@ -95,14 +95,23 @@ export function EventsScreen() {
     setChecking((prev) => new Set(prev).add(event.id));
 
     if (event.is_checked_in) {
-      await supabase.from('check_ins')
+      const { error } = await supabase.from('check_ins')
         .delete()
         .eq('event_id', event.id)
         .eq('user_id', userId);
+      if (error) {
+        toast({ kind: 'info', text: t('error_checkin') });
+        setChecking((prev) => { const s = new Set(prev); s.delete(event.id); return s; });
+        return;
+      }
     } else {
       const { error } = await supabase.from('check_ins')
         .insert({ event_id: event.id, user_id: userId });
-      if (error) toast({ kind: 'info', text: t('error_checkin') });
+      if (error) {
+        toast({ kind: 'info', text: t('error_checkin') });
+        setChecking((prev) => { const s = new Set(prev); s.delete(event.id); return s; });
+        return;
+      }
     }
 
     setEvents((prev) =>
