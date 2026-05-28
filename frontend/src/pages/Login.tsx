@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { activeApi, ApiError } from '../lib/api';
+import { FlameHeartLogo } from '../components/FlameHeartLogo';
 
 // Format any international number as the user types. Keeps a single leading '+'.
 // Applies BR-specific spacing for +55 numbers; leaves other country codes as raw digits.
@@ -36,12 +37,12 @@ function toE164(value: string): string {
 }
 
 const FLOATIES: { emoji: string; left: string; top: string; dur: string; delay: string }[] = [
-  { emoji: '💋', left: '6%',  top: '10%', dur: '5.2s', delay: '0s'    },
-  { emoji: '❤️', left: '88%', top: '16%', dur: '7.1s', delay: '1.3s'  },
-  { emoji: '🔥', left: '12%', top: '68%', dur: '6.4s', delay: '0.6s'  },
-  { emoji: '💋', left: '80%', top: '74%', dur: '5.8s', delay: '2.1s'  },
-  { emoji: '✨', left: '48%', top: '6%',  dur: '8s',   delay: '0.9s'  },
-  { emoji: '❤️', left: '65%', top: '58%', dur: '6s',   delay: '3.2s'  },
+  { emoji: '🔥',    left: '6%',  top: '10%', dur: '5.2s', delay: '0s'   },
+  { emoji: '✨',    left: '88%', top: '16%', dur: '7.1s', delay: '1.3s' },
+  { emoji: '❤️‍🔥', left: '12%', top: '68%', dur: '6.4s', delay: '0.6s' },
+  { emoji: '🔥',    left: '80%', top: '74%', dur: '5.8s', delay: '2.1s' },
+  { emoji: '✨',    left: '48%', top: '6%',  dur: '8s',   delay: '0.9s' },
+  { emoji: '❤️‍🔥', left: '65%', top: '58%', dur: '6s',   delay: '3.2s' },
 ];
 
 export function Login() {
@@ -118,10 +119,12 @@ export function Login() {
 
       {/* Hero */}
       <div className="auth-hero">
-        <div className="lips-hero" aria-hidden="true">💋</div>
+        <div className="flame-hero">
+          <FlameHeartLogo size={96} />
+        </div>
         <h1 className="brand-title">Beija</h1>
         <p className="brand-subtitle">Conexões no rolê 🔥</p>
-        <p className="auth-tagline">Entre no rolê. Conheça gente incrível. 💋</p>
+        <p className="auth-tagline">Entre no rolê. Conheça gente incrível. ❤️‍🔥</p>
       </div>
 
       {/* Form */}
