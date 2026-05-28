@@ -3,7 +3,13 @@
 [![CI](https://github.com/sbonholo/beija/actions/workflows/ci.yml/badge.svg)](https://github.com/sbonholo/beija/actions/workflows/ci.yml)
 [![Lighthouse](https://github.com/sbonholo/beija/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/sbonholo/beija/actions/workflows/lighthouse.yml)
 
-App de relacionamentos feito pra brasileiros. React + Capacitor 8 + Supabase.
+App pra facilitar a pegação em eventos — festivais, shows, bares, baladas e
+casas de show. **Supabase + Postgres + Vercel + Capacitor.**
+
+> **Architecture:** This is a **Supabase (Postgres 15 + PostGIS) + Vercel + Capacitor 8**
+> app. It was pivoted on 2026-05-27 from a previous SQLite + Express + Railway
+> stack. See **[MIGRATION.md](MIGRATION.md)** for the full rationale and how to
+> recover the old code (`archive/sqlite-railway-main` / tag `v0-sqlite-railway`).
 
 > **Status:** pre-MVP. Schema + UI completos, faltam credenciais de produção (Supabase project, Apple Dev, Google Console) e assets visuais finais. See `AppStoreMetadata.md` and `ASSETS_SPEC.md`.
 
@@ -20,7 +26,11 @@ App de relacionamentos feito pra brasileiros. React + Capacitor 8 + Supabase.
   - Realtime (`postgres_changes` + presence) for chat
   - Edge Functions (push fan-out, deletion email — TODOs)
 - **Native plugins:** `@capacitor/push-notifications`, `@capacitor/camera`, `@capacitor/geolocation`, `@capacitor/app`
-- **Legacy Express backend:** `backend/` (event-based app) — being decommissioned per `backend/MIGRATION.md`
+- **Hosting:** Vercel (frontend) + Supabase (managed backend). The old Railway
+  service (`b03a5964-…`) hosted the legacy backend and is **no longer canonical** — see [MIGRATION.md](MIGRATION.md) § Railway status.
+- **Legacy Express backend (archived):** the SQLite/Express/Railway code is preserved
+  on `archive/sqlite-railway-main` (tag `v0-sqlite-railway`). A read-only copy also
+  remains in `backend/` for reference; see `backend/MIGRATION.md`.
 
 ---
 
@@ -105,10 +115,13 @@ supabase db push
 ```
 
 Migrations live in `supabase/migrations/`. They create:
-- 8 tables: profiles, photos, swipes, matches, messages, reports, blocks, deletion_requests
-- 2 RPCs: `find_potential_matches(uuid, int)`, `update_user_location(float, float)`
-- Mutual-swipe → match trigger
-- Row Level Security policies for all tables
+- 11 tables: profiles, photos, swipes, matches, messages, reports, blocks,
+  deletion_requests, **events, check_ins, event_reactions**
+- RPCs incl. `find_potential_matches`, `update_user_location`, `block_user`,
+  **`get_nearby_events`, `get_event_attendees`**
+- Mutual-swipe → match trigger **and mutual-kiss (at an event) → match trigger**
+- Row Level Security policies for all tables (block-aware on matches/messages;
+  event reactions require an active check-in)
 
 Don't forget to enable the **Apple** and **Google** auth providers in the Supabase dashboard (`Authentication → Providers`) before users can sign in. See `docs/DEPLOYMENT.md`.
 
