@@ -20,6 +20,9 @@ const OnboardingFlow = lazy(() =>
 const DeleteAccountFlow = lazy(() =>
   import('./components/Settings/DeleteAccountFlow').then((m) => ({ default: m.DeleteAccountFlow })),
 );
+const BlockedUsersScreen = lazy(() =>
+  import('./components/Settings/BlockedUsersScreen').then((m) => ({ default: m.BlockedUsersScreen })),
+);
 const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./components/pages/TermsPage'));
 const CommunityGuidelinesPage = lazy(
@@ -149,6 +152,10 @@ export function App() {
             <Route
               path="/settings/delete"
               element={<Suspense fallback={<Splash />}><DeleteAccountFlow /></Suspense>}
+            />
+            <Route
+              path="/settings/blocked"
+              element={<Suspense fallback={<Splash />}><BlockedUsersScreen /></Suspense>}
             />
             <Route
               path="/profile/:id"

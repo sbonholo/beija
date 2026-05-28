@@ -18,28 +18,8 @@ export function BlockButton({ targetUserId, targetName, onBlocked, variant = 'ch
     if (working) return;
     setWorking(true);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const me = auth.user?.id;
-      if (!me) throw new Error('not_authenticated');
-
-      const { error: blockErr } = await supabase
-        .from('blocks')
-        .insert({ blocker_id: me, blocked_id: targetUserId });
-      if (blockErr && blockErr.code !== '23505' /* unique_violation */) throw blockErr;
-
-      // Remove mutual swipes
-      await supabase
-        .from('swipes')
-        .delete()
-        .or(
-          `and(swiper_id.eq.${me},swipee_id.eq.${targetUserId}),and(swiper_id.eq.${targetUserId},swipee_id.eq.${me})`,
-        );
-
-      // Remove match (ordered pair due to user1_id < user2_id constraint)
-      const lo = me < targetUserId ? me : targetUserId;
-      const hi = me < targetUserId ? targetUserId : me;
-      await supabase.from('matches').delete().eq('user1_id', lo).eq('user2_id', hi);
-
+      const { error } = await supabase.rpc('block_user', { p_blocked_id: targetUserId });
+      if (error) throw error;
       toast({ kind: 'info', text: 'Usuário bloqueado.' });
       setOpen(false);
       onBlocked?.();

@@ -159,6 +159,9 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title={t('sections.account')}>
+        <Link to="/settings/blocked" className="settings-link">
+          {t('links.blocked_users', { defaultValue: 'Usuários bloqueados' })} →
+        </Link>
         <Link to="/settings/delete" className="settings-link" style={{ color: '#ff8585' }}>
           {t('links.delete_account')} →
         </Link>
