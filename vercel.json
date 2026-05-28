@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd frontend && npm ci --legacy-peer-deps && npm run build",
-  "outputDirectory": "frontend/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": null,
-  "installCommand": "echo 'install handled inside buildCommand'",
-  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "npm ci --legacy-peer-deps",
+  "devCommand": "vite",
   "rewrites": [
     { "source": "/((?!assets/|sw\\.js|favicon\\.svg|manifest\\.json|robots\\.txt|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|xml|css|js|woff2?|map)).*)", "destination": "/index.html" }
   ],
