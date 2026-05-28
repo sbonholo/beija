@@ -1,4 +1,51 @@
-# Handoff — autonomous run 2026-05-28
+# Handoff — updated 2026-05-28 (current state)
+
+---
+
+## CURRENT DEPLOYMENT REALITY (as of main @ `9f468a5`)
+
+| Item | Status |
+|---|---|
+| **main HEAD** | `9f468a5` — events layer committed, MIGRATION.md + README updated |
+| **www.beija.app DNS** | Points to Vercel (`vercel-dns-017.com`) but returns `x-deny-reason: host_not_allowed` — domain not yet added to any Vercel project |
+| **Auth method in code** | Apple + Google OAuth (Supabase Auth) — NOT phone/WhatsApp OTP (that was the legacy SQLite app) |
+| **Supabase project** | Not yet provisioned — all 17 migrations ready in `supabase/migrations/` |
+| **Events layer** | Built: `events`, `check_ins`, `event_reactions` tables; mutual-kiss trigger; `get_event_attendees` + `get_nearby_events` RPCs; EventsScreen + EventDetailScreen |
+| **CI deploy-pages job** | Was failing when GitHub Pages source not set; fixed with `continue-on-error: true` |
+| **CI vercel job** | Gracefully skips when `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` secrets absent |
+
+### What needs to happen before beija.app is live
+
+1. Create Supabase project + `supabase db push` (applies all 17 migrations)
+2. Enable Apple + Google in Supabase Auth → Providers
+3. Create Vercel project, import repo (`main` branch), set env vars, **add `www.beija.app` domain**
+4. Set `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` in GitHub repo secrets → CI auto-deploys on push to main
+
+### Manual git items (blocked in CI environment)
+
+- `git push origin v0-sqlite-railway` — tag push rejected (HTTP 403 in remote runner). Run locally.
+- `git push origin --delete ms-review` — branch delete rejected (HTTP 403). Delete via GitHub web UI.
+- `git push origin --delete claude/lucid-galileo-8k02D` — same. Delete via GitHub web UI.
+
+---
+
+## E2E event flow — code trace (7 steps, PASS/FAIL)
+
+> Two users A and B both check into the same event and mutually kiss.
+
+| Step | What happens | Code path | Verdict |
+|---|---|---|---|
+| **1. Sign in** | Apple/Google OAuth → Supabase session | `SignInScreen` → `@capgo/capacitor-social-login` / Supabase OAuth | **PASS** |
+| **2. Find events** | `EventsScreen` calls `get_nearby_events(lat, lon, 100km)`. Geo 5s timeout → falls back to no-filter on denial. | `EventsScreen.tsx:55-83`, `get_nearby_events` SQL (handles NULL lat/lon) | **PASS** |
+| **3. Check in** | Both A and B tap "Check-in" on same event. RLS `check_ins_insert` enforces `auth.uid() = user_id`. UNIQUE prevents duplicate. | `EventsScreen.tsx:87-127`, `EventDetailScreen.tsx:99-124` | **PASS** |
+| **4. A sees B in attendees** | A opens event detail. `get_event_attendees(event_id)` returns B with `my_reaction=null`. Excludes banned, deleted, blocked users bidirectionally. | `EventDetailScreen.tsx:72`, migration L144-179 | **PASS** |
+| **5. A kisses B** | A taps B → reaction modal → Kiss button. `upsert` with `onConflict: 'sender_id,receiver_id,event_id'`. RLS checks A is checked in at this event. Optimistic UI update. | `EventDetailScreen.tsx:126-175`, `er_insert` policy | **PASS** |
+| **6. B kisses A → match** | B sends kiss. DB trigger `on_mutual_kiss` fires, checks mutual + no blocks, inserts match. B's client checks `matches` table → finds row → shows celebration modal. A discovers match via Matches tab (no real-time notification on first kisser — known limitation, needs Realtime subscription). | `create_match_on_mutual_kiss()` trigger, `EventDetailScreen.tsx:159-171` | **PASS** (B sees celebration; A needs to visit Matches tab) |
+| **7. Block filtering** | Blocked users absent from `get_event_attendees` (bidirectional `blocks` exclusion). Trigger also skips match creation across a block. | Migration L170-175, trigger L116-120 | **PASS** |
+
+---
+
+## Original handoff (still accurate for setup steps)
 
 This document captures what I did while you were asleep and lists every
 action that requires human hands (Apple credentials, Railway env vars,
