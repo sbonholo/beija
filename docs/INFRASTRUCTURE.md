@@ -222,3 +222,27 @@ signups to real users.
 
 5. **Rotate any credentials that were ever pasted into chat, screenshots,
    or commits** (Twilio auth token, R2 keys) as a precaution.
+---
+
+## Status update (2026-05-27) — App Store readiness pass
+
+The original "Security TODO" list above is now partially out of date. Current status:
+
+1. **JWT_SECRET rotation guard — RESOLVED in code.** `backend/src/config.ts` throws on startup in production if the default secret is in use. **Owner action still required:** verify the live Railway `JWT_SECRET` value was rotated to a fresh `openssl rand -hex 32` after the original screenshot leak. The startup guard prevents accidental use of the default, but it cannot detect whether the originally-leaked production value was replaced.
+
+2. **Universal bypass code `654321` — RESOLVED.** Removed from `backend/src/routes/auth.ts`. The only remaining bypass codes are `000000` and `0000`, and both are gated behind `config.devReturnOtp`, which is forced to `false` whenever `NODE_ENV=production`. Safe in production.
+
+3. **Migrate off Twilio WhatsApp Sandbox — IN PROGRESS.** Twilio Verify service `VA486a0329c9217958bb1ff4918c24380e` is provisioned. Backend integration and Railway env-var swap still needed before App Review submission. See `IOS_READINESS.md` item #3 and `APP_STORE_SUBMISSION.md` section 5.
+
+4. **Attach a custom domain to the R2 bucket — NOT STARTED.** Still on the `*.r2.dev` rate-limited URL. Owner needs to add a Cloudflare DNS record for `cdn.beija.app` and enable R2 Public Access, then update `R2_PUBLIC_URL` in Railway. See `IOS_READINESS.md` item #6.
+
+5. **Rotate any credentials pasted in chat/screenshots/commits — OWNER ACTION.** Cannot be verified from code. Treat as a pre-submission hygiene checklist item.
+
+---
+
+## App Store readiness
+
+For the iOS App Store submission gap analysis, action items, and submission pack, see:
+
+- [`IOS_READINESS.md`](./IOS_READINESS.md) — full gap checklist with severities (BLOCKER / MAJOR / MINOR) and status tracking
+- [`APP_STORE_SUBMISSION.md`](./APP_STORE_SUBMISSION.md) — App Privacy questionnaire draft, `Info.plist` usage strings (PT + EN), `PrivacyInfo.xcprivacy` template, reviewer demo account spec, marketing copy
