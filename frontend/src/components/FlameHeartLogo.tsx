@@ -1,152 +1,122 @@
+// Single-tip flame path: wide rounded base, organic sides, one pointed tip at top
+const FLAME =
+  'M50 112 C34 112 12 96 10 78' +
+  ' C8 62 14 48 24 40' +
+  ' C16 32 18 20 28 12' +
+  ' C36 6 46 4 50 4' +
+  ' C54 4 64 6 72 12' +
+  ' C82 20 84 32 76 40' +
+  ' C86 48 92 62 90 78' +
+  ' C88 96 66 112 50 112 Z';
+
+// Inner flame lick — slightly smaller, adds depth and warmth
+const INNER_FLAME =
+  'M50 108 C40 108 22 96 20 81' +
+  ' C18 68 24 56 34 48' +
+  ' C26 42 28 30 36 22' +
+  ' C42 14 48 10 50 10' +
+  ' C52 10 58 14 64 22' +
+  ' C72 30 74 42 66 48' +
+  ' C76 56 82 68 80 81' +
+  ' C78 96 60 108 50 108 Z';
+
+const HEART =
+  'M50 90 C47 86 28 75 28 62' +
+  ' C28 53 34 47 42 47' +
+  ' C46 47 49 50 50 54' +
+  ' C51 50 54 47 58 47' +
+  ' C66 47 72 53 72 62' +
+  ' C72 75 53 86 50 90 Z';
+
+const SPARKS: [number, number, string, number][] = [
+  [44,  1, '#FF1CD6', 1.4],
+  [58,  3, '#FF6B00', 1.3],
+  [8,  60, '#9B20E8', 1.1],
+  [92, 56, '#FF1CD6', 1.0],
+  [16, 26, '#FF6B00', 0.9],
+  [84, 22, '#FF1CD6', 0.9],
+  [28, 112, '#9B20E8', 0.8],
+  [72, 112, '#FF6B00', 0.8],
+];
+
 export function FlameHeartLogo({ size = 88 }: { size?: number }) {
   const h = Math.round(size * 1.25);
   return (
     <svg width={size} height={h} viewBox="0 0 100 125" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <filter id="fhBlur" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.5" />
+        <filter id="fhBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" />
         </filter>
-        <filter id="fhBlurSm" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="2" />
+        <filter id="fhBlurSm" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="2.5" />
+        </filter>
+        <filter id="fhBlurTiny" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.5" />
         </filter>
 
-        {/* Flame stroke: purple-left → pink → orange-right */}
-        <linearGradient id="fhFlameGrad" x1="0%" y1="20%" x2="100%" y2="80%">
+        {/* Flame gradient: purple top → magenta mid → orange base */}
+        <linearGradient id="fhFlameGrad" x1="30%" y1="0%" x2="70%" y2="100%">
           <stop offset="0%"   stopColor="#9B20E8" />
-          <stop offset="40%"  stopColor="#FF1CD6" />
+          <stop offset="45%"  stopColor="#FF1CD6" />
           <stop offset="100%" stopColor="#FF6B00" />
         </linearGradient>
 
-        {/* Heart stroke: magenta → fire-red */}
+        {/* Heart gradient: hot pink → fire red */}
         <linearGradient id="fhHeartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"   stopColor="#CC00AA" />
+          <stop offset="0%"   stopColor="#FF1CD6" />
           <stop offset="100%" stopColor="#FF3B00" />
         </linearGradient>
 
-        {/* Flame fill: deep maroon */}
+        {/* Flame body fill: deep near-black maroon */}
         <linearGradient id="fhFill" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%"   stopColor="#3A0028" />
-          <stop offset="100%" stopColor="#1A0010" />
+          <stop offset="0%"   stopColor="#2A001E" />
+          <stop offset="100%" stopColor="#10000A" />
         </linearGradient>
 
-        {/* Inner ember glow */}
-        <radialGradient id="fhEmber" cx="50%" cy="68%" r="38%">
-          <stop offset="0%"   stopColor="#8B0040" stopOpacity="0.75" />
-          <stop offset="100%" stopColor="#1A0010" stopOpacity="0" />
+        {/* Inner lick fill: slightly lighter */}
+        <linearGradient id="fhInnerFill" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%"   stopColor="#4A0034" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#200018" stopOpacity="0.4" />
+        </linearGradient>
+
+        {/* Radial ember glow at the base */}
+        <radialGradient id="fhEmber" cx="50%" cy="72%" r="44%">
+          <stop offset="0%"   stopColor="#CC0055" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#10000A"  stopOpacity="0" />
         </radialGradient>
       </defs>
 
-      {/* ── Flame ── */}
-      {/* wide glow halo */}
-      <path
-        d="M50 112 C37 112 12 96 10 78 C8 63 16 48 27 39
-           C19 29 21 14 31 8
-           C35 19 37 29 41 33
-           C39 21 41 10 50 4
-           C59 10 61 21 59 33
-           C63 29 65 19 69 8
-           C79 14 81 29 73 39
-           C84 48 92 63 90 78
-           C88 96 63 112 50 112 Z"
-        fill="none"
-        stroke="url(#fhFlameGrad)"
-        strokeWidth="8"
-        strokeLinejoin="round"
-        filter="url(#fhBlur)"
-        opacity="0.85"
-      />
-      {/* dark fill */}
-      <path
-        d="M50 112 C37 112 12 96 10 78 C8 63 16 48 27 39
-           C19 29 21 14 31 8
-           C35 19 37 29 41 33
-           C39 21 41 10 50 4
-           C59 10 61 21 59 33
-           C63 29 65 19 69 8
-           C79 14 81 29 73 39
-           C84 48 92 63 90 78
-           C88 96 63 112 50 112 Z"
-        fill="url(#fhFill)"
-      />
-      {/* inner ember radial */}
-      <path
-        d="M50 112 C37 112 12 96 10 78 C8 63 16 48 27 39
-           C19 29 21 14 31 8
-           C35 19 37 29 41 33
-           C39 21 41 10 50 4
-           C59 10 61 21 59 33
-           C63 29 65 19 69 8
-           C79 14 81 29 73 39
-           C84 48 92 63 90 78
-           C88 96 63 112 50 112 Z"
-        fill="url(#fhEmber)"
-      />
-      {/* sharp neon outline */}
-      <path
-        d="M50 112 C37 112 12 96 10 78 C8 63 16 48 27 39
-           C19 29 21 14 31 8
-           C35 19 37 29 41 33
-           C39 21 41 10 50 4
-           C59 10 61 21 59 33
-           C63 29 65 19 69 8
-           C79 14 81 29 73 39
-           C84 48 92 63 90 78
-           C88 96 63 112 50 112 Z"
-        fill="none"
-        stroke="url(#fhFlameGrad)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* ── Outer glow halo ── */}
+      <path d={FLAME} fill="none" stroke="url(#fhFlameGrad)"
+        strokeWidth="10" strokeLinejoin="round"
+        filter="url(#fhBlur)" opacity="0.65" />
+
+      {/* ── Flame body ── */}
+      <path d={FLAME} fill="url(#fhFill)" />
+      <path d={FLAME} fill="url(#fhEmber)" />
+
+      {/* ── Inner flame lick ── */}
+      <path d={INNER_FLAME} fill="url(#fhInnerFill)" />
+      <path d={INNER_FLAME} fill="none" stroke="url(#fhFlameGrad)"
+        strokeWidth="1" strokeLinejoin="round"
+        opacity="0.45" filter="url(#fhBlurTiny)" />
+
+      {/* ── Sharp neon outline ── */}
+      <path d={FLAME} fill="none" stroke="url(#fhFlameGrad)"
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
       {/* ── Heart ── */}
-      {/* heart glow */}
-      <path
-        d="M50 92 C47 88 26 77 26 63
-           C26 54 32 47 40 47
-           C44 47 48 50 50 54
-           C52 50 56 47 60 47
-           C68 47 74 54 74 63
-           C74 77 53 88 50 92 Z"
-        fill="none"
-        stroke="url(#fhHeartGrad)"
-        strokeWidth="4"
-        filter="url(#fhBlurSm)"
-        opacity="0.9"
-      />
-      {/* heart translucent fill */}
-      <path
-        d="M50 92 C47 88 26 77 26 63
-           C26 54 32 47 40 47
-           C44 47 48 50 50 54
-           C52 50 56 47 60 47
-           C68 47 74 54 74 63
-           C74 77 53 88 50 92 Z"
-        fill="rgba(140, 0, 55, 0.32)"
-      />
-      {/* heart sharp outline */}
-      <path
-        d="M50 92 C47 88 26 77 26 63
-           C26 54 32 47 40 47
-           C44 47 48 50 50 54
-           C52 50 56 47 60 47
-           C68 47 74 54 74 63
-           C74 77 53 88 50 92 Z"
-        fill="none"
-        stroke="url(#fhHeartGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* glow */}
+      <path d={HEART} fill="none" stroke="url(#fhHeartGrad)"
+        strokeWidth="5" filter="url(#fhBlurSm)" opacity="0.9" />
+      {/* translucent fill */}
+      <path d={HEART} fill="rgba(180, 0, 65, 0.35)" />
+      {/* sharp outline */}
+      <path d={HEART} fill="none" stroke="url(#fhHeartGrad)"
+        strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* ── Sparks ── */}
-      {/* cross-sparks around the logo */}
-      {([
-        [7, 30, '#FF1CD6', 1.4],   [93, 34, '#FF6B00', 1.2],
-        [5, 70, '#9B20E8', 1.0],   [95, 66, '#FF1CD6', 1.1],
-        [16, 14, '#FF6B00', 0.9],  [84, 18, '#FF1CD6', 0.9],
-        [20, 98, '#9B20E8', 0.8],  [80, 96, '#FF6B00', 0.8],
-      ] as [number, number, string, number][]).map(([cx, cy, color, r], i) => (
+      {/* ── Ember sparks ── */}
+      {SPARKS.map(([cx, cy, color, r], i) => (
         <g key={i} transform={`translate(${cx},${cy})`}>
           <line x1={-r * 2} y1="0" x2={r * 2} y2="0" stroke={color} strokeWidth="1" opacity="0.7" />
           <line x1="0" y1={-r * 2} x2="0" y2={r * 2} stroke={color} strokeWidth="1" opacity="0.7" />
