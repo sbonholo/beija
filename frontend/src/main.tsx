@@ -14,7 +14,10 @@ import { App } from './App';
 import { AuthProvider } from './state/AuthContext';
 import { UnreadProvider } from './state/UnreadContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { initNative } from './platform/native';
 import './index.css';
+
+void initNative();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
