@@ -5,6 +5,7 @@ import { signInWithApple, signInWithGoogle } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { track } from '../../lib/analytics';
 import { useToast } from '../Toast';
+import { FlameHeartLogo } from '../FlameHeartLogo';
 
 type Provider = 'apple' | 'google';
 
@@ -54,6 +55,9 @@ export function SignInScreen() {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8vh' }}>
+        <div className="flame-hero">
+          <FlameHeartLogo size={96} />
+        </div>
         <h1 className="brand-title" style={{ fontSize: 56, marginBottom: 12 }}>Beija</h1>
         <p className="brand-sub" style={{ textAlign: 'center', maxWidth: 320 }}>
           Conexões reais. Sem joguinhos. Pessoas perto de você.
