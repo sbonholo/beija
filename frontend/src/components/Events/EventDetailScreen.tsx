@@ -61,22 +61,31 @@ export function EventDetailScreen() {
     const userId = auth.user?.id ?? null;
     setMe(userId);
 
-    // Load event info via get_nearby_events (no geo) so we get attendee_count + is_checked_in
-    const { data: evData } = await supabase.rpc('get_nearby_events', {
-      p_lat: null, p_lon: null, p_radius_km: 999999,
-    });
-    const evRow = ((evData ?? []) as unknown as NearbyEvent[]).find((e) => e.id === eventId) ?? null;
-    setEvent(evRow);
-    setIsCheckedIn(evRow?.is_checked_in ?? false);
+    // Load event, attendee count, and check-in status in parallel
+    const [evResult, countResult, checkInResult, attResult] = await Promise.all([
+      supabase.from('events').select('*').eq('id', eventId).maybeSingle(),
+      supabase.from('check_ins').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+      userId
+        ? supabase.from('check_ins').select('id').eq('event_id', eventId).eq('user_id', userId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase.rpc('get_event_attendees', { p_event_id: eventId }),
+    ]);
 
-    // Load attendees
-    const { data: attData, error: attErr } = await supabase.rpc('get_event_attendees', {
-      p_event_id: eventId,
-    });
-    if (attErr) {
+    if (evResult.data) {
+      const ev: NearbyEvent = {
+        ...(evResult.data as unknown as NearbyEvent),
+        distance_km:    null,
+        attendee_count: countResult.count ?? 0,
+        is_checked_in:  !!checkInResult.data,
+      };
+      setEvent(ev);
+      setIsCheckedIn(!!checkInResult.data);
+    }
+
+    if (attResult.error) {
       toast({ kind: 'info', text: t('error_loading') });
     } else {
-      setAttendees((attData ?? []) as unknown as EventAttendee[]);
+      setAttendees((attResult.data ?? []) as unknown as EventAttendee[]);
     }
 
     setLoading(false);
