@@ -110,21 +110,23 @@ create temp table seed_spec on commit drop as
       when n between 98 and 99  then array['woman','man','non-binary']
       else                            array['woman','man','non-binary','prefer_not_to_say']
     end as interested_in,
-    -- Cities: 50 SP, 30 RJ, 20 BH. Jitter via deterministic offset (~4km).
+    -- Cities: 50 SP / 30 RJ / 20 BH, decoupled from gender index ranges.
+    -- Modulo 10: 0-4 → SP (50%), 5-7 → RJ (30%), 8-9 → BH (20%).
+    -- Each city gets a proportional gender mix rather than being gender-segregated.
     case
-      when n <= 50         then 'São Paulo'
-      when n <= 80         then 'Rio de Janeiro'
-      else                      'Belo Horizonte'
+      when (n % 10) < 5 then 'São Paulo'
+      when (n % 10) < 8 then 'Rio de Janeiro'
+      else                   'Belo Horizonte'
     end as city,
     case
-      when n <= 50         then -23.5505
-      when n <= 80         then -22.9068
-      else                      -19.9167
+      when (n % 10) < 5 then -23.5505
+      when (n % 10) < 8 then -22.9068
+      else                   -19.9167
     end + ((n * 37 % 100) - 50) * 0.0008 as lat,
     case
-      when n <= 50         then -46.6333
-      when n <= 80         then -43.1729
-      else                      -43.9345
+      when (n % 10) < 5 then -46.6333
+      when (n % 10) < 8 then -43.1729
+      else                   -43.9345
     end + ((n * 53 % 100) - 50) * 0.0008 as lon,
     -- Ages 19..50 (2026 reference). Deterministic, no Feb 29 edge cases.
     make_date(
