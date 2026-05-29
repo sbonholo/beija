@@ -1,19 +1,24 @@
--- Batch 2: event reactions → match hardening + attendee discovery upgrades.
+-- Batch 2 (safe to re-run): event reactions → match hardening + attendee
+-- discovery upgrades.
 --
--- 1. Persist each side's event reaction on the match row so the chat/match
---    context can surface intent (a mutual fire reads very differently from a
---    mutual heart). NULL for swipe-born matches.
--- 2. Mutual-ANY matching: any two reactions in any combination (not just
---    kiss↔kiss) create a match. Also exclude pairs with an active
---    (pending/actioned) report — the safety gap that previously only the
---    swipe path closed.
--- 3. get_event_attendees: optional bidirectional gender filter + pagination.
+-- Re-run safety: all DDL is CREATE OR REPLACE / IF NOT EXISTS / IF EXISTS.
+-- The first run partially applied: ALTER TABLE columns + trigger committed
+-- successfully; get_event_attendees(uuid) was dropped but the new 4-param
+-- version was not created (operator error). This file corrects that and
+-- succeeds cleanly whether run fresh or as a fixup after the partial run.
+--
+-- Bug fixed: the original used a scalar subquery inside any() for the gender
+-- filter: p.gender = any( (select interested_in ...) ) — PostgreSQL resolves
+-- this as "= ANY(subquery)" expecting scalar rows, sees text = text[], and
+-- raises 42883. Fix: LEFT JOIN LATERAL to materialize the viewer's profile
+-- fields as typed column references (same mechanism find_potential_matches
+-- uses via a plpgsql rowtype variable).
 
--- 1. Reaction columns on matches ------------------------------------------
+-- 1. Reaction columns on matches (idempotent) --------------------------------
 alter table matches add column if not exists user1_reaction text;
 alter table matches add column if not exists user2_reaction text;
 
--- 2. Mutual-ANY match trigger (block- AND report-aware) -------------------
+-- 2. Mutual-ANY match trigger (block- AND report-aware, idempotent) ----------
 create or replace function create_match_on_mutual_kiss()
 returns trigger
 language plpgsql
@@ -27,7 +32,7 @@ declare
   v_u1_reaction text;
   v_u2_reaction text;
 begin
-  -- Reciprocal reaction of ANY kind in the same event makes it mutual.
+  -- Any reciprocal reaction in the same event makes it mutual.
   select kind into v_other_reaction
   from event_reactions
   where sender_id   = NEW.receiver_id
@@ -59,8 +64,7 @@ begin
     return NEW;
   end if;
 
-  -- Normalize to the user1_id < user2_id pair invariant and carry each
-  -- side's reaction across to the matching column.
+  -- Normalize to user1_id < user2_id and carry each side's reaction.
   if NEW.sender_id < NEW.receiver_id then
     v_u1 := NEW.sender_id;   v_u1_reaction := NEW.kind;
     v_u2 := NEW.receiver_id; v_u2_reaction := v_other_reaction;
@@ -79,14 +83,13 @@ begin
 end;
 $$;
 
--- Trigger definition unchanged (AFTER INSERT OR UPDATE on event_reactions),
--- recreated for idempotency.
 drop trigger if exists on_mutual_kiss on event_reactions;
 create trigger on_mutual_kiss
   after insert or update on event_reactions
   for each row execute function create_match_on_mutual_kiss();
 
--- 3. get_event_attendees: gender filter + pagination ----------------------
+-- 3. get_event_attendees: gender filter + pagination (corrected) -------------
+-- Drop old single-param signature if it somehow still exists; no-op if absent.
 drop function if exists get_event_attendees(uuid);
 
 create or replace function get_event_attendees(
@@ -112,6 +115,15 @@ returns table (
     er.kind                                                 as my_reaction
   from check_ins ci
   join profiles p on p.id = ci.user_id
+  -- Materialize viewer profile fields once as typed columns so that
+  -- "= any(me.my_interested_in)" resolves as the array-expression form of ANY,
+  -- not the scalar-subquery form (which would produce "text = text[]" error).
+  left join lateral (
+    select interested_in as my_interested_in,
+           gender        as my_gender
+    from profiles
+    where id = auth.uid()
+  ) as me on true
   left join event_reactions er
          on er.event_id    = p_event_id
         and er.sender_id   = auth.uid()
@@ -120,15 +132,15 @@ returns table (
     and p.id          <> auth.uid()
     and p.is_banned   = false
     and p.deleted_at  is null
-    -- Optional bidirectional gender filter (same shape as find_potential_matches).
+    -- Optional bidirectional gender filter. LEFT JOIN means me.* is NULL when
+    -- viewer has no profile, making this condition false (fail closed).
     and (
       not p_gender_filter
       or (
-        p.gender = any( (select interested_in from profiles where id = auth.uid()) )
-        and (select gender from profiles where id = auth.uid()) = any(p.interested_in)
+        p.gender         = any(me.my_interested_in)
+        and me.my_gender = any(p.interested_in)
       )
     )
-    -- exclude blocked / blocking
     and not exists (
       select 1 from blocks b
       where (b.blocker_id = auth.uid() and b.blocked_id = p.id)
