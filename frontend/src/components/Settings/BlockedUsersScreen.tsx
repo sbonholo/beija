@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../Toast';
+import { formatFullDate } from '../../lib/dates';
 
 interface BlockedRow {
   blocked_id: string;
@@ -93,7 +94,7 @@ export function BlockedUsersScreen() {
                 {r.profile?.name || t('blocked.deleted_user', { defaultValue: 'Conta removida' })}
               </div>
               <div className="muted" style={{ fontSize: 12 }}>
-                {new Date(r.created_at).toLocaleDateString()}
+                {formatFullDate(r.created_at)}
               </div>
             </div>
             <button

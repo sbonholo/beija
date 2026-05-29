@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import type { NearbyEvent } from '../../lib/supabase';
 import { useToast } from '../Toast';
+import { formatShortDate, formatTime } from '../../lib/dates';
 
 const CATEGORY_GRADIENT: Record<string, string> = {
   festival:  'linear-gradient(135deg, #e11d74 0%, #ff6e3e 100%)',
@@ -17,7 +18,7 @@ const CATEGORY_GRADIENT: Record<string, string> = {
 function formatEventTime(event: NearbyEvent, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const start = new Date(event.starts_at);
   const now   = new Date();
-  const timeStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeStr = formatTime(event.starts_at);
 
   const isHappening =
     start <= now &&
@@ -32,7 +33,7 @@ function formatEventTime(event: NearbyEvent, t: (k: string, opts?: Record<string
   if (startDay === todayStr)                return t('today_at',    { time: timeStr });
   if (startDay === tomorrow.toDateString()) return t('tomorrow_at', { time: timeStr });
 
-  const dateStr = start.toLocaleDateString([], { day: '2-digit', month: 'short' });
+  const dateStr = formatShortDate(event.starts_at);
   return t('date_at', { date: dateStr, time: timeStr });
 }
 

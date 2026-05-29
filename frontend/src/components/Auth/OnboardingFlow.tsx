@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { pickPhoto, uploadProfilePhoto } from '../../lib/storage';
@@ -34,6 +34,17 @@ function seekingToArray(s: SeekingUI): string[] {
   return [...ALL_GENDERS];
 }
 
+const MONTHS_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+/** Days in a given 1-based month / full year (handles leap years). */
+function daysInMonth(year: number, month: number): number {
+  if (!year || !month) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
 function calcAge(birthdate: string): number | null {
   if (!birthdate) return null;
   const d = new Date(birthdate);
@@ -51,6 +62,9 @@ export function OnboardingFlow() {
 
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
+  const [bDay, setBDay] = useState('');
+  const [bMonth, setBMonth] = useState('');
+  const [bYear, setBYear] = useState('');
   const [gender, setGender] = useState<GenderUI | null>(null);
   const [seeking, setSeeking] = useState<SeekingUI | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
@@ -60,11 +74,26 @@ export function OnboardingFlow() {
   const [saving, setSaving] = useState(false);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
 
-  const maxBirthdate = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().slice(0, 10);
-  })();
+  const currentYear = new Date().getFullYear();
+  const maxYear = currentYear - 18; // at most ~18 by year; exact check below
+  const minYear = currentYear - 120;
+  const maxDayForMonth = daysInMonth(Number(bYear), Number(bMonth));
+
+  // Compose the stored ISO value (yyyy-mm-dd) from the three selects. The DB
+  // value stays ISO; entry/display format is the only thing that changed.
+  useEffect(() => {
+    if (bDay && bMonth && bYear) {
+      setBirthdate(`${bYear}-${bMonth}-${bDay}`);
+    } else {
+      setBirthdate('');
+    }
+  }, [bDay, bMonth, bYear]);
+
+  // Clear an out-of-range day when month/year shrinks the valid range
+  // (e.g. 31 selected, then February chosen).
+  useEffect(() => {
+    if (bDay && Number(bDay) > maxDayForMonth) setBDay('');
+  }, [bDay, maxDayForMonth]);
 
   const ageValid = (() => {
     const age = calcAge(birthdate);
@@ -78,6 +107,18 @@ export function OnboardingFlow() {
     seeking !== null &&
     photoBase64 !== null &&
     agreed;
+
+  // First missing requirement, surfaced under the disabled CTA so the user
+  // knows what's left instead of staring at a greyed-out button.
+  const missingHint = (() => {
+    if (name.trim().length < 2) return 'Digite seu nome';
+    if (!ageValid) return 'Informe sua data de nascimento';
+    if (gender === null) return 'Selecione quem você é';
+    if (seeking === null) return 'Selecione quem quer conhecer';
+    if (photoBase64 === null) return 'Adicione uma foto';
+    if (!agreed) return 'Aceite os termos';
+    return null;
+  })();
 
   async function onPickPhoto() {
     try {
@@ -182,15 +223,48 @@ export function OnboardingFlow() {
             autoComplete="given-name"
             style={{ marginBottom: 8 }}
           />
-          <input
-            id="onb-birthdate"
-            type="date"
-            max={maxBirthdate}
-            value={birthdate}
-            onChange={(e) => setBirthdate(e.target.value)}
-            autoComplete="bday"
+          <div
+            role="group"
             aria-label="Data de nascimento"
-          />
+            style={{ display: 'flex', gap: 6 }}
+          >
+            <select
+              aria-label="Dia"
+              value={bDay}
+              onChange={(e) => setBDay(e.target.value)}
+              style={{ flex: '0 0 30%' }}
+            >
+              <option value="" disabled>Dia</option>
+              {Array.from({ length: maxDayForMonth }, (_, i) => {
+                const d = String(i + 1).padStart(2, '0');
+                return <option key={d} value={d}>{i + 1}</option>;
+              })}
+            </select>
+            <select
+              aria-label="Mês"
+              value={bMonth}
+              onChange={(e) => setBMonth(e.target.value)}
+              style={{ flex: 1 }}
+            >
+              <option value="" disabled>Mês</option>
+              {MONTHS_PT.map((label, i) => {
+                const m = String(i + 1).padStart(2, '0');
+                return <option key={m} value={m}>{label}</option>;
+              })}
+            </select>
+            <select
+              aria-label="Ano"
+              value={bYear}
+              onChange={(e) => setBYear(e.target.value)}
+              style={{ flex: '0 0 30%' }}
+            >
+              <option value="" disabled>Ano</option>
+              {Array.from({ length: maxYear - minYear + 1 }, (_, i) => {
+                const y = String(maxYear - i);
+                return <option key={y} value={y}>{y}</option>;
+              })}
+            </select>
+          </div>
         </div>
       </div>
       {birthdate && !ageValid && (
@@ -261,6 +335,15 @@ export function OnboardingFlow() {
       >
         {saving ? 'Salvando...' : 'Completar perfil 🔥'}
       </button>
+      {!canFinish && !saving && missingHint && (
+        <p
+          aria-live="polite"
+          className="muted"
+          style={{ fontSize: 12, textAlign: 'center', margin: '2px 0 4px' }}
+        >
+          {missingHint}
+        </p>
+      )}
 
       {moderationReasons && (
         <Suspense fallback={null}>

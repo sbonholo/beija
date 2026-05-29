@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import type { EventAttendee, NearbyEvent, ReactionKind } from '../../lib/supabase';
 import { useToast } from '../Toast';
 import { SafetyMenu } from '../Moderation/SafetyMenu';
+import { formatTime, formatWeekdayDate } from '../../lib/dates';
 
 const PAGE = 60;
 
@@ -32,13 +33,13 @@ const CATEGORY_GRADIENT: Record<string, string> = {
 function formatEventTime(event: NearbyEvent): string {
   const start = new Date(event.starts_at);
   const now   = new Date();
-  const time  = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const time  = formatTime(event.starts_at);
 
   const isOn =
     start <= now && (event.ends_at == null || new Date(event.ends_at) > now);
   if (isOn) return 'Acontecendo agora 🔴';
 
-  const date = start.toLocaleDateString([], { weekday: 'short', day: '2-digit', month: 'short' });
+  const date = formatWeekdayDate(event.starts_at);
   return `${date} às ${time}`;
 }
 
