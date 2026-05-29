@@ -1,5 +1,5 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Suspense, lazy, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { pickPhoto, uploadProfilePhoto } from '../../lib/storage';
 import { ModerationError } from '../../lib/moderation';
@@ -36,7 +36,6 @@ export function OnboardingFlow() {
   const nav = useNavigate();
   const toast = useToast();
 
-  const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [gender, setGender] = useState<GenderUI | null>(null);
@@ -44,11 +43,9 @@ export function OnboardingFlow() {
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [bio, setBio] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
-
-  // Track which step has already auto-advanced so coming back doesn't re-trigger.
-  const advancedFrom = useRef<Set<number>>(new Set());
 
   const maxBirthdate = (() => {
     const d = new Date();
@@ -56,33 +53,18 @@ export function OnboardingFlow() {
     return d.toISOString().slice(0, 10);
   })();
 
-  const step1Valid = name.trim().length >= 2 && (() => {
+  const ageValid = (() => {
     const age = calcAge(birthdate);
     return age !== null && age >= 18 && age <= 120;
   })();
 
-  const step2Valid = gender !== null && seeking !== null;
-  const step3Valid = photoBase64 !== null;
-
-  // Auto-advance from step 0
-  useEffect(() => {
-    if (step === 0 && step1Valid && !advancedFrom.current.has(0)) {
-      advancedFrom.current.add(0);
-      track('onboarding_step_completed', { step: 'identity' });
-      const id = window.setTimeout(() => setStep(1), 250);
-      return () => window.clearTimeout(id);
-    }
-  }, [step, step1Valid]);
-
-  // Auto-advance from step 1
-  useEffect(() => {
-    if (step === 1 && step2Valid && !advancedFrom.current.has(1)) {
-      advancedFrom.current.add(1);
-      track('onboarding_step_completed', { step: 'preferences' });
-      const id = window.setTimeout(() => setStep(2), 250);
-      return () => window.clearTimeout(id);
-    }
-  }, [step, step2Valid]);
+  const canFinish =
+    name.trim().length >= 2 &&
+    ageValid &&
+    gender !== null &&
+    seeking !== null &&
+    photoBase64 !== null &&
+    agreed;
 
   async function onPickPhoto() {
     const base64 = await pickPhoto();
@@ -92,7 +74,7 @@ export function OnboardingFlow() {
   }
 
   async function finish() {
-    if (!step1Valid || !step2Valid || !step3Valid || !gender || !seeking || !photoBase64) return;
+    if (!canFinish || !gender || !seeking || !photoBase64) return;
     setSaving(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -135,192 +117,112 @@ export function OnboardingFlow() {
 
   return (
     <div className="screen" style={{ paddingBottom: 40 }}>
-      <h2 style={{ marginTop: 12, marginBottom: 4 }}>Vamos te conhecer</h2>
-      <div
-        className="onboarding-progress"
-        role="progressbar"
-        aria-valuemin={1}
-        aria-valuemax={3}
-        aria-valuenow={step + 1}
-        aria-label={`Passo ${step + 1} de 3`}
-      >
-        {[0, 1, 2].map((i) => (
-          <div key={i} className={`onboarding-progress-seg ${i <= step ? 'filled' : ''}`} />
-        ))}
+      <h2 style={{ marginTop: 12, marginBottom: 20 }}>Vamos te conhecer</h2>
+
+      <label htmlFor="onb-name" className="muted" style={{ fontSize: 13 }}>Seu nome</label>
+      <input
+        id="onb-name"
+        placeholder="Como te chamam"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={40}
+        autoComplete="given-name"
+      />
+
+      <label htmlFor="onb-birthdate" className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
+        Data de nascimento
+      </label>
+      <input
+        id="onb-birthdate"
+        type="date"
+        max={maxBirthdate}
+        value={birthdate}
+        onChange={(e) => setBirthdate(e.target.value)}
+        autoComplete="bday"
+      />
+      {birthdate && !ageValid && (
+        <p style={{ fontSize: 11, marginTop: 4, color: 'var(--pink)' }}>
+          Você precisa ter entre 18 e 120 anos para continuar.
+        </p>
+      )}
+
+      <div id="onb-gender-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Você é</div>
+      <div className="row" role="group" aria-labelledby="onb-gender-label" style={{ flexWrap: 'wrap', gap: 8 }}>
+        <button type="button" className={`chip ${gender === 'woman' ? 'selected' : ''}`} onClick={() => setGender('woman')}>♀️ Mulher</button>
+        <button type="button" className={`chip ${gender === 'man' ? 'selected' : ''}`} onClick={() => setGender('man')}>♂️ Homem</button>
+        <button type="button" className={`chip ${gender === 'other' ? 'selected' : ''}`} onClick={() => setGender('other')}>✨ Outro</button>
       </div>
-      <p className="muted" style={{ marginTop: 6, marginBottom: 22, fontSize: 12 }}>
-        Passo {step + 1} de 3
-      </p>
 
-      {step === 0 && (
-        <>
-          <label htmlFor="onb-name" className="muted" style={{ fontSize: 13 }}>Seu nome</label>
-          <input
-            id="onb-name"
-            placeholder="Como te chamam"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={40}
-            autoComplete="given-name"
-          />
+      <div id="onb-seeking-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Quer conhecer</div>
+      <div className="row" role="group" aria-labelledby="onb-seeking-label" style={{ flexWrap: 'wrap', gap: 8 }}>
+        <button type="button" className={`chip ${seeking === 'women' ? 'selected' : ''}`} onClick={() => setSeeking('women')}>♀️ Mulheres</button>
+        <button type="button" className={`chip ${seeking === 'men' ? 'selected' : ''}`} onClick={() => setSeeking('men')}>♂️ Homens</button>
+        <button type="button" className={`chip ${seeking === 'all' ? 'selected' : ''}`} onClick={() => setSeeking('all')}>💫 Todos</button>
+      </div>
 
-          <label
-            htmlFor="onb-birthdate"
-            className="muted"
-            style={{ fontSize: 13, marginTop: 14, display: 'block' }}
-          >
-            Data de nascimento
-          </label>
-          <input
-            id="onb-birthdate"
-            type="date"
-            max={maxBirthdate}
-            value={birthdate}
-            onChange={(e) => setBirthdate(e.target.value)}
-            autoComplete="bday"
-          />
-          <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>
-            Você precisa ter 18+ pra continuar.
-          </p>
-        </>
-      )}
+      <div id="onb-photo-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Foto principal</div>
+      <button
+        type="button"
+        onClick={onPickPhoto}
+        aria-labelledby="onb-photo-label"
+        style={{
+          width: '100%',
+          aspectRatio: '1 / 1',
+          maxWidth: 280,
+          margin: '0 auto 12px',
+          padding: 0,
+          borderRadius: 'var(--radius)',
+          backgroundImage: photoPreview ? `url("${photoPreview}")` : undefined,
+          backgroundColor: photoPreview ? undefined : '#1c0a2b',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '2px dashed rgba(255, 59, 154, 0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: '#fff',
+          boxShadow: photoPreview ? 'var(--shadow)' : undefined,
+        }}
+      >
+        {!photoPreview && <span style={{ fontSize: 48 }} aria-hidden>📷</span>}
+      </button>
 
-      {step === 1 && (
-        <>
-          <div id="onb-gender-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-            Você é
-          </div>
-          <div className="row" role="group" aria-labelledby="onb-gender-label" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <button
-              type="button"
-              className={`chip ${gender === 'woman' ? 'selected' : ''}`}
-              onClick={() => setGender('woman')}
-            >
-              ♀️ Mulher
-            </button>
-            <button
-              type="button"
-              className={`chip ${gender === 'man' ? 'selected' : ''}`}
-              onClick={() => setGender('man')}
-            >
-              ♂️ Homem
-            </button>
-            <button
-              type="button"
-              className={`chip ${gender === 'other' ? 'selected' : ''}`}
-              onClick={() => setGender('other')}
-            >
-              ✨ Outro
-            </button>
-          </div>
+      <label htmlFor="onb-bio" className="muted" style={{ fontSize: 13, marginTop: 10, display: 'block' }}>Bio (opcional)</label>
+      <textarea
+        id="onb-bio"
+        value={bio}
+        onChange={(e) => setBio(e.target.value)}
+        rows={3}
+        maxLength={150}
+        placeholder="Diz algo sobre você"
+      />
+      <p className="muted" style={{ fontSize: 11, textAlign: 'right' }}>{bio.length}/150</p>
 
-          <div style={{ height: 18 }} />
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 20, cursor: 'pointer', fontSize: 13, lineHeight: 1.4 }}>
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--pink)' }}
+        />
+        <span className="muted">
+          Ao continuar, você confirma que tem 18+ e aceita os{' '}
+          <Link to="/terms" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Termos</Link>
+          {' '}e{' '}
+          <Link to="/privacy" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Privacidade</Link>.
+        </span>
+      </label>
 
-          <div id="onb-seeking-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-            Quer conhecer
-          </div>
-          <div className="row" role="group" aria-labelledby="onb-seeking-label" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <button
-              type="button"
-              className={`chip ${seeking === 'women' ? 'selected' : ''}`}
-              onClick={() => setSeeking('women')}
-            >
-              ♀️ Mulheres
-            </button>
-            <button
-              type="button"
-              className={`chip ${seeking === 'men' ? 'selected' : ''}`}
-              onClick={() => setSeeking('men')}
-            >
-              ♂️ Homens
-            </button>
-            <button
-              type="button"
-              className={`chip ${seeking === 'all' ? 'selected' : ''}`}
-              onClick={() => setSeeking('all')}
-            >
-              💫 Todos
-            </button>
-          </div>
-        </>
-      )}
+      <button
+        className="btn"
+        style={{ marginTop: 18 }}
+        disabled={!canFinish || saving}
+        onClick={finish}
+      >
+        {saving ? 'Salvando...' : 'Completar perfil 🔥'}
+      </button>
 
-      {step === 2 && (
-        <>
-          <div id="onb-photo-label" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-            Foto principal
-          </div>
-          <button
-            type="button"
-            onClick={onPickPhoto}
-            aria-labelledby="onb-photo-label"
-            style={{
-              width: '100%',
-              aspectRatio: '1 / 1',
-              maxWidth: 280,
-              margin: '0 auto 12px',
-              padding: 0,
-              borderRadius: 'var(--radius)',
-              backgroundImage: photoPreview ? `url("${photoPreview}")` : undefined,
-              backgroundColor: photoPreview ? undefined : '#1c0a2b',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              border: '2px dashed rgba(255, 59, 154, 0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#fff',
-              boxShadow: photoPreview ? 'var(--shadow)' : undefined,
-            }}
-          >
-            {!photoPreview && <span style={{ fontSize: 48 }} aria-hidden>📷</span>}
-          </button>
-
-          <label
-            htmlFor="onb-bio"
-            className="muted"
-            style={{ fontSize: 13, marginTop: 10, display: 'block' }}
-          >
-            Bio (opcional)
-          </label>
-          <textarea
-            id="onb-bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={3}
-            maxLength={150}
-            placeholder="Diz algo sobre você"
-          />
-          <p className="muted" style={{ fontSize: 11, textAlign: 'right' }}>
-            {bio.length}/150
-          </p>
-
-          <button
-            className="btn"
-            style={{ marginTop: 18 }}
-            disabled={!step3Valid || saving}
-            onClick={finish}
-          >
-            {saving ? 'Salvando...' : 'Pronto, ver pessoas 🔥'}
-          </button>
-        </>
-      )}
-
-      {step > 0 && (
-        <button
-          className="btn ghost"
-          style={{ marginTop: 12 }}
-          onClick={() => {
-            // Clear the "already auto-advanced" flag for the step we're going
-            // back to, so the user can edit and re-trigger auto-advance.
-            advancedFrom.current.delete(step - 1);
-            setStep((s) => s - 1);
-          }}
-        >
-          Voltar
-        </button>
-      )}
       {moderationReasons && (
         <Suspense fallback={null}>
           <ModerationFeedbackModal
