@@ -10,6 +10,20 @@
 -- IDs are 00000000-0000-0000-0000-NNNNNNNNNNNN so they're trivially spotted.
 --
 -- ---------------------------------------------------------------------------
+-- LIVE-SCHEMA NOTES (verified against the running DB, not just migration files)
+-- ---------------------------------------------------------------------------
+-- profiles columns we touch: id, name, birthdate, gender, bio, city, location,
+--   interested_in, min_age, max_age, max_distance_km, last_active_at,
+--   is_inactive, is_seed.
+--   Drift caught: an early migration named the column `last_active`; the
+--   cron-jobs migration renamed it to `last_active_at` and added `is_inactive`.
+--   Always use last_active_at + is_inactive in seed code.
+-- photos columns we touch:           user_id, slot, url           (unchanged)
+-- check_ins columns we touch:        user_id, event_id            (unchanged)
+-- event_reactions columns we touch:  sender_id, receiver_id, event_id, kind
+--                                                                 (unchanged)
+--
+-- ---------------------------------------------------------------------------
 -- AUTH.USERS COLUMNS WE INSERT (step 2 below)
 -- ---------------------------------------------------------------------------
 --   instance_id, id, aud, role, email,
@@ -149,30 +163,38 @@ from seed_spec
 on conflict (id) do nothing;
 
 -- 3. Seed profiles -----------------------------------------------------------
+-- NOTE on column names: the live schema uses last_active_at (renamed from
+-- last_active in migration 20260524700000_cron_jobs.sql) and has an
+-- is_inactive flag (added in the same migration; cron flips it true after
+-- 30 days idle and find_potential_matches/get_event_attendees filter it out).
+-- We explicitly set is_inactive = false so seeds always show up in the grid
+-- regardless of last_active_at staleness or prior cron runs.
 insert into profiles (
   id, name, birthdate, gender, bio, city,
   location, interested_in,
   min_age, max_age, max_distance_km,
-  last_active, is_seed
+  last_active_at, is_inactive, is_seed
 )
 select
   user_id, name, birthdate, gender, bio, city,
   st_setsrid(st_makepoint(lon, lat), 4326)::geography,
   interested_in,
   18, 60, 100,
-  now() - (n * interval '11 minutes'),  -- staggered last_active for realism
+  now() - (n * interval '11 minutes'),  -- staggered last_active_at for realism
+  false,
   true
 from seed_spec
 on conflict (id) do update set
-  name          = excluded.name,
-  birthdate     = excluded.birthdate,
-  gender        = excluded.gender,
-  bio           = excluded.bio,
-  city          = excluded.city,
-  location      = excluded.location,
-  interested_in = excluded.interested_in,
-  last_active   = excluded.last_active,
-  is_seed       = true;
+  name           = excluded.name,
+  birthdate      = excluded.birthdate,
+  gender         = excluded.gender,
+  bio            = excluded.bio,
+  city           = excluded.city,
+  location       = excluded.location,
+  interested_in  = excluded.interested_in,
+  last_active_at = excluded.last_active_at,
+  is_inactive    = false,
+  is_seed        = true;
 
 -- 4. Seed avatars (2 photos per profile, DiceBear illustrated) ---------------
 -- DiceBear's 'lorelei' style is clearly synthetic line art — no real people,
