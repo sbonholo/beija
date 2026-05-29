@@ -12,6 +12,7 @@ import ptBRProfile from './locales/pt-BR/profile.json';
 import ptBRModeration from './locales/pt-BR/moderation.json';
 import ptBRErrors from './locales/pt-BR/errors.json';
 import ptBREvents from './locales/pt-BR/events.json';
+import ptBRAdmin from './locales/pt-BR/admin.json';
 
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
@@ -23,6 +24,7 @@ import enProfile from './locales/en/profile.json';
 import enModeration from './locales/en/moderation.json';
 import enErrors from './locales/en/errors.json';
 import enEvents from './locales/en/events.json';
+import enAdmin from './locales/en/admin.json';
 
 export const SUPPORTED_LOCALES = ['pt-BR', 'en'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -38,6 +40,7 @@ export const NAMESPACES = [
   'moderation',
   'errors',
   'events',
+  'admin',
 ] as const;
 
 const resources = {
@@ -52,6 +55,7 @@ const resources = {
     moderation: ptBRModeration,
     errors: ptBRErrors,
     events: ptBREvents,
+    admin: ptBRAdmin,
   },
   en: {
     common: enCommon,
@@ -64,6 +68,7 @@ const resources = {
     moderation: enModeration,
     errors: enErrors,
     events: enEvents,
+    admin: enAdmin,
   },
 };
 

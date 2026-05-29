@@ -12,6 +12,7 @@ interface ProfileLite {
   deleted_at: string | null;
   has_photo: boolean;
   allow_analytics: boolean;
+  is_admin: boolean;
   /** non-null when an active deletion_request exists. */
   deletion_scheduled_for: string | null;
 }
@@ -22,6 +23,7 @@ interface AuthCtx {
   loading: boolean;
   profile: ProfileLite | null;
   hasProfile: boolean;
+  isAdmin: boolean;
   /**
    * True when the user is signed in but their profile is soft-deleted AND the
    * 30-day deletion window hasn't passed yet. UI should show the reactivation
@@ -44,7 +46,7 @@ async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
   const [{ data: profileRow }, { data: photoRow }, { data: deletionRow }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, gender, deleted_at, allow_analytics')
+      .select('id, name, gender, deleted_at, allow_analytics, is_admin')
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -69,6 +71,7 @@ async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
     deleted_at: profileRow.deleted_at ?? null,
     has_photo: !!photoRow,
     allow_analytics: profileRow.allow_analytics !== false,
+    is_admin: (profileRow as { is_admin?: boolean }).is_admin === true,
     deletion_scheduled_for: activeDeletion,
   };
 }
@@ -181,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         profile,
         hasProfile,
+        isAdmin: profile?.is_admin === true,
         needsReactivation,
         refresh,
         signOut,

@@ -29,6 +29,9 @@ const EventsScreen = lazy(() =>
 const EventDetailScreen = lazy(() =>
   import('./components/Events/EventDetailScreen').then((m) => ({ default: m.EventDetailScreen })),
 );
+const AdminScreen = lazy(() =>
+  import('./components/Admin/AdminScreen').then((m) => ({ default: m.AdminScreen })),
+);
 const PrivacyPage = lazy(() => import('./components/pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./components/pages/TermsPage'));
 const CommunityGuidelinesPage = lazy(
@@ -118,6 +121,15 @@ function NeedsProfile() {
   return <Outlet />;
 }
 
+/** Gate for the hidden admin route. Server RLS/RPCs are the real boundary;
+ *  this only hides the UI and redirects non-admins. */
+function AdminGuard() {
+  const { isAdmin, loading } = useAuth();
+  if (loading) return <Splash />;
+  if (!isAdmin) return <Navigate to="/discover" replace />;
+  return <Outlet />;
+}
+
 /**
  * Layout for the 3 main tabs (discover / matches / profile): adds bottom nav.
  */
@@ -167,6 +179,13 @@ export function App() {
               path="/profile/:id"
               element={<Suspense fallback={<Splash />}><ProfileDetailModal /></Suspense>}
             />
+
+            <Route element={<AdminGuard />}>
+              <Route
+                path="/painel-9f3a"
+                element={<Suspense fallback={<Splash />}><AdminScreen /></Suspense>}
+              />
+            </Route>
 
             <Route element={<NeedsProfile />}>
               <Route path="/chat/:id" element={<ChatScreen />} />

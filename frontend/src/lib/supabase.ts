@@ -121,6 +121,7 @@ export interface Event {
   ends_at:     string | null;
   image_url:   string | null;
   is_verified: boolean;
+  is_active:   boolean;
   created_at:  string;
 }
 
