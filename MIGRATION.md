@@ -38,7 +38,7 @@ The pre-pivot codebase is **preserved and recoverable**:
 |---|---|---|
 | `archive/sqlite-railway-main` | `57c2795` | **PR #2 head** — last commit of the SQLite/Express/Railway lineage. Pushed to origin. |
 | `legacy/sqlite-railway-main` | `3d92a57` | Pre-existing archive; a **descendant** of `57c2795` (same SQLite backend + a few extra commits incl. logo work). |
-| tag `v0-sqlite-railway` | `57c2795` | Annotated tag. **Created locally but the push to origin is blocked in the CI execution environment — push it manually (see checklist).** |
+| tag `v0-sqlite-railway` | `3d92a57` | Annotated tag. **Created locally but the push to origin is blocked in the CI execution environment — push it manually (see checklist).** |
 
 Recover the old stack at any time:
 
