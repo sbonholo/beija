@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, type Profile } from '../../lib/supabase';
 
 const CONFETTI_PIECES = 32;
-const CONFETTI_COLORS = ['#e11d74', '#ff8a2a', '#ffd54a', '#ff3b9a', '#3aa8ff', '#4ade80'];
+const CONFETTI_COLORS = ['#e01070', '#ff8420', '#ffd040', '#ff3b9a', '#8b5cf6', '#3dffc0'];
 
 interface Props {
   matchId: string;

@@ -41,10 +41,10 @@ export const POTENTIAL_MATCHES_BATCH = 10;
 export const STACK_VISIBLE = 3;
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;
 
-// ---- Color tokens not exposed as CSS vars (used inline in JSX) ----
-export const COLOR_NOPE = '#ff5b5b';
-export const COLOR_LIKE = '#4ade80';
-export const COLOR_SUPER = '#3aa8ff';
+// ---- Color tokens (Neon Noir palette) ----
+export const COLOR_NOPE = 'var(--danger)';
+export const COLOR_LIKE = 'var(--pink-glow)';
+export const COLOR_SUPER = 'var(--aurora)';
 
 // ---- Bundle id (also referenced in capacitor.config) ----
 export const APP_BUNDLE_ID = 'io.beija.app';

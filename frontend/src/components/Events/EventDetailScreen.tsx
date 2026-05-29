@@ -22,12 +22,12 @@ const REACTION_EMOJI: Record<ReactionKind, string> = {
 };
 
 const CATEGORY_GRADIENT: Record<string, string> = {
-  festival:  'linear-gradient(135deg, #e11d74 0%, #ff6e3e 100%)',
-  concert:   'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-  bar:       'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-  nightclub: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-  show:      'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-  other:     'linear-gradient(135deg, #6b7280 0%, #374151 100%)',
+  festival:  'linear-gradient(135deg, var(--pink) 0%, var(--hot) 100%)',
+  concert:   'linear-gradient(135deg, var(--pink-glow) 0%, var(--aurora) 100%)',
+  bar:       'linear-gradient(135deg, var(--hot) 0%, var(--gold) 100%)',
+  nightclub: 'linear-gradient(135deg, var(--aurora) 0%, var(--pink) 100%)',
+  show:      'linear-gradient(135deg, var(--hot) 20%, var(--heart) 100%)',
+  other:     'linear-gradient(135deg, var(--card-raised) 0%, var(--bg-elev) 100%)',
 };
 
 function formatEventTime(event: NearbyEvent): string {
@@ -338,7 +338,7 @@ export function EventDetailScreen() {
           {event.venue && ` · ${event.venue}`}
           {event.city && `, ${event.city}`}
         </div>
-        <div style={{ fontSize: 13, color: event.is_checked_in ? '#4ade80' : 'var(--muted)', marginBottom: 14 }}>
+        <div style={{ fontSize: 13, color: event.is_checked_in ? 'var(--online)' : 'var(--muted)', marginBottom: 14 }}>
           {formatEventTime(event)}
         </div>
 

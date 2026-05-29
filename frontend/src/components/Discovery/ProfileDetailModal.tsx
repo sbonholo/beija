@@ -304,7 +304,7 @@ export default function ProfileDetailModal() {
               onClick={() => void doSwipe('left')}
               aria-label={tSwipe('actions.pass')}
               disabled={acting}
-              style={{ ...actionBtnStyle, color: '#ff5b5b' }}
+              style={{ ...actionBtnStyle, color: 'var(--danger)' }}
             >
               ✕
             </button>
@@ -313,7 +313,7 @@ export default function ProfileDetailModal() {
               onClick={() => void doSwipe('right')}
               aria-label={tSwipe('actions.like')}
               disabled={acting}
-              style={{ ...actionBtnStyle, color: '#4ade80' }}
+              style={{ ...actionBtnStyle, color: 'var(--pink-glow)' }}
             >
               ♥
             </button>

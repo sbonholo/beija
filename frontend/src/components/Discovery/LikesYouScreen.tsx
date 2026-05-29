@@ -245,8 +245,8 @@ export function LikesYouScreen() {
                     height: 36,
                     borderRadius: 999,
                     background: 'rgba(255, 255, 255, 0.08)',
-                    color: '#ff5b5b',
-                    border: '1px solid rgba(255, 91, 91, 0.4)',
+                    color: 'var(--danger)',
+                    border: '1px solid rgba(255, 69, 69, 0.4)',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}

@@ -185,9 +185,9 @@ function SwipeCardImpl({
     if (entering) {
       // Custom curve for rewind — different from the swipe-exit cubic-bezier
       // so the motion reads as a deliberate undo, not a mirror of the swipe.
-      return `transform ${REWIND_ENTER_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+      return `transform ${REWIND_ENTER_MS}ms var(--ease-spring)`;
     }
-    return 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
+    return 'transform var(--dur-slow) var(--ease-out)';
   })();
 
   const currentPhoto = visiblePhotos[photoIdx];
@@ -205,8 +205,8 @@ function SwipeCardImpl({
         inset: 0,
         borderRadius: 'var(--radius)',
         overflow: 'hidden',
-        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.5)',
-        backgroundColor: '#1c0a2b',
+        boxShadow: 'var(--shadow-lg)',
+        backgroundColor: 'var(--card)',
         backgroundImage: currentPhoto ? `url("${currentPhoto}")` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -256,9 +256,9 @@ function SwipeCardImpl({
           top: 28,
           left: 18,
           padding: '6px 12px',
-          border: '3px solid #ff5b5b',
+          border: '3px solid var(--danger)',
           borderRadius: 8,
-          color: '#ff5b5b',
+          color: 'var(--danger)',
           fontWeight: 900,
           fontSize: 22,
           letterSpacing: '0.1em',
@@ -277,9 +277,9 @@ function SwipeCardImpl({
           top: 28,
           right: 18,
           padding: '6px 12px',
-          border: '3px solid #4ade80',
+          border: '3px solid var(--pink-glow)',
           borderRadius: 8,
-          color: '#4ade80',
+          color: 'var(--pink-glow)',
           fontWeight: 900,
           fontSize: 22,
           letterSpacing: '0.1em',
@@ -302,7 +302,7 @@ function SwipeCardImpl({
           bottom: 0,
           padding: '60px 18px 22px',
           background:
-            'linear-gradient(to top, rgba(10, 0, 20, 0.92), rgba(10, 0, 20, 0.5) 50%, transparent)',
+            'linear-gradient(to top, rgba(6, 0, 15, 0.94), rgba(6, 0, 15, 0.55) 50%, transparent)',
           color: '#fff',
           zIndex: 2,
         }}
@@ -323,7 +323,7 @@ function SwipeCardImpl({
                 gap: 6,
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#4ade80',
+                color: 'var(--online)',
               }}
             >
               <span
@@ -331,8 +331,8 @@ function SwipeCardImpl({
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: '#4ade80',
-                  boxShadow: '0 0 8px rgba(74, 222, 128, 0.8)',
+                  background: 'var(--online)',
+                  boxShadow: '0 0 8px var(--online-glow)',
                   display: 'inline-block',
                 }}
               />

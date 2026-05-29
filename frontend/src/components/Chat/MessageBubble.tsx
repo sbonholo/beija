@@ -97,7 +97,7 @@ function MessageBubbleImpl({ message, isOwn, onDelete }: Props) {
         {isOwn && (
           <span aria-label={message.read_at ? 'lida' : 'enviada'}>
             {message.read_at ? (
-              <span style={{ color: '#3aa8ff', fontWeight: 700 }}>✓✓</span>
+              <span style={{ color: 'var(--aurora)', fontWeight: 700 }}>✓✓</span>
             ) : (
               <span style={{ color: 'var(--muted)' }}>✓</span>
             )}

@@ -483,7 +483,7 @@ export function StackDeck() {
           type="button"
           onClick={() => trigger('left')}
           aria-label={t('actions.pass')}
-          style={{ ...circleBtn, color: '#ff5b5b', pointerEvents: 'auto' }}
+          style={{ ...circleBtn, color: 'var(--danger)', pointerEvents: 'auto' }}
         >
           ✕
         </button>
@@ -491,7 +491,7 @@ export function StackDeck() {
           type="button"
           onClick={() => trigger('super')}
           aria-label={t('actions.super')}
-          style={{ ...circleBtn, color: '#3aa8ff', pointerEvents: 'auto', width: 54, height: 54, fontSize: 24 }}
+          style={{ ...circleBtn, color: 'var(--aurora)', pointerEvents: 'auto', width: 54, height: 54, fontSize: 24 }}
         >
           ⭐
         </button>
@@ -499,7 +499,7 @@ export function StackDeck() {
           type="button"
           onClick={() => trigger('right')}
           aria-label={t('actions.like')}
-          style={{ ...circleBtn, color: '#4ade80', pointerEvents: 'auto' }}
+          style={{ ...circleBtn, color: 'var(--pink-glow)', pointerEvents: 'auto' }}
         >
           ♥
         </button>

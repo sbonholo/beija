@@ -238,7 +238,7 @@ function EventsPanel() {
                   style={{
                     flexShrink: 0,
                     fontSize: 11,
-                    color: ev.is_active ? '#4ade80' : 'var(--muted)',
+                    color: ev.is_active ? 'var(--online)' : 'var(--muted)',
                   }}
                 >
                   {ev.is_active ? t('events.active') : t('events.inactive')}

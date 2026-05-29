@@ -22,6 +22,8 @@
     "@capacitor/ios": "^8.3.4",
     "@capacitor/push-notifications": "^8.1.1",
     "@capgo/capacitor-social-login": "^8.3.22",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
     "@ionic/pwa-elements": "^3.4.0",
     "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.106.1",
