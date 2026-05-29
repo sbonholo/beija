@@ -45,8 +45,13 @@
 begin;
 
 -- 1. Build the 100-row spec ---------------------------------------------------
--- Names are indexed arrays; gender/interested_in derive from the index range.
-with seed_spec as (
+-- Materialized as a TEMP TABLE (not a CTE) because a WITH clause is scoped
+-- to one statement; we need this spec available across every subsequent
+-- INSERT (auth.users, profiles, photos, check_ins, reactions).
+-- ON COMMIT DROP cleans it up automatically at the end of the transaction.
+-- Temp tables live in the per-session pg_temp namespace — never visible to
+-- other connections or to the public schema.
+create temp table seed_spec on commit drop as
   select
     n,
     ('00000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid as user_id,
@@ -136,8 +141,7 @@ with seed_spec as (
       'Engenheira por formação, surfista por vocação.',
       'Sem drama. Parceria, não terapia grátis.'
     ])[1 + (n % 6)] as bio
-  from generate_series(1, 100) as n
-)
+  from generate_series(1, 100) as n;
 
 -- 2. Seed auth.users (no-login placeholders) ---------------------------------
 -- See header comment for the exact column list and self-diagnosis guidance
@@ -227,8 +231,9 @@ where ((s.n * 31 + e.idx * 17) % 10) < 6
 on conflict (user_id, event_id) do nothing;
 
 -- 6. Mutual reactions — 20 pairs, exercise heart/kiss/fire mix --------------
--- Each pair is both checked into the same event. The on_mutual_kiss trigger
--- creates the match automatically when the second-direction reaction fires.
+-- Materialize the 20 resolved pairs (UUIDs + event_id) once as a temp table
+-- so steps 6b/6c/6d can reference them without duplicating the VALUES list.
+create temp table seed_pairs on commit drop as
 with target_events as (
   select id, row_number() over (order by starts_at) - 1 as idx
   from events
@@ -265,74 +270,34 @@ pairs as (
     -- 1 non-binary pair
     (98, 99, 'heart', 'fire',  4)
   ) as p(sender_n, receiver_n, sender_kind, receiver_kind, event_idx)
-),
-resolved as (
-  select
-    ('00000000-0000-0000-0000-' || lpad(p.sender_n::text,   12, '0'))::uuid as sender_id,
-    ('00000000-0000-0000-0000-' || lpad(p.receiver_n::text, 12, '0'))::uuid as receiver_id,
-    p.sender_kind,
-    p.receiver_kind,
-    e.id as event_id
-  from pairs p
-  join target_events e on e.idx = p.event_idx
-),
--- Ensure both sides checked in to the event (idempotent — covers seeds the
--- ~60% check-in spread above happened to skip).
-ensured_checkins as (
-  insert into check_ins (user_id, event_id)
-  select sender_id,  event_id from resolved
-  union
-  select receiver_id, event_id from resolved
-  on conflict (user_id, event_id) do nothing
-  returning 1
 )
--- Insert sender → receiver reactions (one direction)
+select
+  ('00000000-0000-0000-0000-' || lpad(p.sender_n::text,   12, '0'))::uuid as sender_id,
+  ('00000000-0000-0000-0000-' || lpad(p.receiver_n::text, 12, '0'))::uuid as receiver_id,
+  p.sender_kind,
+  p.receiver_kind,
+  e.id as event_id
+from pairs p
+join target_events e on e.idx = p.event_idx;
+
+-- 6b. Ensure both sides checked in to the pair's event (idempotent — covers
+--     seeds the ~60% spread above happened to skip).
+insert into check_ins (user_id, event_id)
+select sender_id,   event_id from seed_pairs
+union
+select receiver_id, event_id from seed_pairs
+on conflict (user_id, event_id) do nothing;
+
+-- 6c. Sender → receiver reactions (first direction).
 insert into event_reactions (sender_id, receiver_id, event_id, kind)
-select sender_id, receiver_id, event_id, sender_kind from resolved
+select sender_id, receiver_id, event_id, sender_kind from seed_pairs
 on conflict (sender_id, receiver_id, event_id) do update set kind = excluded.kind;
 
--- Insert receiver → sender reactions (the other direction).
+-- 6d. Receiver → sender reactions (second direction).
 -- This INSERT is what fires the on_mutual_kiss trigger, which finds the
--- first reaction we just inserted and creates the match.
-with target_events as (
-  select id, row_number() over (order by starts_at) - 1 as idx
-  from events
-  where coalesce(is_active, true) = true
-  order by starts_at
-  limit 5
-),
-pairs as (
-  select * from (values
-    ( 1, 56, 'kiss',  'heart', 0),
-    ( 2, 57, 'heart', 'fire',  0),
-    ( 3, 58, 'fire',  'kiss',  1),
-    ( 4, 59, 'kiss',  'kiss',  1),
-    ( 5, 60, 'heart', 'heart', 2),
-    ( 6, 61, 'fire',  'fire',  2),
-    ( 7, 62, 'kiss',  'heart', 3),
-    ( 8, 63, 'heart', 'fire',  3),
-    ( 9, 64, 'fire',  'kiss',  4),
-    (10, 65, 'kiss',  'kiss',  4),
-    (31, 32, 'heart', 'kiss',  0),
-    (33, 34, 'fire',  'heart', 1),
-    (35, 36, 'kiss',  'fire',  2),
-    (81, 82, 'kiss',  'kiss',  3),
-    (83, 84, 'heart', 'fire',  4),
-    (85, 86, 'fire',  'heart', 0),
-    (43, 89, 'heart', 'kiss',  1),
-    (44, 90, 'fire',  'heart', 2),
-    (45, 91, 'kiss',  'fire',  3),
-    (98, 99, 'heart', 'fire',  4)
-  ) as p(sender_n, receiver_n, sender_kind, receiver_kind, event_idx)
-)
+-- step-6c row and creates the match.
 insert into event_reactions (sender_id, receiver_id, event_id, kind)
-select
-  ('00000000-0000-0000-0000-' || lpad(p.receiver_n::text, 12, '0'))::uuid,
-  ('00000000-0000-0000-0000-' || lpad(p.sender_n::text,   12, '0'))::uuid,
-  e.id,
-  p.receiver_kind
-from pairs p
-join target_events e on e.idx = p.event_idx
+select receiver_id, sender_id, event_id, receiver_kind from seed_pairs
 on conflict (sender_id, receiver_id, event_id) do update set kind = excluded.kind;
 
 commit;
