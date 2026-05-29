@@ -18,8 +18,10 @@ export interface PhotoSlot {
 }
 
 /**
- * Opens the Capacitor camera picker (prompt: camera or gallery).
- * Returns the photo as a base64-encoded string, or null on cancel/error.
+ * Opens the photo picker (prompt: camera or gallery). On native this is the
+ * Capacitor Camera action sheet; on web it's backed by @ionic/pwa-elements
+ * (registered in main.tsx), which offers both camera capture and file upload.
+ * Returns the photo as a base64-encoded string, or null on cancel.
  */
 export async function pickPhoto(): Promise<string | null> {
   try {
@@ -30,8 +32,13 @@ export async function pickPhoto(): Promise<string | null> {
       source: CameraSource.Prompt,
     });
     return photo.base64String ?? null;
-  } catch {
-    return null;
+  } catch (e) {
+    // A user cancel is not an error — return null quietly. Surface anything
+    // else (permission denied, missing web shim, plugin failure) so the caller
+    // can show feedback instead of a silent no-op.
+    const msg = e instanceof Error ? e.message.toLowerCase() : String(e).toLowerCase();
+    if (msg.includes('cancel')) return null;
+    throw e;
   }
 }
 

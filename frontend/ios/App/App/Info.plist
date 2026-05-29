@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Beija usa a câmera para você tirar uma foto de perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Beija acessa suas fotos para você escolher uma foto de perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Beija pode salvar fotos na sua biblioteca.</string>
 </dict>
 </plist>

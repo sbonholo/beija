@@ -23,6 +23,7 @@ import { SUPABASE_CONFIGURED } from './lib/supabase';
 import { initSentry } from './lib/sentry';
 import { initAnalytics, track } from './lib/analytics';
 import { startWebVitals } from './lib/vitals';
+import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import './i18n';
 import './index.css';
 
@@ -32,6 +33,10 @@ initSentry();
 initAnalytics();
 startWebVitals();
 track('app_opened');
+
+// Register @ionic/pwa-elements so @capacitor/camera has a web UI (camera +
+// gallery) outside the native iOS/Android shells. No-op on native webviews.
+defineCustomElements(window);
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {

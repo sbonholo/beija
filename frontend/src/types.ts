@@ -1,4 +1,4 @@
-export type Gender = 'man' | 'woman' | 'non-binary' | 'other';
+export type Gender = 'man' | 'woman' | 'non-binary' | 'prefer_not_to_say';
 export type ReactionType = 'kiss' | 'heart' | 'fire';
 
 export interface User {

@@ -10,10 +10,23 @@ const ModerationFeedbackModal = lazy(
   () => import('../Moderation/ModerationFeedbackModal'),
 );
 
-type GenderUI = 'woman' | 'man' | 'other';
+type GenderUI = 'woman' | 'man' | 'non-binary' | 'prefer_not_to_say';
 type SeekingUI = 'women' | 'men' | 'all';
 
-const ALL_GENDERS = ['woman', 'man', 'non-binary', 'other'] as const;
+const ALL_GENDERS = ['woman', 'man', 'non-binary', 'prefer_not_to_say'] as const;
+
+const GENDER_OPTIONS: { value: GenderUI; label: string }[] = [
+  { value: 'woman', label: 'Mulher' },
+  { value: 'man', label: 'Homem' },
+  { value: 'non-binary', label: 'Não-binário' },
+  { value: 'prefer_not_to_say', label: 'Prefiro não dizer' },
+];
+
+const SEEKING_OPTIONS: { value: SeekingUI; label: string }[] = [
+  { value: 'women', label: '♀ Mulheres' },
+  { value: 'men', label: '♂ Homens' },
+  { value: 'all', label: '✨ Todos' },
+];
 
 function seekingToArray(s: SeekingUI): string[] {
   if (s === 'women') return ['woman'];
@@ -67,10 +80,14 @@ export function OnboardingFlow() {
     agreed;
 
   async function onPickPhoto() {
-    const base64 = await pickPhoto();
-    if (!base64) return;
-    setPhotoBase64(base64);
-    setPhotoPreview(`data:image/jpeg;base64,${base64}`);
+    try {
+      const base64 = await pickPhoto();
+      if (!base64) return;
+      setPhotoBase64(base64);
+      setPhotoPreview(`data:image/jpeg;base64,${base64}`);
+    } catch (e) {
+      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao abrir a câmera' });
+    }
   }
 
   async function finish() {
@@ -81,13 +98,11 @@ export function OnboardingFlow() {
       const userId = auth.user?.id;
       if (!userId) throw new Error('not_authenticated');
 
-      const dbGender = gender === 'other' ? 'other' : gender;
-
       const { error: profileErr } = await supabase.from('profiles').upsert({
         id: userId,
         name: name.trim(),
         birthdate,
-        gender: dbGender,
+        gender,
         interested_in: seekingToArray(seeking),
         bio: bio.trim() || null,
         last_active_at: new Date().toISOString(),
@@ -115,108 +130,132 @@ export function OnboardingFlow() {
     }
   }
 
+  const labelStyle = { fontSize: 12, marginTop: 12, marginBottom: 6 } as const;
+
   return (
-    <div className="screen" style={{ paddingBottom: 40 }}>
-      <h2 style={{ marginTop: 12, marginBottom: 20 }}>Vamos te conhecer</h2>
+    <div
+      style={{
+        minHeight: '100svh',
+        display: 'flex',
+        flexDirection: 'column',
+        padding:
+          'max(env(safe-area-inset-top), 14px) 18px max(env(safe-area-inset-bottom), 14px)',
+        boxSizing: 'border-box',
+      }}
+    >
+      <h2 style={{ margin: '2px 0 12px', fontSize: 22 }}>Vamos te conhecer</h2>
 
-      <label htmlFor="onb-name" className="muted" style={{ fontSize: 13 }}>Seu nome</label>
-      <input
-        id="onb-name"
-        placeholder="Como te chamam"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        maxLength={40}
-        autoComplete="given-name"
-      />
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={onPickPhoto}
+          aria-label="Adicionar foto principal"
+          style={{
+            width: 88,
+            height: 88,
+            flexShrink: 0,
+            borderRadius: '50%',
+            padding: 0,
+            backgroundImage: photoPreview ? `url("${photoPreview}")` : undefined,
+            backgroundColor: photoPreview ? undefined : '#1c0a2b',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: '2px dashed rgba(255, 59, 154, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff',
+            boxShadow: photoPreview ? 'var(--shadow)' : undefined,
+          }}
+        >
+          {!photoPreview && <span style={{ fontSize: 30 }} aria-hidden>📷</span>}
+        </button>
 
-      <label htmlFor="onb-birthdate" className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
-        Data de nascimento
-      </label>
-      <input
-        id="onb-birthdate"
-        type="date"
-        max={maxBirthdate}
-        value={birthdate}
-        onChange={(e) => setBirthdate(e.target.value)}
-        autoComplete="bday"
-      />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <input
+            id="onb-name"
+            placeholder="Seu nome"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={40}
+            autoComplete="given-name"
+            style={{ marginBottom: 8 }}
+          />
+          <input
+            id="onb-birthdate"
+            type="date"
+            max={maxBirthdate}
+            value={birthdate}
+            onChange={(e) => setBirthdate(e.target.value)}
+            autoComplete="bday"
+            aria-label="Data de nascimento"
+          />
+        </div>
+      </div>
       {birthdate && !ageValid && (
-        <p style={{ fontSize: 11, marginTop: 4, color: 'var(--pink)' }}>
+        <p style={{ fontSize: 11, marginTop: 6, color: 'var(--pink)' }}>
           Você precisa ter entre 18 e 120 anos para continuar.
         </p>
       )}
 
-      <div id="onb-gender-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Você é</div>
+      <div id="onb-gender-label" className="muted" style={labelStyle}>Você é</div>
       <div className="row" role="group" aria-labelledby="onb-gender-label" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <button type="button" className={`chip ${gender === 'woman' ? 'selected' : ''}`} onClick={() => setGender('woman')}>♀️ Mulher</button>
-        <button type="button" className={`chip ${gender === 'man' ? 'selected' : ''}`} onClick={() => setGender('man')}>♂️ Homem</button>
-        <button type="button" className={`chip ${gender === 'other' ? 'selected' : ''}`} onClick={() => setGender('other')}>✨ Outro</button>
+        {GENDER_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className={`chip ${gender === o.value ? 'selected' : ''}`}
+            onClick={() => setGender(o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
 
-      <div id="onb-seeking-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Quer conhecer</div>
+      <div id="onb-seeking-label" className="muted" style={labelStyle}>Quer conhecer</div>
       <div className="row" role="group" aria-labelledby="onb-seeking-label" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <button type="button" className={`chip ${seeking === 'women' ? 'selected' : ''}`} onClick={() => setSeeking('women')}>♀️ Mulheres</button>
-        <button type="button" className={`chip ${seeking === 'men' ? 'selected' : ''}`} onClick={() => setSeeking('men')}>♂️ Homens</button>
-        <button type="button" className={`chip ${seeking === 'all' ? 'selected' : ''}`} onClick={() => setSeeking('all')}>💫 Todos</button>
+        {SEEKING_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className={`chip ${seeking === o.value ? 'selected' : ''}`}
+            onClick={() => setSeeking(o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
 
-      <div id="onb-photo-label" className="muted" style={{ fontSize: 13, marginTop: 18, marginBottom: 8 }}>Foto principal</div>
-      <button
-        type="button"
-        onClick={onPickPhoto}
-        aria-labelledby="onb-photo-label"
-        style={{
-          width: '100%',
-          aspectRatio: '1 / 1',
-          maxWidth: 280,
-          margin: '0 auto 12px',
-          padding: 0,
-          borderRadius: 'var(--radius)',
-          backgroundImage: photoPreview ? `url("${photoPreview}")` : undefined,
-          backgroundColor: photoPreview ? undefined : '#1c0a2b',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          border: '2px dashed rgba(255, 59, 154, 0.35)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#fff',
-          boxShadow: photoPreview ? 'var(--shadow)' : undefined,
-        }}
-      >
-        {!photoPreview && <span style={{ fontSize: 48 }} aria-hidden>📷</span>}
-      </button>
-
-      <label htmlFor="onb-bio" className="muted" style={{ fontSize: 13, marginTop: 10, display: 'block' }}>Bio (opcional)</label>
       <textarea
         id="onb-bio"
         value={bio}
         onChange={(e) => setBio(e.target.value)}
-        rows={3}
+        rows={2}
         maxLength={150}
-        placeholder="Diz algo sobre você"
+        placeholder="Bio (opcional)"
+        aria-label="Bio"
+        style={{ marginTop: 12, resize: 'none' }}
       />
-      <p className="muted" style={{ fontSize: 11, textAlign: 'right' }}>{bio.length}/150</p>
 
-      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 20, cursor: 'pointer', fontSize: 13, lineHeight: 1.4 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, cursor: 'pointer' }}>
         <input
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
-          style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--pink)' }}
+          style={{ width: 20, height: 20, flexShrink: 0, accentColor: 'var(--pink)' }}
         />
-        <span className="muted">
-          Ao continuar, você confirma que tem 18+ e aceita os{' '}
-          <Link to="/terms" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Termos</Link>
+        <span className="muted" style={{ fontSize: 12, lineHeight: 1.3 }}>
+          Tenho 18+ e aceito os{' '}
+          <Link to="/terms" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--pink)', textDecoration: 'none' }}>Termos</Link>
           {' '}e{' '}
-          <Link to="/privacy" style={{ color: 'var(--pink)', textDecoration: 'none' }}>Privacidade</Link>.
+          <Link to="/privacy" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--pink)', textDecoration: 'none' }}>Privacidade</Link>.
         </span>
       </label>
 
       <button
         className="btn"
-        style={{ marginTop: 18 }}
+        style={{ marginTop: 'auto', marginBottom: 4 }}
         disabled={!canFinish || saving}
         onClick={finish}
       >

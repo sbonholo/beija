@@ -4,15 +4,15 @@ import type { Gender } from '../types';
 export const genderLabel: Record<Gender, string> = {
   woman: 'Mulher',
   man: 'Homem',
-  'non-binary': 'Não-binário/a',
-  other: 'Outro',
+  'non-binary': 'Não-binário',
+  'prefer_not_to_say': 'Prefiro não dizer',
 };
 
 export const seekingLabel: Record<Gender, string> = {
   woman: 'Mulheres',
   man: 'Homens',
   'non-binary': 'Não-binárias',
-  other: 'Outros',
+  'prefer_not_to_say': 'Todos',
 };
 
 export function ageFromBirthdate(birthdate: string | null | undefined): number | null {

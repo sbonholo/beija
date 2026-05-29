@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 
 type SeekingUI = 'women' | 'men' | 'all';
 
-const ALL_GENDERS = ['woman', 'man', 'non-binary', 'other'] as const;
+const ALL_GENDERS = ['woman', 'man', 'non-binary', 'prefer_not_to_say'] as const;
 const FILTERS_CACHE_KEY = 'beija_filters_cache';
 
 interface CachedFilters {
