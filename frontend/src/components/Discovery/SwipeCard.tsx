@@ -25,6 +25,7 @@ interface Props {
   stackIndex: number;
   onSwipe: (direction: SwipeDirection) => void;
   onOpenDetail?: (profileId: string) => void;
+  onOpenSafety?: (profileId: string, profileName: string | null) => void;
   /**
    * When set, the card animates in from this side (used by the rewind feature).
    * 'super' enters from the bottom.
@@ -38,6 +39,7 @@ function SwipeCardImpl({
   stackIndex,
   onSwipe,
   onOpenDetail,
+  onOpenSafety,
   enterFrom = null,
 }: Props) {
   const { t } = useTranslation('swipe');
@@ -393,6 +395,41 @@ function SwipeCardImpl({
         </button>
       )}
 
+      {/* Report / block button (top-right, left of info) */}
+      {isTop && onOpenSafety && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenSafety(profile.id, profile.name ?? null);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={t('actions.report_block')}
+          className="icon-btn"
+          style={{
+            position: 'absolute',
+            top: 14,
+            right: 58,
+            width: 36,
+            height: 36,
+            borderRadius: 999,
+            background: 'rgba(10, 0, 20, 0.55)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            fontSize: 18,
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 5,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          ⋮
+        </button>
+      )}
+
       {/* Accessibility alternative buttons (visually hidden, focusable) */}
       {isTop && (
         <div
@@ -426,6 +463,7 @@ export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {
     prev.stackIndex === next.stackIndex &&
     prev.photos === next.photos &&
     prev.enterFrom === next.enterFrom &&
-    prev.onOpenDetail === next.onOpenDetail
+    prev.onOpenDetail === next.onOpenDetail &&
+    prev.onOpenSafety === next.onOpenSafety
   );
 });

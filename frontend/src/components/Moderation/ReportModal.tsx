@@ -1,16 +1,17 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 
-const REASONS = [
-  'Foto inadequada',
-  'Perfil falso',
-  'Comportamento abusivo',
-  'Spam',
-  'Menor de idade',
-  'Outro',
+const REASON_TOKENS = [
+  'fake_profile',
+  'harassment',
+  'inappropriate_content',
+  'underage',
+  'scam_spam',
+  'other',
 ] as const;
 
-type Reason = (typeof REASONS)[number];
+type ReasonToken = (typeof REASON_TOKENS)[number];
 
 interface Props {
   reportedUserId: string;
@@ -20,8 +21,10 @@ interface Props {
 }
 
 export function ReportModal({ reportedUserId, reportedName, onClose, onReported }: Props) {
-  const [reason, setReason] = useState<Reason | null>(null);
+  const { t } = useTranslation('moderation');
+  const [reason, setReason] = useState<ReasonToken | null>(null);
   const [details, setDetails] = useState('');
+  const [alsoBlock, setAlsoBlock] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,46 +34,26 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
     setSubmitting(true);
     setError(null);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const me = auth.user?.id;
-      if (!me) throw new Error('not_authenticated');
-
-      const { error: reportErr } = await supabase.from('reports').insert({
-        reporter_id: me,
-        reported_id: reportedUserId,
-        reason,
-        details: details.trim() || null,
+      // Atomic server-side: insert report (status pending) + optional block
+      // (which also deletes swipes + match). No client-side cleanup needed.
+      const { error: rpcErr } = await supabase.rpc('report_user', {
+        p_reported_id: reportedUserId,
+        p_reason: reason,
+        p_details: details.trim() || null,
+        p_also_block: alsoBlock,
       });
-      if (reportErr) throw reportErr;
-
-      // Auto-block the reported user
-      const { error: blockErr } = await supabase
-        .from('blocks')
-        .insert({ blocker_id: me, blocked_id: reportedUserId });
-      if (blockErr && blockErr.code !== '23505') {
-        // unique_violation just means they were already blocked — ignore
-        console.warn('[ReportModal] auto-block failed:', blockErr);
-      }
-
-      // Remove mutual swipes and match so we don't show them again
-      await supabase
-        .from('swipes')
-        .delete()
-        .or(
-          `and(swiper_id.eq.${me},swipee_id.eq.${reportedUserId}),and(swiper_id.eq.${reportedUserId},swipee_id.eq.${me})`,
-        );
-      const lo = me < reportedUserId ? me : reportedUserId;
-      const hi = me < reportedUserId ? reportedUserId : me;
-      await supabase.from('matches').delete().eq('user1_id', lo).eq('user2_id', hi);
+      if (rpcErr) throw rpcErr;
 
       setSubmitted(true);
       onReported?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao enviar denúncia.');
+      setError(e instanceof Error ? e.message : t('report.error'));
     } finally {
       setSubmitting(false);
     }
   }
+
+  const name = reportedName ?? t('report.default_name');
 
   return (
     <div className="match-modal-bg" role="dialog" aria-modal="true" onClick={onClose}>
@@ -86,28 +69,25 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
         {submitted ? (
           <>
             <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>✅</div>
-            <h2 style={{ margin: '0 0 6px', textAlign: 'center' }}>Denúncia recebida</h2>
+            <h2 style={{ margin: '0 0 6px', textAlign: 'center' }}>{t('report.success_title')}</h2>
             <p className="muted" style={{ textAlign: 'center', marginTop: 0 }}>
-              Nossa equipe vai responder em até 24h. Você não vai mais ver{' '}
-              {reportedName ?? 'essa pessoa'} no app.
+              {t('report.success_body')}
             </p>
             <button className="btn" style={{ marginTop: 18 }} onClick={onClose}>
-              Fechar
+              {t('report.close')}
             </button>
           </>
         ) : (
           <>
-            <h2 style={{ margin: '0 0 6px' }}>
-              Denunciar {reportedName ?? 'perfil'}
-            </h2>
+            <h2 style={{ margin: '0 0 6px' }}>{t('report.title', { name })}</h2>
             <p className="muted" style={{ marginTop: 0, marginBottom: 16, fontSize: 13 }}>
-              Conta pra gente o que rolou. Nossa equipe analisa em até 24h.
+              {t('report.subtitle')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {REASONS.map((r) => (
+              {REASON_TOKENS.map((token) => (
                 <label
-                  key={r}
+                  key={token}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -116,23 +96,23 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
                     background: 'var(--bg-elev)',
                     borderRadius: 'var(--radius-sm)',
                     cursor: 'pointer',
-                    border: `1px solid ${reason === r ? 'var(--pink)' : 'rgba(255,255,255,0.08)'}`,
+                    border: `1px solid ${reason === token ? 'var(--pink)' : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
                   <input
                     type="radio"
                     name="report-reason"
-                    checked={reason === r}
-                    onChange={() => setReason(r)}
+                    checked={reason === token}
+                    onChange={() => setReason(token)}
                     style={{ accentColor: 'var(--pink)' }}
                   />
-                  <span style={{ fontSize: 14 }}>{r}</span>
+                  <span style={{ fontSize: 14 }}>{t(`report.reasons.${token}`)}</span>
                 </label>
               ))}
             </div>
 
             <label htmlFor="report-details" className="muted" style={{ fontSize: 13, marginTop: 14, display: 'block' }}>
-              Detalhes (opcional)
+              {t('report.details_label')}
             </label>
             <textarea
               id="report-details"
@@ -140,8 +120,26 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
               onChange={(e) => setDetails(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder="Descreve o que aconteceu"
+              placeholder={t('report.details_placeholder')}
             />
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginTop: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={alsoBlock}
+                onChange={(e) => setAlsoBlock(e.target.checked)}
+                style={{ width: 20, height: 20, flexShrink: 0, accentColor: 'var(--pink)' }}
+              />
+              <span style={{ fontSize: 14 }}>{t('report.also_block')}</span>
+            </label>
 
             {error && (
               <p style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{error}</p>
@@ -151,9 +149,9 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
               className="btn"
               style={{ marginTop: 18 }}
               disabled={!reason || submitting}
-              onClick={submit}
+              onClick={() => void submit()}
             >
-              {submitting ? 'Enviando...' : 'Enviar denúncia'}
+              {submitting ? t('report.submitting') : t('report.submit')}
             </button>
             <button
               className="btn ghost"
@@ -161,7 +159,7 @@ export function ReportModal({ reportedUserId, reportedName, onClose, onReported 
               disabled={submitting}
               onClick={onClose}
             >
-              Cancelar
+              {t('report.cancel')}
             </button>
           </>
         )}

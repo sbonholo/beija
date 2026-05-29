@@ -20,5 +20,40 @@
     "offensive_generic": "Conteúdo ofensivo",
     "rate_limited": "Você tentou enviar fotos demais em pouco tempo. Aguarde um minuto.",
     "provider_error": "Não conseguimos validar a foto agora. Tente de novo."
+  },
+  "safety": {
+    "default_name": "esta pessoa",
+    "subtitle": "O que você quer fazer?",
+    "report": "Denunciar",
+    "block": "Bloquear",
+    "cancel": "Cancelar",
+    "blocking": "Bloqueando...",
+    "block_toast": "Pessoa bloqueada.",
+    "block_error": "Erro ao bloquear.",
+    "block_confirm_title": "Bloquear {{name}}?",
+    "block_confirm_body": "Vocês não se verão mais. Matches e mensagens entre vocês serão removidos."
+  },
+  "report": {
+    "title": "Denunciar {{name}}",
+    "default_name": "perfil",
+    "subtitle": "Conta pra gente o que rolou. Nossa equipe analisa em até 24h.",
+    "reasons": {
+      "fake_profile": "Perfil falso",
+      "harassment": "Assédio ou comportamento abusivo",
+      "inappropriate_content": "Nudez ou conteúdo inapropriado",
+      "underage": "Menor de idade",
+      "scam_spam": "Spam ou golpe",
+      "other": "Outro"
+    },
+    "also_block": "Também bloquear esta pessoa",
+    "details_label": "Detalhes (opcional)",
+    "details_placeholder": "Descreve o que aconteceu",
+    "submit": "Enviar denúncia",
+    "submitting": "Enviando...",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "error": "Erro ao enviar denúncia.",
+    "success_title": "Denúncia recebida",
+    "success_body": "Nossa equipe responde em até 24h. Você não verá mais essa pessoa."
   }
 }

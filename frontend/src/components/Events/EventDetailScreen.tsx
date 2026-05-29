@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import type { EventAttendee, NearbyEvent, ReactionKind } from '../../lib/supabase';
 import { useToast } from '../Toast';
+import { SafetyMenu } from '../Moderation/SafetyMenu';
 
 const PAGE = 60;
 
@@ -74,6 +75,7 @@ export function EventDetailScreen() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn,  setCheckingIn]  = useState(false);
   const [selected, setSelected] = useState<EventAttendee | null>(null);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const [reacting, setReacting] = useState(false);
   const [matched,  setMatched]  = useState<MatchState | null>(null);
   // Dating app: lead with mutual-preference matches; toggle reveals everyone.
@@ -510,6 +512,21 @@ export function EventDetailScreen() {
                 {selected.name ?? 'Alguém'}{selected.age ? `, ${selected.age}` : ''}
               </div>
 
+              {/* Report / block */}
+              <button
+                onClick={() => setSafetyOpen(true)}
+                aria-label="Denunciar ou bloquear"
+                style={{
+                  position: 'absolute', top: 10, right: 50,
+                  background: 'rgba(0,0,0,0.5)', border: 'none',
+                  borderRadius: '50%', width: 32, height: 32,
+                  fontSize: 18, color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                ⋮
+              </button>
+
               {/* Close */}
               <button
                 onClick={() => setSelected(null)}
@@ -565,6 +582,21 @@ export function EventDetailScreen() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Report / block sheet for the selected attendee */}
+      {selected && safetyOpen && (
+        <SafetyMenu
+          targetUserId={selected.user_id}
+          targetName={selected.name ?? undefined}
+          onClose={() => setSafetyOpen(false)}
+          onDone={() => {
+            const removedId = selected.user_id;
+            setSafetyOpen(false);
+            setSelected(null);
+            setAttendees((list) => list.filter((a) => a.user_id !== removedId));
+          }}
+        />
       )}
 
       {/* Match celebration overlay */}

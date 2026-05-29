@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { fetchProfileSafe, type SafeProfile } from '../../lib/profiles';
-import { ReportModal } from '../Moderation/ReportModal';
+import { SafetyMenu } from '../Moderation/SafetyMenu';
 import { useToast } from '../Toast';
 import { formatDistanceKm } from '../../lib/labels';
 import { track } from '../../lib/analytics';
@@ -31,8 +31,7 @@ export default function ProfileDetailModal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -133,21 +132,6 @@ export default function ProfileDetailModal() {
     }
   }
 
-  async function doBlock() {
-    if (!profile || !meId) return;
-    setMenuOpen(false);
-    try {
-      const { error: bErr } = await supabase
-        .from('blocks')
-        .insert({ blocker_id: meId, blocked_id: profile.id });
-      if (bErr) throw bErr;
-      toast({ kind: 'info', text: 'Usuário bloqueado.' });
-      close();
-    } catch (e) {
-      toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao bloquear' });
-    }
-  }
-
   return (
     <div
       ref={containerRef}
@@ -203,52 +187,13 @@ export default function ProfileDetailModal() {
         </div>
         <button
           type="button"
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => setSafetyOpen(true)}
           aria-label={t('detail.more')}
-          aria-expanded={menuOpen}
           className="icon-btn"
           style={iconBtnStyle}
         >
           ⋯
         </button>
-        {menuOpen && profile && (
-          <div
-            role="menu"
-            style={{
-              position: 'absolute',
-              top: 'calc(env(safe-area-inset-top) + 56px)',
-              right: 12,
-              background: 'var(--card)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 10,
-              padding: 6,
-              minWidth: 200,
-              boxShadow: '0 12px 28px rgba(0,0,0,0.45)',
-            }}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              className="menu-item"
-              onClick={() => {
-                setMenuOpen(false);
-                setReportOpen(true);
-              }}
-              style={menuItemStyle}
-            >
-              {t('detail.report')}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="menu-item"
-              onClick={() => void doBlock()}
-              style={{ ...menuItemStyle, color: '#ff8585' }}
-            >
-              {t('detail.block')}
-            </button>
-          </div>
-        )}
       </header>
 
       {loading && (
@@ -374,11 +319,12 @@ export default function ProfileDetailModal() {
             </button>
           </div>
 
-          {reportOpen && (
-            <ReportModal
-              reportedUserId={profile.id}
-              reportedName={profile.name ?? undefined}
-              onClose={() => setReportOpen(false)}
+          {safetyOpen && (
+            <SafetyMenu
+              targetUserId={profile.id}
+              targetName={profile.name ?? undefined}
+              onClose={() => setSafetyOpen(false)}
+              onDone={close}
             />
           )}
         </>
@@ -418,19 +364,6 @@ const iconBtnStyle: React.CSSProperties = {
   justifyContent: 'center',
   cursor: 'pointer',
   padding: 0,
-};
-
-const menuItemStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  textAlign: 'left',
-  padding: '10px 12px',
-  background: 'transparent',
-  border: 0,
-  color: '#fff',
-  fontSize: 14,
-  cursor: 'pointer',
-  borderRadius: 6,
 };
 
 const actionBtnStyle: React.CSSProperties = {

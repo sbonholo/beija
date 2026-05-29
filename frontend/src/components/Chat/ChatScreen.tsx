@@ -14,8 +14,7 @@ function reactionIntent(mine: ReactionKind | null, theirs: ReactionKind | null):
 }
 import { track } from '../../lib/analytics';
 import { MessageBubble } from './MessageBubble';
-import { BlockButton } from '../Moderation/BlockButton';
-import { ReportModal } from '../Moderation/ReportModal';
+import { SafetyMenu } from '../Moderation/SafetyMenu';
 
 interface OtherInfo {
   id: string;
@@ -37,7 +36,6 @@ export function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -335,66 +333,15 @@ export function ChatScreen() {
             ) : null}
           </div>
         </div>
-        <button className="chip" onClick={() => setMenuOpen((o) => !o)} aria-label="Mais opções">⋮</button>
+        <button className="chip" onClick={() => setMenuOpen(true)} aria-label="Mais opções">⋮</button>
       </div>
 
       {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 50,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 480,
-              background: 'var(--card)',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              padding: '14px 18px calc(20px + env(safe-area-inset-bottom))',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}
-          >
-            <button
-              className="btn ghost"
-              onClick={() => {
-                setMenuOpen(false);
-                setReportOpen(true);
-              }}
-            >
-              🚩 Denunciar
-            </button>
-            <BlockButton
-              targetUserId={other.id}
-              targetName={other.name ?? undefined}
-              variant="ghost"
-              onBlocked={() => nav('/matches', { replace: true })}
-            />
-            <button className="btn ghost" onClick={() => setMenuOpen(false)}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {reportOpen && (
-        <ReportModal
-          reportedUserId={other.id}
-          reportedName={other.name ?? undefined}
-          onClose={() => setReportOpen(false)}
-          onReported={() => nav('/matches', { replace: true })}
+        <SafetyMenu
+          targetUserId={other.id}
+          targetName={other.name ?? undefined}
+          onClose={() => setMenuOpen(false)}
+          onDone={() => nav('/matches', { replace: true })}
         />
       )}
 

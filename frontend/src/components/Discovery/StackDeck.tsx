@@ -5,6 +5,7 @@ import { supabase, type Profile } from '../../lib/supabase';
 import { SwipeCard, type SwipeCardProfile, type SwipeDirection } from './SwipeCard';
 import { MatchModal } from './MatchModal';
 import { DiscoveryFilters } from './DiscoveryFilters';
+import { SafetyMenu } from '../Moderation/SafetyMenu';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useToast } from '../Toast';
 import { track } from '../../lib/analytics';
@@ -89,6 +90,7 @@ export function StackDeck() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<NewMatch | null>(null);
+  const [safetyTarget, setSafetyTarget] = useState<{ id: string; name: string | null } | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [firstCardTracked, setFirstCardTracked] = useState(false);
   const [liveAnnouncement, setLiveAnnouncement] = useState('');
@@ -304,6 +306,10 @@ export function StackDeck() {
     [nav],
   );
 
+  const openSafety = useCallback((profileId: string, profileName: string | null) => {
+    setSafetyTarget({ id: profileId, name: profileName });
+  }, []);
+
   if (loading) {
     return (
       <div className="screen">
@@ -425,6 +431,7 @@ export function StackDeck() {
               stackIndex={i}
               onSwipe={(direction) => handleSwipe(p, direction)}
               onOpenDetail={openDetail}
+              onOpenSafety={openSafety}
               enterFrom={i === 0 && p.id === rewoundId ? rewindEnter : null}
             />
           ))}
@@ -512,6 +519,19 @@ export function StackDeck() {
           onApplied={() => {
             setDeck([]);
             void loadMore();
+          }}
+        />
+      )}
+
+      {safetyTarget && (
+        <SafetyMenu
+          targetUserId={safetyTarget.id}
+          targetName={safetyTarget.name ?? undefined}
+          onClose={() => setSafetyTarget(null)}
+          onDone={() => {
+            const removedId = safetyTarget.id;
+            setSafetyTarget(null);
+            setDeck((cur) => cur.filter((p) => p.id !== removedId));
           }}
         />
       )}

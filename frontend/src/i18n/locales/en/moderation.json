@@ -20,5 +20,40 @@
     "offensive_generic": "Offensive content",
     "rate_limited": "Too many photo attempts in a short period. Wait a minute.",
     "provider_error": "Couldn't validate the photo right now. Try again."
+  },
+  "safety": {
+    "default_name": "this person",
+    "subtitle": "What would you like to do?",
+    "report": "Report",
+    "block": "Block",
+    "cancel": "Cancel",
+    "blocking": "Blocking...",
+    "block_toast": "Person blocked.",
+    "block_error": "Couldn't block.",
+    "block_confirm_title": "Block {{name}}?",
+    "block_confirm_body": "You won't see each other anymore. Matches and messages between you will be removed."
+  },
+  "report": {
+    "title": "Report {{name}}",
+    "default_name": "profile",
+    "subtitle": "Tell us what happened. Our team reviews within 24h.",
+    "reasons": {
+      "fake_profile": "Fake profile",
+      "harassment": "Harassment or abusive behavior",
+      "inappropriate_content": "Nudity or inappropriate content",
+      "underage": "Underage",
+      "scam_spam": "Spam or scam",
+      "other": "Other"
+    },
+    "also_block": "Also block this person",
+    "details_label": "Details (optional)",
+    "details_placeholder": "Describe what happened",
+    "submit": "Submit report",
+    "submitting": "Submitting...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "error": "Couldn't submit the report.",
+    "success_title": "Report received",
+    "success_body": "Our team responds within 24h. You won't see this person anymore."
   }
 }
