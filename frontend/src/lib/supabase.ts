@@ -93,6 +93,8 @@ export interface Match {
   last_message_at: string | null;
   is_stale: boolean;
   is_archived: boolean;
+  user1_reaction: ReactionKind | null;
+  user2_reaction: ReactionKind | null;
 }
 
 export interface Message {

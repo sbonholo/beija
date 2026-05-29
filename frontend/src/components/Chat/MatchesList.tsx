@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, type ReactionKind } from '../../lib/supabase';
+
+const REACTION_EMOJI: Record<ReactionKind, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
 
 interface MatchRow {
   matchId: string;
@@ -12,6 +14,7 @@ interface MatchRow {
   unread: number;
   isStale: boolean;
   isArchived: boolean;
+  reactionPair: { mine: ReactionKind; theirs: ReactionKind | null } | null;
 }
 
 function relTime(iso: string): string {
@@ -47,7 +50,7 @@ export function MatchesList() {
 
       const { data: matches, error: mErr } = await supabase
         .from('matches')
-        .select('id, user1_id, user2_id, created_at, last_message_at, is_stale, is_archived')
+        .select('id, user1_id, user2_id, created_at, last_message_at, is_stale, is_archived, user1_reaction, user2_reaction')
         .or(`user1_id.eq.${me},user2_id.eq.${me}`)
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -114,6 +117,8 @@ export function MatchesList() {
 
       const built: MatchRow[] = matches.map((m) => {
         const otherId = m.user1_id === me ? m.user2_id : m.user1_id;
+        const mine = (m.user1_id === me ? m.user1_reaction : m.user2_reaction) as ReactionKind | null;
+        const theirs = (m.user1_id === me ? m.user2_reaction : m.user1_reaction) as ReactionKind | null;
         return {
           matchId: m.id,
           otherId,
@@ -124,6 +129,7 @@ export function MatchesList() {
           unread: unreadByMatch.get(m.id) ?? 0,
           isStale: !!m.is_stale,
           isArchived: !!m.is_archived,
+          reactionPair: mine ? { mine, theirs } : null,
         };
       });
       setRows(built);
@@ -228,8 +234,18 @@ export function MatchesList() {
             />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <strong>{r.otherName ?? 'Match'}</strong>
-                <span className="muted" style={{ fontSize: 12 }}>
+                <strong style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.otherName ?? 'Match'}
+                  </span>
+                  {r.reactionPair && (
+                    <span style={{ flexShrink: 0, fontSize: 13 }} aria-hidden>
+                      {REACTION_EMOJI[r.reactionPair.mine]}
+                      {r.reactionPair.theirs ? REACTION_EMOJI[r.reactionPair.theirs] : ''}
+                    </span>
+                  )}
+                </strong>
+                <span className="muted" style={{ fontSize: 12, flexShrink: 0 }}>
                   {relTime(r.lastMessage?.createdAt ?? r.createdAt)}
                 </span>
               </div>

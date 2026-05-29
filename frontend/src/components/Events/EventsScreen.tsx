@@ -139,7 +139,18 @@ export function EventsScreen() {
 
   return (
     <div className="screen" style={{ paddingBottom: 96 }}>
-      <div className="header"><h2>{t('title')}</h2></div>
+      <div className="header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2>{t('title')}</h2>
+        <button
+          type="button"
+          className="chip"
+          onClick={() => void load()}
+          aria-label={t('title')}
+          style={{ fontSize: 18, padding: '4px 12px' }}
+        >
+          ↻
+        </button>
+      </div>
 
       {events.length === 0 && (
         <div className="empty" style={{ marginTop: 60 }}>

@@ -1,20 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import type { EventAttendee, NearbyEvent, ReactionKind } from '../../lib/supabase';
 import { useToast } from '../Toast';
 
-const REACTION_BUTTONS: { kind: ReactionKind; label: string; color: string }[] = [
-  { kind: 'kiss',  label: '💋 Beijo',  color: 'var(--kiss)'  },
-  { kind: 'heart', label: '❤️ Curtir', color: 'var(--heart)' },
-  { kind: 'fire',  label: '🔥 Fogo',   color: 'var(--fire)'  },
+const PAGE = 60;
+
+const REACTION_BUTTONS: { kind: ReactionKind; label: string; meaningKey: string; color: string }[] = [
+  { kind: 'heart', label: '❤️ Curtir', meaningKey: 'heart_meaning', color: 'var(--heart)' },
+  { kind: 'kiss',  label: '💋 Beijo',  meaningKey: 'kiss_meaning',  color: 'var(--kiss)'  },
+  { kind: 'fire',  label: '🔥 Fogo',   meaningKey: 'fire_meaning',  color: 'var(--fire)'  },
 ];
 
 const REACTION_EMOJI: Record<ReactionKind, string> = {
   kiss:  '💋',
   heart: '❤️',
   fire:  '🔥',
+};
+
+const CATEGORY_GRADIENT: Record<string, string> = {
+  festival:  'linear-gradient(135deg, #e11d74 0%, #ff6e3e 100%)',
+  concert:   'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+  bar:       'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+  nightclub: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+  show:      'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+  other:     'linear-gradient(135deg, #6b7280 0%, #374151 100%)',
 };
 
 function formatEventTime(event: NearbyEvent): string {
@@ -35,7 +46,19 @@ const CATEGORY_LABEL: Record<string, string> = {
   nightclub: '🪩 Balada',  show: '🎭 Espetáculo', other: '📍 Evento',
 };
 
-interface MatchState { matchId: string; attendee: EventAttendee }
+interface MatchState {
+  matchId: string;
+  attendee: EventAttendee;
+  mine: ReactionKind;
+  theirs: ReactionKind | null;
+}
+
+function matchIntentKey(mine: ReactionKind, theirs: ReactionKind | null): string {
+  if (mine === 'fire' || theirs === 'fire') return 'match_intent_fire';
+  if (mine === 'kiss' && theirs === 'kiss') return 'match_intent_kiss_kiss';
+  if (mine === 'heart' && theirs === 'heart') return 'match_intent_heart';
+  return 'match_intent_mixed';
+}
 
 export function EventDetailScreen() {
   const { id: eventId } = useParams<{ id: string }>();
@@ -53,6 +76,46 @@ export function EventDetailScreen() {
   const [selected, setSelected] = useState<EventAttendee | null>(null);
   const [reacting, setReacting] = useState(false);
   const [matched,  setMatched]  = useState<MatchState | null>(null);
+  // Dating app: lead with mutual-preference matches; toggle reveals everyone.
+  const [genderFilter, setGenderFilter] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Read current attendee list inside stable callbacks without re-creating them.
+  const attendeesRef = useRef<EventAttendee[]>([]);
+  useEffect(() => { attendeesRef.current = attendees; }, [attendees]);
+
+  const loadAttendees = useCallback(
+    async (filter: boolean, mode: 'reset' | 'append' | 'refresh') => {
+      if (!eventId) return;
+      const offset = mode === 'append' ? attendeesRef.current.length : 0;
+      const limit  = mode === 'refresh'
+        ? Math.max(PAGE, attendeesRef.current.length)
+        : PAGE;
+
+      const { data, error } = await supabase.rpc('get_event_attendees', {
+        p_event_id:      eventId,
+        p_gender_filter: filter,
+        p_limit:         limit,
+        p_offset:        offset,
+      });
+
+      if (error) {
+        if (mode === 'reset') setAttendeeError(true);
+        return;
+      }
+      const list = (data ?? []) as unknown as EventAttendee[];
+      setAttendeeError(false);
+      if (mode === 'append') {
+        setAttendees((prev) => [...prev, ...list]);
+        setHasMore(list.length === PAGE);
+      } else {
+        setAttendees(list);
+        setHasMore(list.length >= PAGE);
+      }
+    },
+    [eventId],
+  );
 
   const loadData = useCallback(async () => {
     if (!eventId) return;
@@ -62,14 +125,12 @@ export function EventDetailScreen() {
     const userId = auth.user?.id ?? null;
     setMe(userId);
 
-    // Load event, attendee count, and check-in status in parallel
-    const [evResult, countResult, checkInResult, attResult] = await Promise.all([
+    const [evResult, countResult, checkInResult] = await Promise.all([
       supabase.from('events').select('*').eq('id', eventId).maybeSingle(),
       supabase.from('check_ins').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
       userId
         ? supabase.from('check_ins').select('id').eq('event_id', eventId).eq('user_id', userId).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.rpc('get_event_attendees', { p_event_id: eventId }),
     ]);
 
     if (evResult.data) {
@@ -83,18 +144,42 @@ export function EventDetailScreen() {
       setIsCheckedIn(!!checkInResult.data);
     }
 
-    if (attResult.error) {
-      toast({ kind: 'info', text: t('error_loading') });
-      setAttendeeError(true);
-    } else {
-      setAttendees((attResult.data ?? []) as unknown as EventAttendee[]);
-      setAttendeeError(false);
-    }
-
+    await loadAttendees(genderFilter, 'reset');
     setLoading(false);
-  }, [eventId, t, toast]);
+  }, [eventId, genderFilter, loadAttendees]);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  // Realtime: new check-ins at this event refresh the attendee grid + count.
+  // INSERT-only by design — leaving (check-out delete) is not handled here.
+  useEffect(() => {
+    if (!eventId) return;
+    const channel = supabase
+      .channel(`event-checkins-${eventId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'check_ins', filter: `event_id=eq.${eventId}` },
+        () => {
+          setEvent((ev) => (ev ? { ...ev, attendee_count: ev.attendee_count + 1 } : ev));
+          void loadAttendees(genderFilter, 'refresh');
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [eventId, genderFilter, loadAttendees]);
+
+  async function toggleFilter() {
+    const next = !genderFilter;
+    setGenderFilter(next);
+    await loadAttendees(next, 'reset');
+  }
+
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    await loadAttendees(genderFilter, 'append');
+    setLoadingMore(false);
+  }
 
   async function toggleCheckIn() {
     if (checkingIn || !me || !eventId) return;
@@ -156,17 +241,26 @@ export function EventDetailScreen() {
         list.map((a) => (a.user_id === selected.user_id ? rolledBack : a)),
       );
       toast({ kind: 'info', text: t('error_reaction') });
-    } else if (kind === 'kiss') {
-      // Check for mutual match (user1_id < user2_id constraint)
+    } else {
+      // Mutual-ANY: any reciprocal reaction creates a match (trigger-side).
+      // Surface whichever specific reactions formed it.
       const [u1, u2] = [me, selected.user_id].sort();
       const { data: matchRow } = await supabase
         .from('matches')
-        .select('id')
+        .select('id, user1_id, user1_reaction, user2_reaction')
         .eq('user1_id', u1)
         .eq('user2_id', u2)
         .maybeSingle();
       if (matchRow) {
-        setMatched({ matchId: matchRow.id, attendee: updatedAttendee });
+        const theirs = matchRow.user1_id === me
+          ? matchRow.user2_reaction
+          : matchRow.user1_reaction;
+        setMatched({
+          matchId: matchRow.id,
+          attendee: updatedAttendee,
+          mine: kind,
+          theirs: (theirs as ReactionKind | null) ?? null,
+        });
         setSelected(null);
       }
     }
@@ -202,6 +296,8 @@ export function EventDetailScreen() {
     );
   }
 
+  const gradient = CATEGORY_GRADIENT[event.category] ?? CATEGORY_GRADIENT.other;
+
   return (
     <div className="screen" style={{ paddingBottom: 40 }}>
       {/* Header */}
@@ -217,6 +313,20 @@ export function EventDetailScreen() {
           {event.name}
         </h2>
       </div>
+
+      {/* Hero: event image when present, gradient band as graceful fallback */}
+      {event.image_url ? (
+        <div style={{ position: 'relative', height: 170, borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
+          <img
+            src={event.image_url}
+            alt={event.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div style={{ height: 6, borderRadius: 6, background: gradient, marginBottom: 16 }} />
+      )}
 
       {/* Event info card */}
       <div className="card" style={{ padding: '14px 16px', marginBottom: 16 }}>
@@ -255,9 +365,20 @@ export function EventDetailScreen() {
       </div>
 
       {/* Attendees section */}
-      <h3 style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 10px 2px' }}>
-        {t('attendees_title')}
-      </h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 2px 10px' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>
+          {t('attendees_title')}
+        </h3>
+        <button
+          type="button"
+          className="chip"
+          onClick={() => void toggleFilter()}
+          style={{ fontSize: 12, padding: '4px 12px' }}
+          aria-pressed={genderFilter}
+        >
+          {genderFilter ? t('filter_compatible') : t('filter_all')}
+        </button>
+      </div>
 
       {attendeeError ? (
         <div className="empty" style={{ marginTop: 20 }}>
@@ -270,67 +391,84 @@ export function EventDetailScreen() {
       ) : attendees.length === 0 ? (
         <div className="empty" style={{ marginTop: 20 }}>
           <div style={{ fontSize: 40 }}>🎵</div>
-          <p className="muted" style={{ marginBottom: 4 }}>{t('no_attendees')}</p>
-          <p className="muted" style={{ fontSize: 13 }}>{t('no_attendees_hint')}</p>
+          <p className="muted" style={{ marginBottom: 4 }}>
+            {genderFilter ? t('no_attendees_compatible') : t('no_attendees')}
+          </p>
+          <p className="muted" style={{ fontSize: 13 }}>
+            {genderFilter ? t('no_attendees_compatible_hint') : t('no_attendees_hint')}
+          </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-          {attendees.map((att) => (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {attendees.map((att) => (
+              <button
+                key={att.user_id}
+                onClick={() => setSelected(att)}
+                style={{
+                  position: 'relative',
+                  aspectRatio: '3/4',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  background: 'var(--card)',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                {att.photo_url ? (
+                  <img
+                    src={att.photo_url}
+                    alt={att.name ?? 'Foto'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    background: 'linear-gradient(135deg, var(--card), var(--bg-elev))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 32,
+                  }}>
+                    👤
+                  </div>
+                )}
+
+                {/* Name overlay */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                  padding: '16px 6px 5px',
+                  fontSize: 11, fontWeight: 600, textAlign: 'left', color: '#fff',
+                }}>
+                  {att.name ?? '?'}{att.age ? `, ${att.age}` : ''}
+                </div>
+
+                {/* Reaction badge */}
+                {att.my_reaction && (
+                  <div style={{
+                    position: 'absolute', top: 4, right: 5,
+                    fontSize: 18, lineHeight: 1,
+                    filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))',
+                  }}>
+                    {REACTION_EMOJI[att.my_reaction as ReactionKind]}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {hasMore && (
             <button
-              key={att.user_id}
-              onClick={() => setSelected(att)}
-              style={{
-                position: 'relative',
-                aspectRatio: '3/4',
-                borderRadius: 10,
-                overflow: 'hidden',
-                background: 'var(--card)',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-              }}
+              className="btn ghost"
+              style={{ width: 'auto', padding: '10px 24px', margin: '16px auto 0', display: 'block' }}
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
             >
-              {att.photo_url ? (
-                <img
-                  src={att.photo_url}
-                  alt={att.name ?? 'Foto'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  loading="lazy"
-                />
-              ) : (
-                <div style={{
-                  width: '100%', height: '100%',
-                  background: 'linear-gradient(135deg, var(--card), var(--bg-elev))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 32,
-                }}>
-                  👤
-                </div>
-              )}
-
-              {/* Name overlay */}
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-                padding: '16px 6px 5px',
-                fontSize: 11, fontWeight: 600, textAlign: 'left', color: '#fff',
-              }}>
-                {att.name ?? '?'}{att.age ? `, ${att.age}` : ''}
-              </div>
-
-              {/* Reaction badge */}
-              {att.my_reaction && (
-                <div style={{
-                  position: 'absolute', top: 4, right: 5,
-                  fontSize: 18, lineHeight: 1,
-                  filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))',
-                }}>
-                  {REACTION_EMOJI[att.my_reaction as ReactionKind]}
-                </div>
-              )}
+              {loadingMore ? t('checking_in') : t('load_more')}
             </button>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* Attendee reaction modal */}
@@ -396,7 +534,7 @@ export function EventDetailScreen() {
                 </p>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                {REACTION_BUTTONS.map(({ kind, label, color }) => {
+                {REACTION_BUTTONS.map(({ kind, label, meaningKey, color }) => {
                   const isActive = selected.my_reaction === kind;
                   return (
                     <button
@@ -404,8 +542,12 @@ export function EventDetailScreen() {
                       className="btn ghost"
                       disabled={reacting || !isCheckedIn}
                       onClick={() => void sendReaction(kind)}
+                      title={t(meaningKey)}
                       style={{
                         flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 3,
                         padding: '10px 4px',
                         fontSize: 13,
                         border: isActive ? `2px solid ${color}` : '2px solid transparent',
@@ -414,7 +556,8 @@ export function EventDetailScreen() {
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {label}
+                      <span>{label}</span>
+                      <span style={{ fontSize: 10, opacity: 0.75, lineHeight: 1.2 }}>{t(meaningKey)}</span>
                     </button>
                   );
                 })}
@@ -432,10 +575,18 @@ export function EventDetailScreen() {
           aria-modal="true"
         >
           <div className="card" style={{ width: '100%', maxWidth: 380, padding: '28px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 60, marginBottom: 8 }}>💋</div>
+            <div style={{ fontSize: 60, marginBottom: 8 }}>
+              {REACTION_EMOJI[matched.mine]}{matched.theirs ? REACTION_EMOJI[matched.theirs] : ''}
+            </div>
             <h2 style={{ margin: '0 0 6px', fontSize: 24 }}>{t('it_s_a_match')}</h2>
-            <p className="muted" style={{ marginTop: 0, marginBottom: 20 }}>
+            <p className="muted" style={{ marginTop: 0, marginBottom: 4 }}>
               {t('match_with', { name: matched.attendee.name ?? 'alguém' })}
+            </p>
+            <p style={{ marginTop: 0, marginBottom: 20, fontSize: 14, fontWeight: 600 }}>
+              {t(matchIntentKey(matched.mine, matched.theirs), {
+                mine: REACTION_EMOJI[matched.mine],
+                theirs: matched.theirs ? REACTION_EMOJI[matched.theirs] : '',
+              })}
             </p>
             <button
               className="btn"

@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase, type Match, type Message } from '../../lib/supabase';
+import { supabase, type Match, type Message, type ReactionKind } from '../../lib/supabase';
+
+const REACTION_EMOJI: Record<ReactionKind, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
+
+function reactionIntent(mine: ReactionKind | null, theirs: ReactionKind | null): string | null {
+  if (!mine && !theirs) return null;
+  const pair = `${mine ? REACTION_EMOJI[mine] : ''}${theirs ? REACTION_EMOJI[theirs] : ''}`;
+  if (mine === 'fire' || theirs === 'fire') return `${pair} o clima esquentou`;
+  if (mine === 'kiss' && theirs === 'kiss') return `${pair} vocês se beijaram`;
+  if (mine === 'heart' && theirs === 'heart') return `${pair} interesse mútuo`;
+  return pair;
+}
 import { track } from '../../lib/analytics';
 import { MessageBubble } from './MessageBubble';
 import { BlockButton } from '../Moderation/BlockButton';
@@ -20,6 +31,7 @@ export function ChatScreen() {
 
   const [meId, setMeId] = useState<string | null>(null);
   const [other, setOther] = useState<OtherInfo | null>(null);
+  const [intent, setIntent] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -69,7 +81,7 @@ export function ChatScreen() {
 
         const { data: match, error: matchErr } = await supabase
           .from('matches')
-          .select('id, user1_id, user2_id, created_at, last_message_at')
+          .select('id, user1_id, user2_id, created_at, last_message_at, user1_reaction, user2_reaction')
           .eq('id', matchId)
           .maybeSingle();
         if (matchErr) throw matchErr;
@@ -77,9 +89,11 @@ export function ChatScreen() {
           setError('match_not_found');
           return;
         }
-        const otherId = (match as Match).user1_id === uid
-          ? (match as Match).user2_id
-          : (match as Match).user1_id;
+        const m = match as Match;
+        const otherId = m.user1_id === uid ? m.user2_id : m.user1_id;
+        const mine   = (m.user1_id === uid ? m.user1_reaction : m.user2_reaction);
+        const theirs = (m.user1_id === uid ? m.user2_reaction : m.user1_reaction);
+        if (!cancelled) setIntent(reactionIntent(mine, theirs));
 
         const [{ data: profile }, { data: photoRow }, { data: msgs }] = await Promise.all([
           supabase.from('profiles').select('id, name').eq('id', otherId).maybeSingle(),
@@ -314,9 +328,11 @@ export function ChatScreen() {
           />
           <div>
             <div style={{ fontWeight: 700 }}>{other.name ?? 'Match'}</div>
-            {otherTyping && (
+            {otherTyping ? (
               <div className="muted" style={{ fontSize: 11 }}>digitando…</div>
-            )}
+            ) : intent ? (
+              <div className="muted" style={{ fontSize: 11 }}>{intent}</div>
+            ) : null}
           </div>
         </div>
         <button className="chip" onClick={() => setMenuOpen((o) => !o)} aria-label="Mais opções">⋮</button>
