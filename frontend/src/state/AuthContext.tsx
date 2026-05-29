@@ -34,6 +34,12 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+// Ceiling on the initial getSession() read. If it never settles (e.g. a
+// deadlocked storage lock), the race resolves null so the loading gate still
+// releases and the router falls back to a best-available route;
+// onAuthStateChange reconciles real session state if it arrives late.
+const BOOTSTRAP_TIMEOUT_MS = 5000;
+
 async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
   const [{ data: profileRow }, { data: photoRow }, { data: deletionRow }] = await Promise.all([
     supabase
@@ -89,40 +95,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      const token = data.session?.access_token ?? null;
-      currentSessionRef.current = token;
-      setSession(data.session);
-      if (data.session) {
-        identifySentryUser(data.session.user.id);
-        identifyAnalytics(data.session.user.id);
-        const p = await fetchProfileLite(data.session.user.id);
-        if (mounted && currentSessionRef.current === token) {
-          setProfile(p);
-          if (p) setAnalyticsConsent(p.allow_analytics);
+      try {
+        const initialSession = await Promise.race([
+          supabase.auth.getSession().then(({ data }) => data.session),
+          new Promise<Session | null>((resolve) =>
+            window.setTimeout(() => resolve(null), BOOTSTRAP_TIMEOUT_MS),
+          ),
+        ]);
+        if (!mounted) return;
+        const token = initialSession?.access_token ?? null;
+        currentSessionRef.current = token;
+        setSession(initialSession);
+        if (initialSession) {
+          identifySentryUser(initialSession.user.id);
+          identifyAnalytics(initialSession.user.id);
+          const p = await fetchProfileLite(initialSession.user.id);
+          if (mounted && currentSessionRef.current === token) {
+            setProfile(p);
+            if (p) setAnalyticsConsent(p.allow_analytics);
+          }
         }
+      } finally {
+        if (mounted) setLoading(false);
       }
-      if (mounted) setLoading(false);
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!mounted) return;
-      const token = newSession?.access_token ?? null;
-      currentSessionRef.current = token;
-      setSession(newSession);
-      if (newSession) {
-        identifySentryUser(newSession.user.id);
-        identifyAnalytics(newSession.user.id);
-        const p = await fetchProfileLite(newSession.user.id);
-        if (mounted && currentSessionRef.current === token) {
-          setProfile(p);
-          if (p) setAnalyticsConsent(p.allow_analytics);
+      try {
+        const token = newSession?.access_token ?? null;
+        currentSessionRef.current = token;
+        setSession(newSession);
+        if (newSession) {
+          identifySentryUser(newSession.user.id);
+          identifyAnalytics(newSession.user.id);
+          const p = await fetchProfileLite(newSession.user.id);
+          if (mounted && currentSessionRef.current === token) {
+            setProfile(p);
+            if (p) setAnalyticsConsent(p.allow_analytics);
+          }
+        } else {
+          identifySentryUser(null);
+          resetAnalytics();
+          setProfile(null);
         }
-      } else {
-        identifySentryUser(null);
-        resetAnalytics();
-        setProfile(null);
+      } finally {
+        // A late auth event also means the bootstrap is no longer pending —
+        // release the gate even if the initial getSession() timed out.
+        if (mounted) setLoading(false);
       }
     });
 

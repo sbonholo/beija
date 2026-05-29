@@ -25,6 +25,12 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // No-op lock: bypass the navigator.locks-based storage lock, whose
+      // acquisition can deadlock and leave getSession()/token-refresh pending
+      // forever (silent infinite splash). Tradeoff: concurrent token refreshes
+      // across multiple tabs are no longer serialized — acceptable here, and
+      // the AuthContext bootstrap timeout is the backstop.
+      lock: (_name, _acquireTimeout, fn) => fn(),
     },
   },
 );
