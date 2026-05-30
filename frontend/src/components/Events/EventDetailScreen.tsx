@@ -417,7 +417,7 @@ export function EventDetailScreen() {
           className={`tab-btn${tab === 'grid' ? ' active' : ''}`}
           onClick={() => setTab('grid')}
         >
-          Quem tá aqui
+          {t('tabs.grid')}
         </button>
         <button
           role="tab"
@@ -425,7 +425,7 @@ export function EventDetailScreen() {
           className={`tab-btn${tab === 'deck' ? ' active' : ''}`}
           onClick={() => setTab('deck')}
         >
-          Swipe
+          {t('tabs.deck')}
         </button>
       </div>
 
@@ -447,7 +447,7 @@ export function EventDetailScreen() {
               <div style={{ fontSize: 40 }}>⚠️</div>
               <p className="muted" style={{ marginBottom: 8 }}>{t('error_loading')}</p>
               <button className="btn ghost" style={{ width: 'auto', padding: '8px 20px' }} onClick={() => void loadData()}>
-                Tentar de novo
+                {t('try_again')}
               </button>
             </div>
           ) : attendees.length === 0 ? (
@@ -463,17 +463,18 @@ export function EventDetailScreen() {
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                {attendees.map((att) => (
+                {attendees.map((att, i) => (
                   <button key={att.user_id} onClick={() => setSelected(att)}
                     style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden',
-                      background: 'var(--card)', border: 'none', padding: 0, cursor: 'pointer' }}>
-                    {att.photo_url ? (
+                      background: 'linear-gradient(135deg, var(--card), var(--bg-elev))', border: 'none', padding: 0, cursor: 'pointer' }}>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: 32, opacity: 0.5 }} aria-hidden>👤</div>
+                    {att.photo_url && (
                       <img src={att.photo_url} alt={att.name ?? 'Foto'}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: 32,
-                        background: 'linear-gradient(135deg, var(--card), var(--bg-elev))' }}>👤</div>
+                        loading={i < 9 ? 'eager' : 'lazy'}
+                        fetchPriority={i < 9 ? 'high' : 'auto'}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
                       background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
@@ -510,10 +511,10 @@ export function EventDetailScreen() {
             <div className="empty" style={{ marginTop: 40 }}>
               <span className="glow-emoji" style={{ fontSize: 48 }}>💋</span>
               <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 'var(--text-lg)', marginTop: 12 }}>
-                Faça check-in primeiro
+                {t('deck_need_checkin_title')}
               </p>
               <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 4 }}>
-                Entre no evento pra ver quem está aqui.
+                {t('deck_need_checkin_hint')}
               </p>
               <button className="btn" style={{ marginTop: 16, maxWidth: 240 }}
                 disabled={checkingIn} onClick={() => void toggleCheckIn()}>
@@ -528,14 +529,14 @@ export function EventDetailScreen() {
             <div className="empty" style={{ marginTop: 40 }}>
               <span className="glow-emoji" style={{ fontSize: 56 }}>🌙</span>
               <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 'var(--text-lg)', marginTop: 12 }}>
-                Você viu todo mundo!
+                {t('deck_empty_title')}
               </p>
               <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 4 }}>
-                Confira o grid pra mais pessoas no evento.
+                {t('deck_empty_hint')}
               </p>
               <button className="btn ghost" style={{ marginTop: 16, maxWidth: 240 }}
                 onClick={() => setTab('grid')}>
-                Quem tá aqui
+                {t('tabs.grid')}
               </button>
             </div>
           ) : deckCard ? (
@@ -556,7 +557,7 @@ export function EventDetailScreen() {
                   background: 'linear-gradient(transparent, rgba(0,0,0,0.82))',
                   padding: '48px 20px 20px' }}>
                   <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26 }}>
-                    {deckCard.name ?? 'Alguém'}{deckCard.age ? `, ${deckCard.age}` : ''}
+                    {deckCard.name ?? t('someone')}{deckCard.age ? `, ${deckCard.age}` : ''}
                   </div>
                 </div>
 
@@ -618,16 +619,16 @@ export function EventDetailScreen() {
                 <div style={{ fontSize: 60, marginBottom: 8 }}>
                   {REACTION_EMOJI[deckMatch.mine]}
                 </div>
-                <h2 style={{ margin: '0 0 6px', fontSize: 24 }}>É match! 🎉</h2>
+                <h2 style={{ margin: '0 0 6px', fontSize: 24 }}>{t('it_s_a_match')}</h2>
                 <p className="muted" style={{ marginTop: 0, marginBottom: 20 }}>
-                  Você e {deckMatch.profile.name ?? 'alguém'} se curtiram!
+                  {t('match_with', { name: deckMatch.profile.name ?? t('someone') })}
                 </p>
                 <button className="btn" style={{ marginBottom: 10 }}
                   onClick={() => nav(`/chat/${deckMatch.matchId}`)}>
-                  Mandar mensagem
+                  {t('send_message')}
                 </button>
                 <button className="btn ghost" onClick={() => setDeckMatch(null)}>
-                  Continuar explorando
+                  {t('keep_exploring')}
                 </button>
               </div>
             </div>
@@ -651,7 +652,7 @@ export function EventDetailScreen() {
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
                 padding: '32px 16px 14px', fontSize: 20, fontWeight: 700 }}>
-                {selected.name ?? 'Alguém'}{selected.age ? `, ${selected.age}` : ''}
+                {selected.name ?? t('someone')}{selected.age ? `, ${selected.age}` : ''}
               </div>
               <button onClick={() => setSafetyOpen(true)} aria-label="Denunciar ou bloquear"
                 style={{ position: 'absolute', top: 10, right: 50, background: 'rgba(0,0,0,0.5)',
@@ -727,7 +728,7 @@ export function EventDetailScreen() {
               {t('go_to_chat')}
             </button>
             <button className="btn ghost" onClick={() => setMatched(null)}>
-              Continuar explorando
+              {t('keep_exploring')}
             </button>
           </div>
         </div>

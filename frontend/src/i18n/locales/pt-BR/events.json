@@ -23,6 +23,18 @@
   "filter_compatible": "✨ Compatíveis",
   "filter_all": "Todos",
   "load_more": "Carregar mais",
+  "tabs": {
+    "grid": "Quem tá aqui",
+    "deck": "Swipe"
+  },
+  "try_again": "Tentar de novo",
+  "deck_need_checkin_title": "Faça check-in primeiro",
+  "deck_need_checkin_hint": "Entre no evento pra ver quem está aqui.",
+  "deck_empty_title": "Você viu todo mundo!",
+  "deck_empty_hint": "Confira o grid pra mais pessoas no evento.",
+  "someone": "Alguém",
+  "send_message": "Mandar mensagem",
+  "keep_exploring": "Continuar explorando",
   "react_to": "Reagir a {{name}}",
   "kiss": "💋 Beijo",
   "heart": "❤️ Curtir",

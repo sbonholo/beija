@@ -77,14 +77,17 @@ void i18n
   .use(initReactI18next)
   .init({
     resources,
+    lng: 'pt-BR',
     fallbackLng: 'pt-BR',
     supportedLngs: SUPPORTED_LOCALES as unknown as string[],
     ns: NAMESPACES as unknown as string[],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
     detection: {
-      // Order matters: explicit user choice (localStorage) wins over browser.
-      order: ['localStorage', 'navigator', 'htmlTag'],
+      // Only respect an explicit user choice stored in localStorage.
+      // Dropping navigator/htmlTag ensures PT-BR is the default for all
+      // new users regardless of OS/browser locale.
+      order: ['localStorage'],
       caches: ['localStorage'],
       lookupLocalStorage: 'beija_locale',
     },
