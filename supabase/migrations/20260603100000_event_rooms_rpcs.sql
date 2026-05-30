@@ -40,11 +40,13 @@ begin
     raise exception 'event_not_found_or_expired';
   end if;
 
-  -- Insert a fresh check-in. If there's already an active one (left_at IS NULL)
-  -- the partial unique check_ins_active_unique will conflict → silently skip.
+  -- Insert a fresh check-in. The partial unique index check_ins_active_unique
+  -- catches a duplicate active check-in. ON CONFLICT must repeat the partial
+  -- predicate (index inference); ON CONFLICT ON CONSTRAINT doesn't work
+  -- because Postgres forbids backing a UNIQUE CONSTRAINT with a partial index.
   insert into check_ins (user_id, event_id)
   values (auth.uid(), p_event_id)
-  on conflict on constraint check_ins_active_unique do nothing;
+  on conflict (user_id, event_id) where left_at is null do nothing;
 
   -- Keep last_active_at fresh so auto-leave timer resets on join
   update profiles set last_active_at = now(), is_inactive = false
@@ -133,10 +135,10 @@ begin
   )
   returning id into v_event_id;
 
-  -- Creator auto-joins their own room
+  -- Creator auto-joins their own room (see join_event_room for partial-index note)
   insert into check_ins (user_id, event_id)
   values (auth.uid(), v_event_id)
-  on conflict on constraint check_ins_active_unique do nothing;
+  on conflict (user_id, event_id) where left_at is null do nothing;
 
   return v_event_id;
 end;

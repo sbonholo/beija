@@ -41,11 +41,17 @@ create index if not exists check_ins_active_idx
   where left_at is null;
 
 -- ──────────────────────────────────────────────────────────────
--- 4. Swap plain UNIQUE → partial UNIQUE WHERE left_at IS NULL
+-- 4. Swap plain UNIQUE → partial unique index WHERE left_at IS NULL
 --
--- Drop all possible historical names for the old constraint first
--- (different migration sequences may have produced different names).
--- Then add the partial unique idempotently.
+-- A partial UNIQUE INDEX enforces at-most-one-active-check-in on its
+-- own. We deliberately do NOT promote it to a formal UNIQUE CONSTRAINT
+-- via ADD CONSTRAINT ... USING INDEX — Postgres rejects that with
+-- "Cannot create a primary key or unique constraint using such an
+-- index" (42809) because the index is partial.
+--
+-- Consequence for upserts: ON CONFLICT cannot reference a constraint
+-- name, so RPCs must use index-inference form:
+--   ON CONFLICT (user_id, event_id) WHERE left_at IS NULL DO NOTHING
 -- ──────────────────────────────────────────────────────────────
 alter table check_ins
   drop constraint if exists check_ins_user_id_event_id_key;
@@ -53,25 +59,7 @@ alter table check_ins
 alter table check_ins
   drop constraint if exists check_ins_user_event_unique;
 
--- Partial unique: at most one active (left_at IS NULL) check-in per user per event
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint c
-    join pg_class t on t.oid = c.conrelid
-    join pg_namespace n on n.oid = t.relnamespace
-    where n.nspname = 'public'
-      and t.relname   = 'check_ins'
-      and c.conname   = 'check_ins_active_unique'
-  ) then
-    execute 'create unique index check_ins_active_unique
-             on check_ins (user_id, event_id)
-             where left_at is null';
-    -- expose as a named constraint so PostgREST / ON CONFLICT can reference it
-    alter table check_ins
-      add constraint check_ins_active_unique
-      unique using index check_ins_active_unique;
-  end if;
-end
-$$;
+-- Idempotent partial unique. If a previous run created it, this is a no-op.
+create unique index if not exists check_ins_active_unique
+  on check_ins (user_id, event_id)
+  where left_at is null;
