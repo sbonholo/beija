@@ -1,6 +1,6 @@
 /* Beija service worker — cache-first strategy + web push notifications. */
 
-const CACHE_VERSION = 'beija-v2';
+const CACHE_VERSION = 'beija-v3';
 const PRECACHE = [
   './',
   './index.html',
