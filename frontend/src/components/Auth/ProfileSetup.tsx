@@ -74,7 +74,6 @@ export function ProfileSetup() {
   const [bio, setBio] = useState('');
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(50);
-  const [maxDistance, setMaxDistance] = useState(50);
   const [busy, setBusy] = useState(false);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
@@ -105,7 +104,7 @@ export function ProfileSetup() {
         const [{ data: profile }] = await Promise.all([
           supabase
             .from('profiles')
-            .select('name, birthdate, gender, interested_in, bio, min_age, max_age, max_distance_km')
+            .select('name, birthdate, gender, interested_in, bio, min_age, max_age')
             .eq('id', uid)
             .maybeSingle(),
           refreshPhoto(uid),
@@ -119,7 +118,6 @@ export function ProfileSetup() {
           setBio(profile.bio ?? '');
           setMinAge(profile.min_age ?? 18);
           setMaxAge(profile.max_age ?? 50);
-          setMaxDistance(profile.max_distance_km ?? 50);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -188,7 +186,6 @@ export function ProfileSetup() {
           bio: bio.trim() || null,
           min_age: minAge,
           max_age: maxAge,
-          max_distance_km: maxDistance,
           last_active_at: new Date().toISOString(),
         })
         .eq('id', userId);
@@ -443,20 +440,6 @@ export function ProfileSetup() {
           </div>
         </div>
 
-        {/* Distance */}
-        <div>
-          <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 2 }}>
-            Distância <span style={{ color: 'var(--text)' }}>{maxDistance} km</span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={100}
-            value={maxDistance}
-            onChange={(e) => setMaxDistance(parseInt(e.target.value, 10))}
-            aria-label="Distância máxima em km"
-          />
-        </div>
       </section>
 
       {/* Save bar */}

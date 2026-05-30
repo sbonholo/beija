@@ -9,7 +9,6 @@ const FILTERS_CACHE_KEY = 'beija_filters_cache';
 interface CachedFilters {
   minAge: number;
   maxAge: number;
-  maxDistance: number;
   seeking: SeekingUI;
 }
 
@@ -21,10 +20,9 @@ function readCachedFilters(): CachedFilters | null {
     if (
       typeof parsed.minAge === 'number' &&
       typeof parsed.maxAge === 'number' &&
-      typeof parsed.maxDistance === 'number' &&
       (parsed.seeking === 'women' || parsed.seeking === 'men' || parsed.seeking === 'all')
     ) {
-      return parsed as CachedFilters;
+      return { minAge: parsed.minAge, maxAge: parsed.maxAge, seeking: parsed.seeking };
     }
     return null;
   } catch {
@@ -67,7 +65,6 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
   const [saving, setSaving] = useState(false);
   const [minAge, setMinAge] = useState(cached?.minAge ?? 18);
   const [maxAge, setMaxAge] = useState(cached?.maxAge ?? 50);
-  const [maxDistance, setMaxDistance] = useState(cached?.maxDistance ?? 50);
   const [seeking, setSeeking] = useState<SeekingUI>(cached?.seeking ?? 'all');
   const [error, setError] = useState<string | null>(null);
 
@@ -80,14 +77,13 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
         if (!uid) return;
         const { data } = await supabase
           .from('profiles')
-          .select('min_age, max_age, max_distance_km, interested_in')
+          .select('min_age, max_age, interested_in')
           .eq('id', uid)
           .maybeSingle();
         if (cancelled) return;
         if (data) {
           setMinAge(data.min_age ?? 18);
           setMaxAge(data.max_age ?? 50);
-          setMaxDistance(data.max_distance_km ?? 50);
           setSeeking(seekingFromArray((data.interested_in as string[] | null) ?? null));
         }
       } finally {
@@ -112,12 +108,11 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
         .update({
           min_age: minAge,
           max_age: maxAge,
-          max_distance_km: maxDistance,
           interested_in: seekingToArray(seeking),
         })
         .eq('id', uid);
       if (updateErr) throw updateErr;
-      writeCachedFilters({ minAge, maxAge, maxDistance, seeking });
+      writeCachedFilters({ minAge, maxAge, seeking });
       onApplied?.();
       onClose();
     } catch (e) {
@@ -125,7 +120,7 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
     } finally {
       setSaving(false);
     }
-  }, [minAge, maxAge, maxDistance, seeking, onApplied, onClose]);
+  }, [minAge, maxAge, seeking, onApplied, onClose]);
 
   return (
     <div className="person-sheet-bg" role="dialog" aria-modal="true" onClick={onClose}>
@@ -189,19 +184,6 @@ export function DiscoveryFilters({ onClose, onApplied }: Props) {
                 aria-label="Idade máxima"
               />
             </div>
-
-            <label className="muted" style={{ fontSize: 13, marginTop: 18, display: 'block' }}>
-              Distância máxima: <span style={{ color: 'var(--text)' }}>{maxDistance} km</span>
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={100}
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(parseInt(e.target.value, 10))}
-              style={{ marginTop: 6 }}
-              aria-label="Distância máxima em km"
-            />
 
             {error && (
               <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 10 }}>{error}</p>
