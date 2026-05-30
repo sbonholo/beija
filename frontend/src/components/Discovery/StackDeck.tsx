@@ -480,25 +480,28 @@ export function StackDeck() {
       >
         <button
           type="button"
+          className="swipe-action nope"
           onClick={() => trigger('left')}
           aria-label={t('actions.pass')}
-          style={{ ...circleBtn, color: 'var(--danger)', pointerEvents: 'auto' }}
+          style={{ pointerEvents: 'auto' }}
         >
           ✕
         </button>
         <button
           type="button"
+          className="swipe-action super"
           onClick={() => trigger('super')}
           aria-label={t('actions.super')}
-          style={{ ...circleBtn, color: 'var(--aurora)', pointerEvents: 'auto', width: 54, height: 54, fontSize: 24 }}
+          style={{ pointerEvents: 'auto' }}
         >
           ⭐
         </button>
         <button
           type="button"
+          className="swipe-action like"
           onClick={() => trigger('right')}
           aria-label={t('actions.like')}
-          style={{ ...circleBtn, color: 'var(--pink-glow)', pointerEvents: 'auto' }}
+          style={{ pointerEvents: 'auto' }}
         >
           ♥
         </button>
@@ -537,17 +540,3 @@ export function StackDeck() {
     </div>
   );
 }
-
-const circleBtn: React.CSSProperties = {
-  width: 64,
-  height: 64,
-  borderRadius: '50%',
-  background: 'var(--card)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  fontSize: 28,
-  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-};

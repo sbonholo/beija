@@ -326,6 +326,51 @@ a { color: var(--pink-glow); }
 .reaction-btn.heart.active { border-color: var(--heart); box-shadow: 0 0 22px rgba(255,74,109,0.6); }
 .reaction-btn.fire.active { border-color: var(--fire); box-shadow: 0 0 22px rgba(255,138,42,0.6); }
 
+/* Swipe deck action buttons (pass / super / like). Per-button semantic glow
+ * on hover, scale-down on press. */
+.swipe-action {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.swipe-action:active { transform: scale(0.92); }
+.swipe-action.nope  { color: var(--danger); }
+.swipe-action.super { color: var(--aurora); width: 54px; height: 54px; font-size: 24px; }
+.swipe-action.like  { color: var(--pink-glow); }
+.swipe-action.nope:hover  { box-shadow: var(--shadow), 0 0 20px var(--danger); }
+.swipe-action.super:hover { box-shadow: var(--shadow), 0 0 20px var(--aurora-glow); }
+.swipe-action.like:hover  { box-shadow: var(--shadow), 0 0 20px var(--pink-glow); }
+
+/* Header icon buttons (close, more, etc) — used in ProfileDetailModal.
+ * Hover lifts with a soft pink-glow halo. */
+.icon-btn {
+  transition: transform var(--dur-fast) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.icon-btn:hover {
+  background: rgba(255, 59, 154, 0.18) !important;
+  box-shadow: 0 0 12px var(--pink-glow);
+  transform: scale(1.08);
+}
+
+/* Unread badge — slow 2s halo pulse to draw the eye without thrashing. */
+.unread-badge { animation: unreadPulse 2s ease-in-out infinite; }
+@keyframes unreadPulse {
+  0%, 100% { box-shadow: 0 0 12px var(--pink-glow); }
+  50%       { box-shadow: 0 0 20px var(--pink-glow); }
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;

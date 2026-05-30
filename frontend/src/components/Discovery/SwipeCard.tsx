@@ -241,8 +241,13 @@ function SwipeCardImpl({
                 flex: 1,
                 height: 3,
                 borderRadius: 2,
-                background: i === photoIdx ? '#fff' : 'rgba(255, 255, 255, 0.35)',
-                transition: 'background 0.15s ease',
+                background:
+                  i === photoIdx
+                    ? 'linear-gradient(90deg, var(--pink), var(--hot))'
+                    : 'rgba(255, 255, 255, 0.32)',
+                boxShadow: i === photoIdx ? '0 0 8px var(--pink-glow)' : undefined,
+                transition:
+                  'background var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out)',
               }}
             />
           ))}

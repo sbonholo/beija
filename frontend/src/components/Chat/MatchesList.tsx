@@ -267,10 +267,11 @@ export function MatchesList() {
                 </span>
                 {r.unread > 0 && (
                   <span
+                    className="unread-badge"
                     style={{
                       background: 'var(--pink)',
                       color: '#fff',
-                      borderRadius: 999,
+                      borderRadius: 'var(--radius-pill)',
                       minWidth: 20,
                       height: 20,
                       padding: '0 6px',
@@ -279,6 +280,7 @@ export function MatchesList() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      boxShadow: '0 0 12px var(--pink-glow)',
                     }}
                   >
                     {r.unread > 99 ? '99+' : r.unread}
