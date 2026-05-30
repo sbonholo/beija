@@ -346,7 +346,9 @@ export function StackDeck() {
   if (deck.length === 0) {
     return (
       <div className="screen" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 56, marginTop: '18vh' }}>🌙</div>
+        <div style={{ marginTop: '18vh' }}>
+          <span className="glow-emoji" style={{ fontSize: 64 }}>🌙</span>
+        </div>
         <h2 style={{ marginTop: 8 }}>{t('empty.title')}</h2>
         <p className="muted">{t('empty.subtitle')}</p>
         {likesYouCount > 0 && (

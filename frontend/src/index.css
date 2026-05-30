@@ -762,7 +762,21 @@ a { color: var(--pink-glow); }
   color: var(--muted);
   padding: 40px 20px;
 }
-.empty .big { font-size: 42px; margin-bottom: 8px; }
+.empty .big { font-size: 48px; margin-bottom: 10px; }
+
+/* Empty-state hero emoji — slow aurora-glow breathing so the screen doesn't
+ * feel dead. Used inside .empty or standalone. Honors prefers-reduced-motion. */
+.empty .big, .glow-emoji {
+  display: inline-block;
+  animation: emptyGlow 3.2s ease-in-out infinite;
+}
+@keyframes emptyGlow {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 8px transparent); }
+  50%       { transform: scale(1.06); filter: drop-shadow(0 0 24px var(--aurora-glow)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .empty .big, .glow-emoji { animation: none; }
+}
 
 .avatar {
   width: 56px; height: 56px;

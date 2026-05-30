@@ -347,12 +347,31 @@ export function ChatScreen() {
 
       <div ref={listRef} className="chat-list" style={{ padding: '8px 14px' }}>
         {visibleMessages.length === 0 && (
-          <p
-            className="muted"
-            style={{ textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}
+          <div
+            style={{
+              textAlign: 'center',
+              marginTop: 'auto',
+              marginBottom: 'auto',
+              padding: '0 32px',
+            }}
           >
-            É match! Manda a primeira 💋
-          </p>
+            <div style={{ marginBottom: 10 }}>
+              <span className="glow-emoji" style={{ fontSize: 48 }}>💋</span>
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "'Space Grotesk', system-ui, sans-serif",
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
+              }}
+            >
+              É match!
+            </p>
+            <p className="muted" style={{ marginTop: 4, fontSize: 'var(--text-sm)' }}>
+              Manda a primeira mensagem — a magia começa aqui.
+            </p>
+          </div>
         )}
         {visibleMessages.map((m) => (
           <MessageBubble
