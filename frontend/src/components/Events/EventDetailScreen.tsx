@@ -155,7 +155,7 @@ export function EventDetailScreen() {
     if (!error && data) {
       const raw = data as Array<{ id: string; name: string | null; birthdate: string | null; show_age: boolean }>;
       const ids = raw.map((p) => p.id);
-      const { data: photos } = await supabase.from('photos').select('user_id, url').in('user_id', ids);
+      const { data: photos } = await supabase.from('photos').select('user_id, url').in('user_id', ids).eq('slot', 0);
       const photoMap = new Map((photos ?? []).map((ph) => [ph.user_id as string, ph.url as string]));
       setDeck(raw.map((p) => ({
         id:        p.id,

@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   deletePhoto,
-  getUserPhoto,
   pickPhoto,
   uploadProfilePhoto,
 } from '../../lib/storage';
@@ -61,16 +60,23 @@ function ageFromBirthdate(birthdate: string | null): number | null {
   return age >= 0 ? age : null;
 }
 
+interface PhotoSlot {
+  url: string | null;
+  bust: number;
+}
+
 export function ProfileSetup() {
   const nav = useNavigate();
   const toast = useToast();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  // Bumped after every successful upload/remove so the <img>/background-image
-  // refreshes — the storage path is stable (userId/avatar.jpg) so without a
-  // cache-buster the URL string is identical and React/CDN both serve stale.
-  const [photoBust, setPhotoBust] = useState(0);
+  // Two photo slots: index 0 = primary, index 1 = secondary.
+  // `bust` is bumped after each upload/remove to force a CDN re-fetch on the
+  // stable storage URL.
+  const [photos, setPhotos] = useState<[PhotoSlot, PhotoSlot]>([
+    { url: null, bust: 0 },
+    { url: null, bust: 0 },
+  ]);
   const [name, setName] = useState<string>('');
   const [age, setAge] = useState<number | null>(null);
   const [gender, setGender] = useState<GenderUI | null>(null);
@@ -78,17 +84,32 @@ export function ProfileSetup() {
   const [bio, setBio] = useState('');
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(50);
-  const [busy, setBusy] = useState(false);
+  // slot currently being uploaded/removed — prevents double-taps
+  const [busy, setBusy] = useState<0 | 1 | null>(null);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const refreshPhoto = useCallback(async (uid: string) => {
+  const refreshPhotos = useCallback(async (uid: string) => {
     try {
-      const { publicUrl } = await getUserPhoto(uid);
-      setPhotoUrl(publicUrl);
+      const { data: rows } = await supabase
+        .from('photos')
+        .select('slot, url')
+        .eq('user_id', uid)
+        .order('slot', { ascending: true });
+      setPhotos((prev) => {
+        const next: [PhotoSlot, PhotoSlot] = [
+          { url: prev[0].url, bust: prev[0].bust },
+          { url: prev[1].url, bust: prev[1].bust },
+        ];
+        for (const row of rows ?? []) {
+          const s = row.slot as 0 | 1;
+          if (s === 0 || s === 1) next[s] = { url: row.url as string, bust: prev[s].bust };
+        }
+        return next;
+      });
     } catch {
-      /* keep current photo on transient list error */
+      /* keep current state on transient DB error */
     }
   }, []);
 
@@ -111,7 +132,7 @@ export function ProfileSetup() {
             .select('name, birthdate, gender, interested_in, bio, min_age, max_age')
             .eq('id', uid)
             .maybeSingle(),
-          refreshPhoto(uid),
+          refreshPhotos(uid),
         ]);
         if (cancelled) return;
         if (profile) {
@@ -130,21 +151,24 @@ export function ProfileSetup() {
     return () => {
       cancelled = true;
     };
-  }, [nav, refreshPhoto]);
+  }, [nav, refreshPhotos]);
 
-  async function onChangePhoto() {
-    if (!userId || busy) return;
-    setBusy(true);
+  async function onChangePhoto(slot: 0 | 1) {
+    if (!userId || busy !== null) return;
+    setBusy(slot);
     try {
       const base64 = await pickPhoto();
       if (!base64) return;
-      const { publicUrl } = await uploadProfilePhoto(userId, base64);
+      const { publicUrl } = await uploadProfilePhoto(userId, base64, slot);
       const { error } = await supabase
         .from('photos')
-        .upsert({ user_id: userId, url: publicUrl }, { onConflict: 'user_id' });
+        .upsert({ user_id: userId, url: publicUrl, slot }, { onConflict: 'user_id,slot' });
       if (error) throw error;
-      await refreshPhoto(userId);
-      setPhotoBust((v) => v + 1);
+      setPhotos((prev) => {
+        const next: [PhotoSlot, PhotoSlot] = [...prev] as [PhotoSlot, PhotoSlot];
+        next[slot] = { url: publicUrl, bust: prev[slot].bust + 1 };
+        return next;
+      });
     } catch (e) {
       if (e instanceof ModerationError) {
         setModerationReasons(e.reasons);
@@ -152,23 +176,26 @@ export function ProfileSetup() {
         toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao enviar foto' });
       }
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  async function onRemovePhoto() {
-    if (!userId || busy) return;
-    if (!confirm('Remover sua foto?')) return;
-    setBusy(true);
+  async function onRemovePhoto(slot: 0 | 1) {
+    if (!userId || busy !== null) return;
+    if (!confirm(slot === 0 ? 'Remover foto principal?' : 'Remover segunda foto?')) return;
+    setBusy(slot);
     try {
-      await deletePhoto(userId);
-      await supabase.from('photos').delete().eq('user_id', userId);
-      await refreshPhoto(userId);
-      setPhotoBust((v) => v + 1);
+      await deletePhoto(userId, slot);
+      await supabase.from('photos').delete().eq('user_id', userId).eq('slot', slot);
+      setPhotos((prev) => {
+        const next: [PhotoSlot, PhotoSlot] = [...prev] as [PhotoSlot, PhotoSlot];
+        next[slot] = { url: null, bust: prev[slot].bust + 1 };
+        return next;
+      });
     } catch (e) {
       toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao remover foto' });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -210,8 +237,11 @@ export function ProfileSetup() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
           <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 12 }}>
           <div className="skeleton circle" style={{ width: 96, height: 96 }} />
+          <div className="skeleton circle" style={{ width: 96, height: 96 }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 24 }}>
           <div className="skeleton" style={{ height: 20, width: 120 }} />
           <div className="skeleton" style={{ height: 14, width: 80 }} />
         </div>
@@ -262,84 +292,104 @@ export function ProfileSetup() {
         </Link>
       </div>
 
-      {/* HERO — ~1/3 of viewport. Photo as the inviting centerpiece. */}
+      {/* HERO — two photo slots side by side, then name/age. */}
       <section
         style={{
-          flex: '0 0 32vh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
           gap: 'var(--space-3)',
-          padding: 'var(--space-2) var(--space-5)',
+          padding: 'var(--space-3) var(--space-5) var(--space-2)',
         }}
       >
-        <button
-          type="button"
-          onClick={onChangePhoto}
-          disabled={busy}
-          aria-label={photoUrl ? 'Trocar foto' : 'Adicionar foto'}
-          style={{
-            position: 'relative',
-            width: 'min(40vw, 168px)',
-            aspectRatio: '1 / 1',
-            borderRadius: '50%',
-            padding: 0,
-            backgroundImage: photoUrl ? `url("${photoUrl}${photoBust ? `?v=${photoBust}` : ''}")` : undefined,
-            backgroundColor: photoUrl ? undefined : 'var(--card)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            border: photoUrl
-              ? '3px solid var(--card-raised)'
-              : '2px dashed rgba(255, 59, 154, 0.35)',
-            cursor: busy ? 'wait' : 'pointer',
-            opacity: busy ? 0.5 : 1,
-            boxShadow: photoUrl
-              ? 'var(--shadow-lg), 0 0 32px var(--aurora-glow)'
-              : undefined,
-          }}
-        >
-          {!photoUrl && (
-            <span style={{ fontSize: 42, color: 'var(--muted)' }}>+</span>
-          )}
-        </button>
-
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={onChangePhoto}
-            disabled={busy}
-            style={{
-              padding: '6px 14px',
-              fontSize: 'var(--text-sm)',
-              borderRadius: 'var(--radius-pill)',
-              maxWidth: 'unset',
-              width: 'auto',
-              height: 'auto',
-            }}
-          >
-            {photoUrl ? 'Trocar' : 'Adicionar foto'}
-          </button>
-          {photoUrl && (
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={onRemovePhoto}
-              disabled={busy}
-              style={{
-                padding: '6px 14px',
-                fontSize: 'var(--text-sm)',
-                borderRadius: 'var(--radius-pill)',
-                color: 'var(--danger)',
-                maxWidth: 'unset',
-                width: 'auto',
-                height: 'auto',
-              }}
-            >
-              Remover
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          {([0, 1] as const).map((slot) => {
+            const { url, bust } = photos[slot];
+            const isBusy = busy === slot;
+            const imgSrc = url ? `${url}${bust ? `?v=${bust}` : ''}` : undefined;
+            return (
+              <div key={slot} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => void onChangePhoto(slot)}
+                  disabled={busy !== null}
+                  aria-label={url ? `Trocar foto ${slot + 1}` : slot === 0 ? 'Adicionar foto principal' : 'Adicionar segunda foto'}
+                  style={{
+                    width: 'min(36vw, 140px)',
+                    aspectRatio: '1 / 1',
+                    borderRadius: slot === 0 ? '50%' : '18px',
+                    padding: 0,
+                    backgroundImage: imgSrc ? `url("${imgSrc}")` : undefined,
+                    backgroundColor: imgSrc ? undefined : 'var(--card)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    border: imgSrc
+                      ? `${slot === 0 ? 3 : 2}px solid var(--card-raised)`
+                      : '2px dashed rgba(255, 59, 154, 0.35)',
+                    cursor: busy !== null ? 'wait' : 'pointer',
+                    opacity: isBusy ? 0.5 : 1,
+                    boxShadow: imgSrc && slot === 0
+                      ? 'var(--shadow-lg), 0 0 32px var(--aurora-glow)'
+                      : undefined,
+                    position: 'relative',
+                  }}
+                >
+                  {!imgSrc && (
+                    <span style={{ fontSize: slot === 0 ? 40 : 32, color: 'var(--muted)' }}>+</span>
+                  )}
+                  {slot === 1 && !imgSrc && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: -6,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: 10,
+                        color: 'var(--muted)',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      opcional
+                    </span>
+                  )}
+                </button>
+                {url && (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => void onChangePhoto(slot)}
+                      disabled={busy !== null}
+                      style={{ padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius-pill)', maxWidth: 'unset', width: 'auto', height: 'auto' }}
+                    >
+                      Trocar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => void onRemovePhoto(slot)}
+                      disabled={busy !== null}
+                      style={{ padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius-pill)', maxWidth: 'unset', width: 'auto', height: 'auto', color: 'var(--danger)' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                {!url && slot === 0 && (
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={() => void onChangePhoto(0)}
+                    disabled={busy !== null}
+                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius-pill)', maxWidth: 'unset', width: 'auto', height: 'auto' }}
+                  >
+                    Adicionar foto
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {name && (

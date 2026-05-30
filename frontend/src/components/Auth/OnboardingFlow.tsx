@@ -155,10 +155,10 @@ export function OnboardingFlow() {
       );
       if (profileErr) throw profileErr;
 
-      const { publicUrl } = await uploadProfilePhoto(userId, photoBase64);
+      const { publicUrl } = await uploadProfilePhoto(userId, photoBase64, 0);
       const { error: photoRowErr } = await supabase.from('photos').upsert(
-        { user_id: userId, url: publicUrl },
-        { onConflict: 'user_id' },
+        { user_id: userId, url: publicUrl, slot: 0 },
+        { onConflict: 'user_id,slot' },
       );
       if (photoRowErr) throw photoRowErr;
 

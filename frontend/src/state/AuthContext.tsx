@@ -53,6 +53,7 @@ async function fetchProfileLite(userId: string): Promise<ProfileLite | null> {
       .from('photos')
       .select('user_id')
       .eq('user_id', userId)
+      .eq('slot', 0)
       .maybeSingle(),
     supabase
       .from('deletion_requests')

@@ -12,10 +12,8 @@ const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 type AllowedMime = (typeof ALLOWED_MIMES)[number];
 
-const AVATAR_FILENAME = 'avatar.jpg';
-
-function avatarPath(userId: string): string {
-  return `${userId}/${AVATAR_FILENAME}`;
+function photoPath(userId: string, slot: 0 | 1): string {
+  return `${userId}/photo_${slot}.jpg`;
 }
 
 /**
@@ -41,13 +39,13 @@ export async function pickPhoto(): Promise<string | null> {
 }
 
 /**
- * Upload (or replace) the single profile photo for the given user. Writes to
- * the canonical key <userId>/avatar.jpg with upsert: true, so a new upload
- * atomically replaces the previous bytes — we never accumulate stale files.
+ * Upload (or replace) a profile photo for the given slot (0 = primary,
+ * 1 = secondary). Writes to <userId>/photo_N.jpg with upsert: true.
  */
 export async function uploadProfilePhoto(
   userId: string,
   base64: string,
+  slot: 0 | 1 = 0,
 ): Promise<{ publicUrl: string }> {
   if (!userId) throw new Error('missing_user_id');
   if (!base64) throw new Error('missing_image_data');
@@ -77,7 +75,7 @@ export async function uploadProfilePhoto(
     throw new ModerationError(decision.reasons, decision.scores);
   }
 
-  const path = avatarPath(userId);
+  const path = photoPath(userId, slot);
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(path, blob, { upsert: true, contentType: blob.type });
@@ -88,20 +86,29 @@ export async function uploadProfilePhoto(
   return { publicUrl: data.publicUrl };
 }
 
-/** Remove the user's single profile photo. */
-export async function deletePhoto(userId: string): Promise<void> {
+/** Remove a specific photo slot from storage. */
+export async function deletePhoto(userId: string, slot: 0 | 1 = 0): Promise<void> {
   if (!userId) throw new Error('missing_user_id');
-  const { error } = await supabase.storage.from(BUCKET).remove([avatarPath(userId)]);
+  const { error } = await supabase.storage.from(BUCKET).remove([photoPath(userId, slot)]);
   if (error) throw error;
 }
 
-/** Returns the user's single avatar publicUrl, or null if none exists. */
-export async function getUserPhoto(userId: string): Promise<{ publicUrl: string | null }> {
+/** Returns the public URL for a single slot, or null if not in storage. */
+export async function getUserPhoto(
+  userId: string,
+  slot: 0 | 1 = 0,
+): Promise<{ publicUrl: string | null }> {
   const { data, error } = await supabase.storage.from(BUCKET).list(userId);
   if (error) throw error;
-  const has = (data ?? []).some((f) => f.name === AVATAR_FILENAME);
+  const filename = `photo_${slot}.jpg`;
+  const has = (data ?? []).some((f) => f.name === filename)
+    // legacy: existing users may still have avatar.jpg until they re-upload
+    || (slot === 0 && (data ?? []).some((f) => f.name === 'avatar.jpg'));
   if (!has) return { publicUrl: null };
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(avatarPath(userId));
+  const legacyPath = `${userId}/avatar.jpg`;
+  const newPath = photoPath(userId, slot);
+  const actualPath = (data ?? []).some((f) => f.name === filename) ? newPath : legacyPath;
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(actualPath);
   return { publicUrl: urlData.publicUrl };
 }
 
