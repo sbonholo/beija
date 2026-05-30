@@ -31,6 +31,11 @@ interface Props {
    * 'super' enters from the bottom.
    */
   enterFrom?: SwipeDirection | null;
+  /**
+   * When set by the parent (e.g. action button press), the top card plays its
+   * exit animation as if the user had dragged past threshold.
+   */
+  exitTrigger?: SwipeDirection | null;
 }
 
 function SwipeCardImpl({
@@ -41,11 +46,13 @@ function SwipeCardImpl({
   onOpenDetail,
   onOpenSafety,
   enterFrom = null,
+  exitTrigger = null,
 }: Props) {
   const { t } = useTranslation('swipe');
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
+  const exitFiredRef = useRef<SwipeDirection | null>(null);
   const [delta, setDelta] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [exiting, setExiting] = useState<SwipeDirection | null>(null);
@@ -65,6 +72,15 @@ function SwipeCardImpl({
     );
     return () => window.cancelAnimationFrame(id);
   }, [entering]);
+
+  // Button-triggered exit: play the same card-fling animation as a drag swipe.
+  // exitFiredRef prevents re-firing if the component re-renders while animating.
+  useEffect(() => {
+    if (!exitTrigger || exitTrigger === exitFiredRef.current) return;
+    exitFiredRef.current = exitTrigger;
+    if (isTop && !exiting) triggerExit(exitTrigger);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exitTrigger]);
 
   function cancelLongPress() {
     if (longPressTimerRef.current !== null) {
@@ -123,11 +139,16 @@ function SwipeCardImpl({
       return;
     }
 
-    if (dx > threshold) {
+    // Velocity-based commit: a fast flick triggers the swipe even if the
+    // positional threshold hasn't been crossed yet. 0.4 px/ms ≈ 400 px/s.
+    const vx = dt > 10 ? Math.abs(dx) / dt : 0;
+    const VELOCITY_THRESHOLD = 0.4;
+
+    if (dx > threshold || (dx > 20 && vx > VELOCITY_THRESHOLD)) {
       triggerExit('right');
       return;
     }
-    if (dx < -threshold) {
+    if (dx < -threshold || (dx < -20 && vx > VELOCITY_THRESHOLD)) {
       triggerExit('left');
       return;
     }
@@ -164,6 +185,7 @@ function SwipeCardImpl({
   const rotate = isTop ? Math.max(-15, Math.min(15, delta.x / 12)) : 0;
   const nopeOpacity = isTop ? Math.min(1, Math.max(0, -delta.x / 100)) : 0;
   const likeOpacity = isTop ? Math.min(1, Math.max(0, delta.x / 100)) : 0;
+  const superOpacity = isTop && delta.y < 0 ? Math.min(1, Math.max(0, -delta.y / 80)) : 0;
 
   const baseTransform = (() => {
     if (!isTop) {
@@ -183,11 +205,16 @@ function SwipeCardImpl({
   const transitionStyle = (() => {
     if (dragging) return 'none';
     if (entering) {
-      // Custom curve for rewind — different from the swipe-exit cubic-bezier
-      // so the motion reads as a deliberate undo, not a mirror of the swipe.
+      // Custom curve for rewind — spring overshoot reads as deliberate undo.
       return `transform ${REWIND_ENTER_MS}ms var(--ease-spring)`;
     }
-    return 'transform var(--dur-slow) var(--ease-out)';
+    if (exiting) {
+      // Fling off: fast ease-out so the card accelerates away quickly.
+      return 'transform var(--dur-slow) var(--ease-out)';
+    }
+    // Spring-back: bounce back to center with overshoot so releasing near the
+    // threshold feels satisfying rather than just snapping back.
+    return 'transform var(--dur-spring) var(--ease-spring)';
   })();
 
   const currentPhoto = visiblePhotos[photoIdx];
@@ -296,6 +323,26 @@ function SwipeCardImpl({
         aria-hidden
       >
         LIKE
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: 28,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          padding: '6px 12px',
+          color: 'var(--aurora)',
+          fontWeight: 900,
+          fontSize: 22,
+          letterSpacing: '0.1em',
+          opacity: superOpacity,
+          zIndex: 4,
+          pointerEvents: 'none',
+        }}
+        aria-hidden
+      >
+        ⭐ SUPER
       </div>
 
       {/* Bottom gradient + info */}
@@ -468,6 +515,7 @@ export const SwipeCard = memo(SwipeCardImpl, (prev, next) => {
     prev.stackIndex === next.stackIndex &&
     prev.photos === next.photos &&
     prev.enterFrom === next.enterFrom &&
+    prev.exitTrigger === next.exitTrigger &&
     prev.onOpenDetail === next.onOpenDetail &&
     prev.onOpenSafety === next.onOpenSafety
   );

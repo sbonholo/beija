@@ -87,6 +87,7 @@ export function StackDeck() {
   const [userId, setUserId] = useState<string | null>(null);
   // undefined = resolving, null = no active room, object = in a room
   const [activeRoom, setActiveRoom] = useState<ActiveRoom | null | undefined>(undefined);
+  const [exitTrigger, setExitTrigger] = useState<SwipeDirection | null>(null);
   const [deck, setDeck] = useState<ProfileWithMedia[]>([]);
   const [history, setHistory] = useState<RewindEntry[]>([]);
   const [rewindCount, setRewindCount] = useState<number>(() => readRewindCount());
@@ -227,6 +228,7 @@ export function StackDeck() {
 
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
+    setExitTrigger(null);
     track(`swipe_${direction}`, { card_index: history.length });
     const name = target.name ?? '';
     setLiveAnnouncement(
@@ -326,9 +328,10 @@ export function StackDeck() {
   }
 
   function trigger(direction: SwipeDirection) {
-    const target = deck[0];
-    if (!target) return;
-    void handleSwipe(target, direction);
+    if (!deck[0] || exitTrigger) return;
+    // Don't call handleSwipe directly — let the SwipeCard play its exit
+    // animation first; onSwipe fires after SWIPE_EXIT_MS and calls handleSwipe.
+    setExitTrigger(direction);
   }
 
   const openDetail = useCallback((profileId: string) => { nav(`/profile/${profileId}`); }, [nav]);
@@ -480,6 +483,7 @@ export function StackDeck() {
               onOpenDetail={openDetail}
               onOpenSafety={openSafety}
               enterFrom={i === 0 && p.id === rewoundId ? rewindEnter : null}
+              exitTrigger={i === 0 ? exitTrigger : null}
             />
           ))}
       </div>
