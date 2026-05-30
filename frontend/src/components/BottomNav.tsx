@@ -8,7 +8,7 @@ import { useUnread } from '../state/UnreadContext';
 const tabs = [
   { to: '/discover', icon: '🔥', key: 'discover' as const, fallback: 'Descobrir' },
   { to: '/events',   icon: '🎪', key: 'events'   as const, fallback: 'Eventos' },
-  { to: '/matches',  icon: '💋', key: 'matches'  as const, fallback: 'Matches' },
+  { to: '/matches',  icon: '💋', key: 'matches'  as const, fallback: 'Beijo' },
   { to: '/profile',  icon: '👤', key: 'profile'  as const, fallback: 'Perfil' },
   { to: '/settings', icon: '⚙️', key: 'settings' as const, fallback: 'Ajustes' },
 ];
