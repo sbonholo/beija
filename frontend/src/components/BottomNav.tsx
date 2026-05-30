@@ -10,7 +10,7 @@ const tabs = [
   { to: '/events',   icon: '🎪', key: 'events'   as const, fallback: 'Eventos' },
   { to: '/matches',  icon: '💋', key: 'matches'  as const, fallback: 'Matches' },
   { to: '/profile',  icon: '👤', key: 'profile'  as const, fallback: 'Perfil' },
-  { to: '/settings', icon: '⚙', key: 'settings' as const, fallback: 'Ajustes' },
+  { to: '/settings', icon: '⚙️', key: 'settings' as const, fallback: 'Ajustes' },
 ];
 
 export function BottomNav() {

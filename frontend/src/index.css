@@ -11,7 +11,7 @@
   --card-raised: #1e0e33;
   --overlay: rgba(6, 0, 15, 0.72);
   --text: #f5eeff;
-  --muted: #9e88bb;
+  --muted: #b0a0cc;
   --hairline: rgba(255, 255, 255, 0.07);
 
   /* Brand */
@@ -48,7 +48,7 @@
   --text-sm: 14px;
   --text-base: 16px;
   --text-lg: 20px;
-  --text-xl: 25px;
+  --text-xl: 24px;
   --text-2xl: 32px;
   --text-3xl: 40px;
   --text-4xl: 50px;
@@ -75,6 +75,7 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -115,16 +116,6 @@ input, textarea, select {
   outline: none;
 }
 input:focus, textarea:focus, select:focus { border-color: var(--pink); }
-
-/* Global keyboard focus ring — soft violet aurora, brand-consistent. */
-:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--aurora-glow);
-}
-/* Avoid double-ring when the input already paints its own border on focus. */
-input:focus-visible, textarea:focus-visible, select:focus-visible {
-  box-shadow: 0 0 0 3px var(--aurora-glow);
-}
 
 a { color: var(--pink-glow); }
 
@@ -438,7 +429,7 @@ a { color: var(--pink-glow); }
   justify-content: center;
   gap: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   padding: 8px 4px;
   text-decoration: none;
@@ -447,7 +438,7 @@ a { color: var(--pink-glow); }
   min-height: 52px;
 }
 .bottom-nav a:active { transform: scale(0.94); }
-.bottom-nav a.active { color: var(--pink-glow); }
+.bottom-nav a.active { color: var(--pink-glow); background: rgba(255, 59, 154, 0.10); border-radius: 14px; }
 .bottom-nav a.active::before {
   content: '';
   position: absolute;
@@ -897,15 +888,10 @@ a { color: var(--pink-glow); }
  * Accessibility — FASE P3 (WCAG AA)
  * =========================================================================== */
 
-/* Visible focus ring on any keyboard-focused interactive element. The :focus
- * pseudo-class would also show on mouse clicks (visual noise), so we use
- * :focus-visible which the browser only fires for keyboard / programmatic
- * focus. */
-:focus-visible {
-  outline: 3px solid var(--pink-glow);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+/* Keyboard focus ring: aurora-glow box-shadow so it respects border-radius
+ * and doesn't clash with existing borders. Fires only on keyboard/programmatic
+ * focus, not mouse clicks. */
+:focus-visible,
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -913,8 +899,9 @@ textarea:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--pink-glow);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--aurora-glow);
+  border-radius: 4px;
 }
 
 /* Skip-to-main-content link. Hidden until focused. */
@@ -1032,6 +1019,33 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); cursor: g
 .settings-card > * + * {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* List-item cards: no elevation shadow — avoids muddy stacking in feeds. */
+.card.list-item {
+  box-shadow: none;
+}
+
+/* Neutral modal overlay for safety/moderation actions (not the romantic pink). */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.18s ease;
+  padding: 24px;
+}
+.modal-overlay > .card {
+  animation: scaleIn 0.22s var(--ease-spring);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .settings-row,
 .settings-link {
   font-size: var(--text-sm);
@@ -1064,6 +1078,61 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); cursor: g
 }
 @media (prefers-reduced-motion: reduce) {
   .route-transition { animation: none; }
+}
+
+/* ── Custom toggle switch (replaces native checkbox in Settings) ── */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  pointer-events: none;
+}
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out);
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-base) var(--ease-spring),
+              background var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.toggle-switch input:checked + .toggle-track {
+  background: linear-gradient(120deg, var(--pink), var(--hot));
+  border-color: transparent;
+}
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(18px);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 8px var(--pink-glow);
+}
+.toggle-switch input:disabled + .toggle-track {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.toggle-switch:focus-within .toggle-track {
+  box-shadow: 0 0 0 3px var(--aurora-glow);
 }
 
 /* ── Tab bar (EventDetailScreen) ──────────────────────────── */

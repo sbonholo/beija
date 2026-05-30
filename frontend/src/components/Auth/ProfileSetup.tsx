@@ -86,6 +86,8 @@ export function ProfileSetup() {
   const [maxAge, setMaxAge] = useState(50);
   // slot currently being uploaded/removed — prevents double-taps
   const [busy, setBusy] = useState<0 | 1 | null>(null);
+  // inline confirm-before-delete state (replaces native confirm() dialog)
+  const [removeConfirm, setRemoveConfirm] = useState<0 | 1 | null>(null);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -182,7 +184,12 @@ export function ProfileSetup() {
 
   async function onRemovePhoto(slot: 0 | 1) {
     if (!userId || busy !== null) return;
-    if (!confirm(slot === 0 ? 'Remover foto principal?' : 'Remover segunda foto?')) return;
+    if (removeConfirm !== slot) {
+      setRemoveConfirm(slot);
+      setTimeout(() => setRemoveConfirm((c) => (c === slot ? null : c)), 3000);
+      return;
+    }
+    setRemoveConfirm(null);
     setBusy(slot);
     try {
       await deletePhoto(userId, slot);
@@ -370,9 +377,16 @@ export function ProfileSetup() {
                       className="btn ghost"
                       onClick={() => void onRemovePhoto(slot)}
                       disabled={busy !== null}
-                      style={{ padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius-pill)', maxWidth: 'unset', width: 'auto', height: 'auto', color: 'var(--danger)' }}
+                      style={{
+                        padding: '4px 10px', fontSize: 11, borderRadius: 'var(--radius-pill)',
+                        maxWidth: 'unset', width: 'auto', height: 'auto',
+                        color: 'var(--danger)',
+                        borderColor: removeConfirm === slot ? 'var(--danger)' : undefined,
+                        background: removeConfirm === slot ? 'rgba(255,69,69,0.12)' : undefined,
+                        fontWeight: removeConfirm === slot ? 700 : undefined,
+                      }}
                     >
-                      ✕
+                      {removeConfirm === slot ? 'Confirmar?' : '✕'}
                     </button>
                   </div>
                 )}
@@ -392,18 +406,16 @@ export function ProfileSetup() {
           })}
         </div>
 
-        {name && (
-          <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
-            <strong style={{ fontSize: 'var(--text-lg)', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
-              {name}
-            </strong>
-            {age != null && (
-              <span style={{ color: 'var(--muted)', fontSize: 'var(--text-base)' }}>
-                {' '}· {age}
-              </span>
-            )}
-          </div>
-        )}
+        <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
+          <strong style={{ fontSize: 'var(--text-lg)', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
+            {name || <span style={{ color: 'var(--muted)', fontWeight: 400 }}>Seu nome</span>}
+          </strong>
+          {name && age != null && (
+            <span style={{ color: 'var(--muted)', fontSize: 'var(--text-base)' }}>
+              {' '}· {age}
+            </span>
+          )}
+        </div>
       </section>
 
       {/* EDIT BLOCK — natural flow, scrolls when content exceeds viewport.
@@ -421,7 +433,7 @@ export function ProfileSetup() {
       >
         {/* Gender */}
         <div>
-          <div id="profile-gender-label" className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
+          <div id="profile-gender-label" style={{ fontSize: 13, color: 'var(--text)', opacity: 0.65, marginBottom: 6, fontWeight: 500 }}>
             Você é
           </div>
           <div
@@ -445,7 +457,7 @@ export function ProfileSetup() {
 
         {/* Seeking */}
         <div>
-          <div id="profile-seeking-label" className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
+          <div id="profile-seeking-label" style={{ fontSize: 13, color: 'var(--text)', opacity: 0.65, marginBottom: 6, fontWeight: 500 }}>
             Quer conhecer
           </div>
           <div
@@ -469,14 +481,14 @@ export function ProfileSetup() {
 
         {/* Bio — compact 2 rows */}
         <div>
-          <label htmlFor="profile-bio" className="muted" style={{ fontSize: 'var(--text-xs)', display: 'block', marginBottom: 4 }}>
+          <label htmlFor="profile-bio" style={{ fontSize: 13, color: 'var(--text)', opacity: 0.65, display: 'block', marginBottom: 6, fontWeight: 500 }}>
             Bio
           </label>
           <textarea
             id="profile-bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            rows={2}
+            rows={4}
             maxLength={MAX_BIO}
             placeholder="Diz algo sobre você"
             style={{ resize: 'none', fontSize: 'var(--text-sm)' }}
@@ -485,8 +497,8 @@ export function ProfileSetup() {
 
         {/* Age range */}
         <div>
-          <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 2 }}>
-            Idade <span style={{ color: 'var(--text)' }}>{minAge}–{maxAge}</span>
+          <div style={{ fontSize: 13, color: 'var(--text)', opacity: 0.65, marginBottom: 6, fontWeight: 500 }}>
+            Idade <span style={{ color: 'var(--text)', opacity: 1 }}>{minAge}–{maxAge}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <input

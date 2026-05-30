@@ -309,7 +309,7 @@ export function EventsScreen() {
               onClick={() => nav(`/events/${ev.id}`)}
               style={{ cursor: 'pointer', padding: 0, overflow: 'hidden' }}
             >
-              <div style={{ background: gradient, height: 6 }} />
+              <div style={{ background: gradient, height: 10 }} />
 
               <div style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -340,17 +340,31 @@ export function EventsScreen() {
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: happening ? 'var(--fire)' : 'var(--muted)',
-                      fontWeight: happening ? 600 : 400,
-                    }}
-                  >
-                    {formatEventTime(ev, t)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: happening ? 'var(--fire)' : 'var(--muted)',
+                        fontWeight: happening ? 600 : 400,
+                      }}
+                    >
+                      {formatEventTime(ev, t)}
+                    </span>
+                    {happening && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: 'rgba(255, 64, 96, 0.15)', color: 'var(--heart)',
+                        border: '1px solid rgba(255, 64, 96, 0.30)',
+                        borderRadius: 'var(--radius-pill)', fontSize: 10, fontWeight: 700,
+                        padding: '2px 8px', letterSpacing: '0.05em',
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--heart)', display: 'inline-block', animation: 'unreadPulse 1.5s ease-in-out infinite' }} />
+                        AO VIVO
+                      </span>
+                    )}
                   </div>
                   {hasExpiry && ev.expires_at && (
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--fire)', fontWeight: 600 }}>
                       {expiresIn(ev.expires_at)}
                     </span>
                   )}

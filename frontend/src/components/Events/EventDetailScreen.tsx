@@ -442,8 +442,9 @@ export function EventDetailScreen() {
       </div>
 
       {/* ── DECK SECTION ────────────────────────────────────── */}
+      <div style={{ borderTop: '1px solid var(--hairline)', margin: '20px 0 0' }} />
       <h3 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--muted)', margin: '20px 0 12px', paddingLeft: 4 }}>
+        color: 'var(--muted)', margin: '14px 0 12px', paddingLeft: 4 }}>
         {t('deck_section_title')}
       </h3>
 
@@ -457,7 +458,7 @@ export function EventDetailScreen() {
             <p className="muted" style={{ fontSize: 13, margin: '0 0 14px' }}>
               {t('deck_need_checkin_hint')}
             </p>
-            <button className="btn" style={{ maxWidth: 200, margin: '0 auto' }}
+            <button className="btn" style={{ maxWidth: 200, display: 'block', margin: '0 auto' }}
               disabled={checkingIn} onClick={() => void toggleCheckIn()}>
               {checkingIn ? t('checking_in') : t('check_in')}
             </button>
@@ -603,8 +604,8 @@ export function EventDetailScreen() {
                   {att.name ?? '?'}
                 </div>
                 {att.my_reaction && (
-                  <div style={{ position: 'absolute', top: 3, right: 4, fontSize: 14, lineHeight: 1,
-                    filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                  <div style={{ position: 'absolute', top: 4, right: 4, fontSize: 16, lineHeight: 1,
+                    filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.8))' }}>
                     {REACTION_EMOJI[att.my_reaction as ReactionKind]}
                   </div>
                 )}
@@ -663,12 +664,12 @@ export function EventDetailScreen() {
                 {selected.name ?? t('someone')}{selected.age ? `, ${selected.age}` : ''}
               </div>
               <button onClick={() => setSafetyOpen(true)} aria-label="Denunciar ou bloquear"
-                style={{ position: 'absolute', top: 10, right: 50, background: 'rgba(0,0,0,0.5)',
-                  border: 'none', borderRadius: '50%', width: 32, height: 32,
+                style={{ position: 'absolute', top: 10, right: 56, background: 'rgba(0,0,0,0.55)',
+                  border: 'none', borderRadius: '50%', width: 40, height: 40,
                   fontSize: 18, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋮</button>
               <button onClick={() => setSelected(null)} aria-label="Fechar"
-                style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.5)',
-                  border: 'none', borderRadius: '50%', width: 32, height: 32,
+                style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.55)',
+                  border: 'none', borderRadius: '50%', width: 40, height: 40,
                   fontSize: 16, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ padding: '16px 16px 20px' }}>

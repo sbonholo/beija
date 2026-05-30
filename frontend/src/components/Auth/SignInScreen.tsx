@@ -64,8 +64,8 @@ export function SignInScreen() {
           </div>
         </div>
         <h1 className="brand-title" style={{ fontSize: 56, marginBottom: 12 }}>Beija</h1>
-        <p className="brand-sub" style={{ textAlign: 'center', maxWidth: 320 }}>
-          Conexões reais. Sem joguinhos. Pessoas perto de você.
+        <p className="brand-sub" style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.7 }}>
+          Conexões reais. Sem joguinhos.<br />Pessoas perto de você.
         </p>
       </div>
 
@@ -75,6 +75,7 @@ export function SignInScreen() {
             className="btn"
             style={{
               background: '#000',
+              border: '1px solid rgba(255,255,255,0.18)',
               boxShadow: '0 6px 24px rgba(0, 0, 0, 0.5)',
               color: '#fff',
             }}
@@ -82,17 +83,21 @@ export function SignInScreen() {
             onClick={() => handleSignIn('apple')}
             aria-label="Continuar com Apple"
           >
-            {loading === 'apple' ? 'Entrando...' : ' Continuar com Apple'}
+            {loading === 'apple' ? 'Entrando...' : '\u{F8FF} Continuar com Apple'}
           </button>
         )}
 
         <button
-          className="btn"
+          className="btn ghost"
+          style={{
+            border: '1.5px solid rgba(255,255,255,0.18)',
+            color: 'var(--text)',
+          }}
           disabled={loading !== null}
           onClick={() => handleSignIn('google')}
           aria-label="Continuar com Google"
         >
-          {loading === 'google' ? 'Entrando...' : 'Continuar com Google'}
+          {loading === 'google' ? 'Entrando...' : 'G  Continuar com Google'}
         </button>
 
         <p className="muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 18 }}>

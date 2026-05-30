@@ -113,7 +113,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <div className="screen" style={{ paddingBottom: 120 }}>
+    <div className="screen" style={{ paddingBottom: 96 }}>
       <div className="header"><h2>{t('title')}</h2></div>
 
       <Section title={t('sections.notifications')}>
@@ -293,14 +293,16 @@ function Toggle({
           </span>
         )}
       </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={saving}
-        onChange={(e) => onChange(e.target.checked)}
-        aria-label={label}
-        style={{ width: 20, height: 20, accentColor: 'var(--pink)' }}
-      />
+      <span className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={saving}
+          onChange={(e) => onChange(e.target.checked)}
+          aria-label={label}
+        />
+        <span className="toggle-track" />
+      </span>
     </label>
   );
 }

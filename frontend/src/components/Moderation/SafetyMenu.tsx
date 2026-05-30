@@ -70,7 +70,7 @@ export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props)
 
   return (
     <div
-      className="match-modal-bg"
+      className="modal-overlay"
       role="dialog"
       aria-modal="true"
       onClick={() => !working && onClose()}

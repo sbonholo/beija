@@ -425,10 +425,10 @@ function SwipeCardImpl({
           className="icon-btn"
           style={{
             position: 'absolute',
-            top: 14,
+            top: 12,
             right: 14,
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             borderRadius: 999,
             background: 'rgba(10, 0, 20, 0.55)',
             color: '#fff',
@@ -460,10 +460,10 @@ function SwipeCardImpl({
           className="icon-btn"
           style={{
             position: 'absolute',
-            top: 14,
-            right: 58,
-            width: 36,
-            height: 36,
+            top: 12,
+            right: 62,
+            width: 40,
+            height: 40,
             borderRadius: 999,
             background: 'rgba(10, 0, 20, 0.55)',
             color: '#fff',

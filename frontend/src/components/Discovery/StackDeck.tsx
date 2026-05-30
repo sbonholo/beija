@@ -346,7 +346,7 @@ export function StackDeck() {
     return (
       <div className="screen">
         <div className="header" style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Discover</h2>
+          <h2 style={{ margin: 0 }}>{t('header')}</h2>
           <div className="skeleton" style={{ width: 78, height: 32 }} aria-hidden />
         </div>
         <div className="skeleton card"
@@ -385,7 +385,7 @@ export function StackDeck() {
         <button
           className="btn"
           style={{ maxWidth: 260 }}
-          onClick={() => nav('/events')}
+          onClick={() => nav('/events?create=1')}
         >
           Criar agora
         </button>
@@ -474,18 +474,29 @@ export function StackDeck() {
           .map((p, i) => ({ p, i }))
           .reverse()
           .map(({ p, i }) => (
-            <SwipeCard
+            <div
               key={p.id}
-              profile={p}
-              photos={p.photos}
-              interests={p.interests}
-              stackIndex={i}
-              onSwipe={(direction) => handleSwipe(p, direction)}
-              onOpenDetail={openDetail}
-              onOpenSafety={openSafety}
-              enterFrom={i === 0 && p.id === rewoundId ? rewindEnter : null}
-              exitTrigger={i === 0 ? exitTrigger : null}
-            />
+              style={{
+                position: 'absolute',
+                inset: 0,
+                opacity: i === 0 ? 1 : 1 - i * 0.18,
+                filter: i === 0 ? 'none' : `blur(${i * 1.5}px)`,
+                zIndex: 100 - i,
+                pointerEvents: i === 0 ? 'auto' : 'none',
+              }}
+            >
+              <SwipeCard
+                profile={p}
+                photos={p.photos}
+                interests={p.interests}
+                stackIndex={i}
+                onSwipe={(direction) => handleSwipe(p, direction)}
+                onOpenDetail={openDetail}
+                onOpenSafety={openSafety}
+                enterFrom={i === 0 && p.id === rewoundId ? rewindEnter : null}
+                exitTrigger={i === 0 ? exitTrigger : null}
+              />
+            </div>
           ))}
       </div>
 
@@ -493,7 +504,7 @@ export function StackDeck() {
       <button type="button" onClick={() => void handleRewind()} aria-label={t('actions.rewind')}
         disabled={!rewindAvailable}
         style={{ position: 'fixed', left: 'calc(env(safe-area-inset-left) + 18px)',
-          bottom: 'calc(env(safe-area-inset-bottom) + 24px)', width: 52, height: 52,
+          bottom: 'calc(env(safe-area-inset-bottom) + 96px)', width: 52, height: 52,
           borderRadius: '50%', background: 'var(--card)', border: '1px solid rgba(255,255,255,0.08)',
           color: rewindAvailable ? '#facc15' : '#5a4a72', fontSize: 22,
           boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: rewindAvailable ? 'pointer' : 'not-allowed',
@@ -510,7 +521,7 @@ export function StackDeck() {
         <button type="button" className="swipe-action super" onClick={() => trigger('super')}
           aria-label={t('actions.super')} style={{ pointerEvents: 'auto' }}>⭐</button>
         <button type="button" className="swipe-action like" onClick={() => trigger('right')}
-          aria-label={t('actions.like')} style={{ pointerEvents: 'auto' }}>♥</button>
+          aria-label={t('actions.like')} style={{ pointerEvents: 'auto' }}>❤️</button>
       </div>
 
       {match && userId && (

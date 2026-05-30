@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, type ReactionKind } from '../../lib/supabase';
 
 const REACTION_EMOJI: Record<ReactionKind, string> = { kiss: '💋', heart: '❤️', fire: '🔥' };
+
+function getInitials(name: string | null): string {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
+}
 
 interface MatchRow {
   matchId: string;
@@ -32,6 +38,7 @@ function relTime(iso: string): string {
 
 export function MatchesList() {
   const nav = useNavigate();
+  const { t } = useTranslation('matches');
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +154,7 @@ export function MatchesList() {
   if (loading) {
     return (
       <div className="screen">
-        <div className="header"><h2>Matches</h2></div>
+        <div className="header"><h2>{t('title')}</h2></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -171,7 +178,7 @@ export function MatchesList() {
   if (error) {
     return (
       <div className="screen">
-        <div className="header"><h2>Matches</h2></div>
+        <div className="header"><h2>{t('title')}</h2></div>
         <p className="muted">Não conseguimos carregar agora.</p>
         <button className="btn" style={{ marginTop: 12, maxWidth: 240 }} onClick={() => void load()}>
           Tentar de novo
@@ -186,16 +193,16 @@ export function MatchesList() {
   if (rows.length === 0) {
     return (
       <div className="screen">
-        <div className="header"><h2>Matches</h2></div>
+        <div className="header"><h2>{t('title')}</h2></div>
         <div className="empty">
           <div className="big">💋</div>
-          <p>Você ainda não tem matches. Volta pro swipe!</p>
+          <p>{t('empty.title')}</p>
           <button
             className="btn"
             style={{ marginTop: 16, maxWidth: 240 }}
             onClick={() => nav('/discover')}
           >
-            Ir pro swipe
+            {t('empty.cta')}
           </button>
         </div>
       </div>
@@ -204,7 +211,7 @@ export function MatchesList() {
 
   return (
     <div className="screen">
-      <div className="header"><h2>Matches</h2></div>
+      <div className="header"><h2>{t('title')}</h2></div>
       {archivedCount > 0 && (
         <button
           type="button"
@@ -224,14 +231,21 @@ export function MatchesList() {
           {visibleRows.map((r) => (
           <button
             key={r.matchId}
-            className="card row center"
-            style={{ textAlign: 'left', gap: 12, width: '100%' }}
+            className="card list-item row center"
+            style={{
+              textAlign: 'left', gap: 12, width: '100%',
+              borderLeft: r.unread > 0 ? '3px solid var(--pink)' : '3px solid transparent',
+            }}
             onClick={() => nav(`/chat/${r.matchId}`)}
           >
             <div
               className="avatar matched"
-              style={r.otherPhotoUrl ? { backgroundImage: `url("${r.otherPhotoUrl}")` } : undefined}
-            />
+              style={r.otherPhotoUrl
+                ? { backgroundImage: `url("${r.otherPhotoUrl}")` }
+                : { background: 'linear-gradient(135deg, var(--pink), var(--hot))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18 }}
+            >
+              {!r.otherPhotoUrl && getInitials(r.otherName)}
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <strong style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
@@ -239,7 +253,7 @@ export function MatchesList() {
                     {r.otherName ?? 'Match'}
                   </span>
                   {r.reactionPair && (
-                    <span style={{ flexShrink: 0, fontSize: 13 }} aria-hidden>
+                    <span style={{ flexShrink: 0, fontSize: 16 }} aria-hidden>
                       {REACTION_EMOJI[r.reactionPair.mine]}
                       {r.reactionPair.theirs ? REACTION_EMOJI[r.reactionPair.theirs] : ''}
                     </span>
