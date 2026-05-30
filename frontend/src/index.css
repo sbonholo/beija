@@ -371,6 +371,32 @@ a { color: var(--pink-glow); }
   50%       { box-shadow: 0 0 20px var(--pink-glow); }
 }
 
+/* Typing indicator — three pink dots cascade up. Replaces italic
+ * "digitando…" with a tactile signal. */
+.typing-indicator {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 12px 14px;
+}
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pink-glow);
+  display: inline-block;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.30s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0);   opacity: 0.55; }
+  30%            { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot { animation: none; opacity: 0.8; }
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -680,6 +706,11 @@ a { color: var(--pink-glow); }
   border: 3px solid var(--gold);
   background: var(--card) center/cover no-repeat;
   box-shadow: 0 0 32px rgba(255, 213, 74, 0.55);
+  animation: matchGlow 2.5s ease-in-out infinite;
+  will-change: box-shadow;
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-modal .photos .ph { animation: none; }
 }
 .match-modal .ph-reaction {
   position: absolute;

@@ -383,11 +383,13 @@ export function ChatScreen() {
         ))}
         {otherTyping && (
           <div
-            className="chat-message theirs"
+            className="chat-message theirs typing-indicator"
             aria-live="polite"
-            style={{ opacity: 0.7, fontStyle: 'italic' }}
+            aria-label="digitando"
           >
-            digitando…
+            <span className="typing-dot" />
+            <span className="typing-dot" />
+            <span className="typing-dot" />
           </div>
         )}
       </div>
