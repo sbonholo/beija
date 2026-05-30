@@ -71,8 +71,13 @@ interface NewMatch {
 interface RewindEntry {
   profile: ProfileWithMedia;
   direction: SwipeDirection;
-  /** Match this swipe created (id), if any — server's rewind will also undo it. */
   matchIdToUndo: string | null;
+}
+
+// Active room the user is currently checked into
+interface ActiveRoom {
+  id: string;
+  name: string;
 }
 
 export function StackDeck() {
@@ -80,6 +85,8 @@ export function StackDeck() {
   const toast = useToast();
   const { t } = useTranslation('swipe');
   const [userId, setUserId] = useState<string | null>(null);
+  // undefined = resolving, null = no active room, object = in a room
+  const [activeRoom, setActiveRoom] = useState<ActiveRoom | null | undefined>(undefined);
   const [deck, setDeck] = useState<ProfileWithMedia[]>([]);
   const [history, setHistory] = useState<RewindEntry[]>([]);
   const [rewindCount, setRewindCount] = useState<number>(() => readRewindCount());
@@ -123,11 +130,13 @@ export function StackDeck() {
     [],
   );
 
+  // Load deck scoped to active room when in one, otherwise empty (fail-closed)
   const loadMore = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !activeRoom) return;
     try {
-      const { data, error: rpcError } = await supabase.rpc('find_potential_matches', {
-        p_user_id: userId,
+      const { data, error: rpcError } = await supabase.rpc('find_potential_matches_in_event', {
+        p_user_id:  userId,
+        p_event_id: activeRoom.id,
       });
       if (rpcError) throw rpcError;
       const fresh = (data ?? []) as SwipeCardProfile[];
@@ -140,7 +149,7 @@ export function StackDeck() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'load_failed');
     }
-  }, [userId, enrichProfiles]);
+  }, [userId, activeRoom, enrichProfiles]);
 
   const refreshLikesYou = useCallback(async () => {
     try {
@@ -152,32 +161,51 @@ export function StackDeck() {
     }
   }, []);
 
+  // Bootstrap: get userId + active room together, then set loading=false
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth.user?.id;
-        if (!uid) {
-          setError('not_authenticated');
-          return;
-        }
+        if (!uid) { setError('not_authenticated'); return; }
         if (cancelled) return;
         setUserId(uid);
+        void bumpLastActive(uid);
+
+        // Find active check-in (left_at IS NULL)
+        const { data: ci } = await supabase
+          .from('check_ins')
+          .select('event_id')
+          .eq('user_id', uid)
+          .is('left_at', null)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (ci?.event_id) {
+          const { data: ev } = await supabase
+            .from('events')
+            .select('name')
+            .eq('id', ci.event_id)
+            .maybeSingle();
+          if (!cancelled) setActiveRoom({ id: ci.event_id, name: (ev?.name as string | undefined) ?? 'Evento' });
+        } else {
+          if (!cancelled) setActiveRoom(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
+  // Load deck when userId + activeRoom are both ready
   useEffect(() => {
-    if (userId && deck.length === 0) {
+    if (userId && activeRoom && deck.length === 0) {
       void loadMore();
     }
-  }, [userId, deck.length, loadMore]);
+  }, [userId, activeRoom, deck.length, loadMore]);
 
   useEffect(() => {
     if (!firstCardTracked && deck.length > 0) {
@@ -187,8 +215,15 @@ export function StackDeck() {
   }, [deck.length, firstCardTracked]);
 
   useEffect(() => {
-    if (userId) void refreshLikesYou();
-  }, [userId, refreshLikesYou]);
+    if (userId && activeRoom) void refreshLikesYou();
+  }, [userId, activeRoom, refreshLikesYou]);
+
+  async function handleLeaveRoom() {
+    if (!activeRoom || !userId) return;
+    await supabase.rpc('leave_event_room', { p_event_id: activeRoom.id });
+    setActiveRoom(null);
+    setDeck([]);
+  }
 
   async function handleSwipe(target: ProfileWithMedia, direction: SwipeDirection) {
     if (!userId) return;
@@ -210,12 +245,22 @@ export function StackDeck() {
     }
 
     try {
+      // Always record swipe for dedup in future deck loads
       const { error: insertError } = await supabase.from('swipes').insert({
         swiper_id: userId,
         swipee_id: target.id,
         direction,
       });
       if (insertError) throw insertError;
+
+      // In-room positive reaction → send event_reaction to trigger the match
+      if (activeRoom && (direction === 'right' || direction === 'super')) {
+        const kind = direction === 'super' ? 'heart' : 'kiss';
+        await supabase.from('event_reactions').upsert(
+          { sender_id: userId, receiver_id: target.id, event_id: activeRoom.id, kind },
+          { onConflict: 'sender_id,receiver_id,event_id' },
+        );
+      }
 
       if (direction === 'right' || direction === 'super') {
         const lo = userId < target.id ? userId : target.id;
@@ -234,9 +279,7 @@ export function StackDeck() {
             setLiveAnnouncement(t('announce.match', { name: target.name ?? '' }));
             setMatch({ matchId: matchRow.id as string, other: target });
             try {
-              await supabase.functions.invoke('notify_match', {
-                body: { match_id: matchRow.id },
-              });
+              await supabase.functions.invoke('notify_match', { body: { match_id: matchRow.id } });
             } catch {
               /* push delivery is best-effort */
             }
@@ -248,10 +291,7 @@ export function StackDeck() {
     }
 
     setHistory((h) =>
-      [{ profile: target, direction, matchIdToUndo: matchedId }, ...h].slice(
-        0,
-        REWIND_HISTORY_LIMIT,
-      ),
+      [{ profile: target, direction, matchIdToUndo: matchedId }, ...h].slice(0, REWIND_HISTORY_LIMIT),
     );
     void refreshLikesYou();
   }
@@ -259,14 +299,8 @@ export function StackDeck() {
   async function handleRewind() {
     if (!userId || rewinding) return;
     const last = history[0];
-    if (!last) {
-      toast({ kind: 'info', text: t('rewind_empty') });
-      return;
-    }
-    if (rewindCount >= REWIND_DAILY_LIMIT) {
-      toast({ kind: 'info', text: t('rewind_limit_reached') });
-      return;
-    }
+    if (!last) { toast({ kind: 'info', text: t('rewind_empty') }); return; }
+    if (rewindCount >= REWIND_DAILY_LIMIT) { toast({ kind: 'info', text: t('rewind_limit_reached') }); return; }
     setRewinding(true);
     track('rewind_used', { remaining: REWIND_DAILY_LIMIT - rewindCount - 1 });
     const inverse: SwipeDirection =
@@ -274,7 +308,6 @@ export function StackDeck() {
     try {
       const { error: rpcErr } = await supabase.rpc('rewind_last_swipe');
       if (rpcErr) throw rpcErr;
-
       setHistory((h) => h.slice(1));
       setRewoundId(last.profile.id);
       setRewindEnter(inverse);
@@ -298,34 +331,23 @@ export function StackDeck() {
     void handleSwipe(target, direction);
   }
 
-  const openDetail = useCallback(
-    (profileId: string) => {
-      nav(`/profile/${profileId}`);
-    },
-    [nav],
-  );
-
+  const openDetail = useCallback((profileId: string) => { nav(`/profile/${profileId}`); }, [nav]);
   const openSafety = useCallback((profileId: string, profileName: string | null) => {
     setSafetyTarget({ id: profileId, name: profileName });
   }, []);
 
-  if (loading) {
+  // ── Render states ────────────────────────────────────────────
+
+  if (loading || activeRoom === undefined) {
     return (
       <div className="screen">
         <div className="header" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Discover</h2>
           <div className="skeleton" style={{ width: 78, height: 32 }} aria-hidden />
         </div>
-        <div
-          className="skeleton card"
-          style={{
-            width: '100%',
-            maxWidth: 440,
-            aspectRatio: '3 / 4',
-            margin: '0 auto',
-          }}
-          aria-label="Carregando perfis"
-        />
+        <div className="skeleton card"
+          style={{ width: '100%', maxWidth: 440, aspectRatio: '3 / 4', margin: '0 auto' }}
+          aria-label="Carregando perfis" />
       </div>
     );
   }
@@ -343,26 +365,63 @@ export function StackDeck() {
     );
   }
 
-  if (deck.length === 0) {
+  // ── Step 5+6: FAIL-CLOSED — no active room ───────────────────
+  if (activeRoom === null) {
     return (
       <div className="screen" style={{ textAlign: 'center' }}>
         <div style={{ marginTop: '18vh' }}>
           <span className="glow-emoji" style={{ fontSize: 64 }}>🌙</span>
         </div>
+        <h2 style={{ marginTop: 8, fontFamily: "'Space Grotesk', sans-serif" }}>
+          Nada acontecendo perto.
+        </h2>
+        <p className="muted" style={{ marginTop: 4, marginBottom: 24 }}>
+          Você cria o primeiro?
+        </p>
+        <button
+          className="btn"
+          style={{ maxWidth: 260 }}
+          onClick={() => nav('/events')}
+        >
+          Criar agora
+        </button>
+        <button
+          className="btn ghost"
+          style={{ maxWidth: 260, marginTop: 10 }}
+          onClick={() => nav('/events')}
+        >
+          Ver eventos
+        </button>
+      </div>
+    );
+  }
+
+  // ── In room, deck empty (everyone in room seen) ───────────────
+  if (deck.length === 0) {
+    return (
+      <div className="screen" style={{ textAlign: 'center' }}>
+        {/* Room badge */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10vh', marginBottom: 16 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--card-raised)',
+            padding: '4px 14px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--hairline)' }}>
+            📍 {activeRoom.name}
+          </span>
+        </div>
+        <div>
+          <span className="glow-emoji" style={{ fontSize: 64 }}>🌙</span>
+        </div>
         <h2 style={{ marginTop: 8 }}>{t('empty.title')}</h2>
         <p className="muted">{t('empty.subtitle')}</p>
         {likesYouCount > 0 && (
-          <button
-            className="btn"
-            style={{ marginTop: 18, maxWidth: 260 }}
-            onClick={() => {
-              track('likes_you_viewed', { source: 'empty_deck_cta' });
-              nav('/likes-you');
-            }}
-          >
+          <button className="btn" style={{ marginTop: 18, maxWidth: 260 }}
+            onClick={() => { track('likes_you_viewed', { source: 'empty_deck_cta' }); nav('/likes-you'); }}>
             {t('empty.likes_you_cta', { count: likesYouCount })}
           </button>
         )}
+        <button className="btn ghost" style={{ marginTop: 10, maxWidth: 260 }}
+          onClick={() => void handleLeaveRoom()}>
+          Sair do evento
+        </button>
       </div>
     );
   }
@@ -371,55 +430,42 @@ export function StackDeck() {
 
   return (
     <div className="screen" style={{ paddingBottom: 140 }}>
-      <div
-        className="sr-only"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {liveAnnouncement}
       </div>
       <div className="header" style={{ marginBottom: 12, gap: 8 }}>
-        <h2 style={{ margin: 0 }}>{t('header')}</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <h2 style={{ margin: 0 }}>{t('header')}</h2>
+          {/* Room context badge */}
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+            📍 {activeRoom.name}
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {likesYouCount > 0 && (
-            <button
-              type="button"
-              className="chip"
-              onClick={() => {
-              track('likes_you_viewed', { source: 'discover_chip' });
-              nav('/likes-you');
-            }}
+            <button type="button" className="chip"
+              onClick={() => { track('likes_you_viewed', { source: 'discover_chip' }); nav('/likes-you'); }}
               aria-label={t('likes_you_chip_aria', { count: likesYouCount })}
-              style={{
-                background: 'linear-gradient(120deg, var(--pink), var(--hot))',
-                borderColor: 'transparent',
-                color: '#fff',
-                fontWeight: 700,
-              }}
-            >
+              style={{ background: 'linear-gradient(120deg, var(--pink), var(--hot))',
+                borderColor: 'transparent', color: '#fff', fontWeight: 700 }}>
               💋 {likesYouCount}
             </button>
           )}
-          <button
-            type="button"
-            className="chip"
+          <button type="button" className="chip"
+            onClick={() => void handleLeaveRoom()}
+            aria-label="Sair do evento"
+            style={{ fontSize: 13 }}>
+            ← Sair
+          </button>
+          <button type="button" className="chip"
             onClick={() => setFiltersOpen(true)}
-            aria-label={t('actions.filters')}
-          >
+            aria-label={t('actions.filters')}>
             ⚙︎ {t('actions.filters')}
           </button>
         </div>
       </div>
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 440,
-          aspectRatio: '3 / 4',
-          margin: '0 auto',
-        }}
-      >
+
+      <div style={{ position: 'relative', width: '100%', maxWidth: 440, aspectRatio: '3 / 4', margin: '0 auto' }}>
         {top
           .map((p, i) => ({ p, i }))
           .reverse()
@@ -438,92 +484,38 @@ export function StackDeck() {
           ))}
       </div>
 
-      {/* Rewind button — bottom-LEFT (Tinder uses right; we differentiate). */}
-      <button
-        type="button"
-        onClick={() => void handleRewind()}
-        aria-label={t('actions.rewind')}
+      {/* Rewind button */}
+      <button type="button" onClick={() => void handleRewind()} aria-label={t('actions.rewind')}
         disabled={!rewindAvailable}
-        style={{
-          position: 'fixed',
-          left: 'calc(env(safe-area-inset-left) + 18px)',
-          bottom: 'calc(env(safe-area-inset-bottom) + 24px)',
-          width: 52,
-          height: 52,
-          borderRadius: '50%',
-          background: 'var(--card)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          color: rewindAvailable ? '#facc15' : '#5a4a72',
-          fontSize: 22,
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
-          cursor: rewindAvailable ? 'pointer' : 'not-allowed',
-          opacity: rewindAvailable ? 1 : 0.45,
-          zIndex: 31,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+        style={{ position: 'fixed', left: 'calc(env(safe-area-inset-left) + 18px)',
+          bottom: 'calc(env(safe-area-inset-bottom) + 24px)', width: 52, height: 52,
+          borderRadius: '50%', background: 'var(--card)', border: '1px solid rgba(255,255,255,0.08)',
+          color: rewindAvailable ? '#facc15' : '#5a4a72', fontSize: 22,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: rewindAvailable ? 'pointer' : 'not-allowed',
+          opacity: rewindAvailable ? 1 : 0.45, zIndex: 31,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
         ↶
       </button>
 
-      <div
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 'calc(env(safe-area-inset-bottom) + 24px)',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 22,
-          zIndex: 30,
-          pointerEvents: 'none',
-        }}
-      >
-        <button
-          type="button"
-          className="swipe-action nope"
-          onClick={() => trigger('left')}
-          aria-label={t('actions.pass')}
-          style={{ pointerEvents: 'auto' }}
-        >
-          ✕
-        </button>
-        <button
-          type="button"
-          className="swipe-action super"
-          onClick={() => trigger('super')}
-          aria-label={t('actions.super')}
-          style={{ pointerEvents: 'auto' }}
-        >
-          ⭐
-        </button>
-        <button
-          type="button"
-          className="swipe-action like"
-          onClick={() => trigger('right')}
-          aria-label={t('actions.like')}
-          style={{ pointerEvents: 'auto' }}
-        >
-          ♥
-        </button>
+      <div style={{ position: 'fixed', left: 0, right: 0,
+        bottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+        display: 'flex', justifyContent: 'center', gap: 22, zIndex: 30, pointerEvents: 'none' }}>
+        <button type="button" className="swipe-action nope" onClick={() => trigger('left')}
+          aria-label={t('actions.pass')} style={{ pointerEvents: 'auto' }}>✕</button>
+        <button type="button" className="swipe-action super" onClick={() => trigger('super')}
+          aria-label={t('actions.super')} style={{ pointerEvents: 'auto' }}>⭐</button>
+        <button type="button" className="swipe-action like" onClick={() => trigger('right')}
+          aria-label={t('actions.like')} style={{ pointerEvents: 'auto' }}>♥</button>
       </div>
 
       {match && userId && (
-        <MatchModal
-          matchId={match.matchId}
-          other={match.other}
-          onClose={() => setMatch(null)}
-        />
+        <MatchModal matchId={match.matchId} other={match.other} onClose={() => setMatch(null)} />
       )}
 
       {filtersOpen && (
         <DiscoveryFilters
           onClose={() => setFiltersOpen(false)}
-          onApplied={() => {
-            setDeck([]);
-            void loadMore();
-          }}
+          onApplied={() => { setDeck([]); void loadMore(); }}
         />
       )}
 
