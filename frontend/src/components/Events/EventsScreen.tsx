@@ -213,7 +213,7 @@ export function EventsScreen() {
             aria-expanded={showCreate}
             style={showCreate ? { background: 'var(--pink)', color: '#fff', borderColor: 'transparent' } : undefined}
           >
-            {showCreate ? '✕ Cancelar' : '＋ Criar sala'}
+            {showCreate ? '✕ Cancelar' : '＋ Criar evento'}
           </button>
           <button
             type="button"
@@ -231,7 +231,7 @@ export function EventsScreen() {
       {showCreate && (
         <div className="card" style={{ padding: '16px 16px 20px', marginBottom: 14 }}>
           <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>
-            Nova sala
+            Novo evento
           </p>
 
           <input
@@ -289,7 +289,7 @@ export function EventsScreen() {
             style={{ marginTop: 16, maxWidth: 260 }}
             onClick={() => setShowCreate(true)}
           >
-            ＋ Criar a primeira sala
+            ＋ Criar o primeiro evento
           </button>
         </div>
       )}
@@ -321,7 +321,7 @@ export function EventsScreen() {
                   </span>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {isUserRoom && (
-                      <span style={{ fontSize: 11, color: 'var(--aurora)', fontWeight: 600 }}>Sua sala</span>
+                      <span style={{ fontSize: 11, color: 'var(--aurora)', fontWeight: 600 }}>Seu evento</span>
                     )}
                     {ev.distance_km != null && (
                       <span className="muted" style={{ fontSize: 12 }}>
