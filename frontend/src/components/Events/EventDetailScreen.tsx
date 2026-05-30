@@ -104,8 +104,7 @@ export function EventDetailScreen() {
   const [hasMore,       setHasMore]        = useState(false);
   const [loadingMore,   setLoadingMore]    = useState(false);
 
-  // Deck tab state
-  const [tab,           setTab]            = useState<'grid' | 'deck'>('grid');
+  // Deck state
   const [deck,          setDeck]           = useState<DeckProfile[]>([]);
   const [deckIdx,       setDeckIdx]        = useState(0);
   const [deckLoading,   setDeckLoading]    = useState(false);
@@ -219,12 +218,12 @@ export function EventDetailScreen() {
     return () => { void supabase.removeChannel(channel); };
   }, [eventId, genderFilter, loadAttendees]);
 
-  // Load deck when user switches to Deck tab (and is checked in)
+  // Auto-load deck as soon as user is checked in
   useEffect(() => {
-    if (tab === 'deck' && isCheckedIn && me && deck.length === 0 && !deckLoading) {
+    if (isCheckedIn && me && deck.length === 0 && !deckLoading) {
       void loadDeck(me);
     }
-  }, [tab, isCheckedIn, me, deck.length, deckLoading, loadDeck]);
+  }, [isCheckedIn, me, deck.length, deckLoading, loadDeck]);
 
   async function toggleFilter() {
     const next = !genderFilter;
@@ -442,230 +441,206 @@ export function EventDetailScreen() {
         )}
       </div>
 
-      {/* ── Tab bar ─────────────────────────────────────────── */}
-      <div className="tab-bar" role="tablist">
-        <button
-          role="tab"
-          aria-selected={tab === 'grid'}
-          className={`tab-btn${tab === 'grid' ? ' active' : ''}`}
-          onClick={() => setTab('grid')}
-        >
-          {t('tabs.grid')}
-        </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'deck'}
-          className={`tab-btn${tab === 'deck' ? ' active' : ''}`}
-          onClick={() => setTab('deck')}
-        >
-          {t('tabs.deck')}
+      {/* ── DECK SECTION ────────────────────────────────────── */}
+      <h3 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: 'var(--muted)', margin: '20px 0 12px', paddingLeft: 4 }}>
+        {t('deck_section_title')}
+      </h3>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
+        {!isCheckedIn ? (
+          <div className="card" style={{ width: '100%', padding: '24px 20px', textAlign: 'center' }}>
+            <span style={{ fontSize: 36 }}>💋</span>
+            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, margin: '8px 0 4px' }}>
+              {t('deck_need_checkin_title')}
+            </p>
+            <p className="muted" style={{ fontSize: 13, margin: '0 0 14px' }}>
+              {t('deck_need_checkin_hint')}
+            </p>
+            <button className="btn" style={{ maxWidth: 200, margin: '0 auto' }}
+              disabled={checkingIn} onClick={() => void toggleCheckIn()}>
+              {checkingIn ? t('checking_in') : t('check_in')}
+            </button>
+          </div>
+        ) : deckLoading ? (
+          <div style={{ width: '100%', maxWidth: 380 }}>
+            <div className="skeleton" style={{ width: '100%', aspectRatio: '3/4', borderRadius: 18 }} aria-hidden />
+          </div>
+        ) : deckEmpty ? (
+          <div className="empty" style={{ paddingTop: 28, paddingBottom: 12 }}>
+            <span className="glow-emoji" style={{ fontSize: 48 }}>🌙</span>
+            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600,
+              fontSize: 'var(--text-lg)', marginTop: 10 }}>
+              {t('deck_empty_title')}
+            </p>
+            <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 4 }}>
+              {t('deck_empty_hint')}
+            </p>
+          </div>
+        ) : deckCard ? (
+          <div style={{ width: '100%', maxWidth: 380 }}>
+            {/* Card */}
+            <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+              aspectRatio: '3/4', background: 'var(--card)', boxShadow: 'var(--shadow-lg)',
+              border: '1px solid var(--hairline)', marginBottom: 16 }}>
+              {deckCard.photo_url ? (
+                <img src={deckCard.photo_url} alt={deckCard.name ?? ''}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 72,
+                  background: 'linear-gradient(135deg, var(--card), var(--bg-elev))' }}>👤</div>
+              )}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.82))',
+                padding: '48px 20px 20px' }}>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26 }}>
+                  {deckCard.name ?? t('someone')}{deckCard.age ? `, ${deckCard.age}` : ''}
+                </div>
+              </div>
+
+              {/* progress crumbs */}
+              {deck.length > 0 && (
+                <div style={{ position: 'absolute', top: 12, left: 12, right: 12, display: 'flex', gap: 4 }}>
+                  {deck.map((_, i) => (
+                    <div key={i} style={{ flex: 1, height: 3, borderRadius: 2,
+                      background: i < deckIdx ? 'rgba(255,255,255,0.8)'
+                        : i === deckIdx ? 'linear-gradient(90deg, var(--pink), var(--hot))'
+                        : 'rgba(255,255,255,0.25)',
+                      boxShadow: i === deckIdx ? '0 0 8px var(--pink-glow)' : 'none',
+                      transition: 'background var(--dur-base) var(--ease-out)' }} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              {DECK_ACTIONS.map(({ kind, icon, label, color }) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={deckActing}
+                  onClick={() => void deckAct(kind)}
+                  aria-label={label}
+                  style={{
+                    flex: kind === null ? '0 0 52px' : 1,
+                    height: 52,
+                    borderRadius: kind === null ? '50%' : 'var(--radius-pill)',
+                    background: 'var(--card)',
+                    border: `1.5px solid ${color}`,
+                    color,
+                    fontSize: kind === null ? 18 : 20,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow)',
+                    transition: 'transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span>{icon}</span>
+                  {kind !== null && <span style={{ fontSize: 13 }}>{label}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── GRID SECTION (compact, 4 columns) ───────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 2px 10px' }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+          color: 'var(--muted)', margin: 0 }}>
+          {t('attendees_title')}
+        </h3>
+        <button type="button" className="chip" onClick={() => void toggleFilter()}
+          style={{ fontSize: 12, padding: '4px 12px' }} aria-pressed={genderFilter}>
+          {genderFilter ? t('filter_compatible') : t('filter_all')}
         </button>
       </div>
 
-      {/* ── GRID TAB ────────────────────────────────────────── */}
-      {tab === 'grid' && (
+      {attendeeError ? (
+        <div className="empty" style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 40 }}>⚠️</div>
+          <p className="muted" style={{ marginBottom: 8 }}>{t('error_loading')}</p>
+          <button className="btn ghost" style={{ width: 'auto', padding: '8px 20px' }} onClick={() => void loadData()}>
+            {t('try_again')}
+          </button>
+        </div>
+      ) : attendees.length === 0 ? (
+        <div className="empty" style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 40 }}>🎵</div>
+          <p className="muted" style={{ marginBottom: 4 }}>
+            {genderFilter ? t('no_attendees_compatible') : t('no_attendees')}
+          </p>
+          <p className="muted" style={{ fontSize: 13 }}>
+            {genderFilter ? t('no_attendees_compatible_hint') : t('no_attendees_hint')}
+          </p>
+        </div>
+      ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 2px 10px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>
-              {t('attendees_title')}
-            </h3>
-            <button type="button" className="chip" onClick={() => void toggleFilter()}
-              style={{ fontSize: 12, padding: '4px 12px' }} aria-pressed={genderFilter}>
-              {genderFilter ? t('filter_compatible') : t('filter_all')}
-            </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3 }}>
+            {attendees.map((att, i) => (
+              <button key={att.user_id} onClick={() => setSelected(att)}
+                style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
+                  background: 'linear-gradient(135deg, var(--card), var(--bg-elev))', border: 'none', padding: 0, cursor: 'pointer' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 24, opacity: 0.5 }} aria-hidden>👤</div>
+                {att.photo_url && (
+                  <img src={att.photo_url} alt={att.name ?? 'Foto'}
+                    loading={i < 12 ? 'eager' : 'lazy'}
+                    fetchPriority={i < 12 ? 'high' : 'auto'}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                  padding: '12px 4px 4px', fontSize: 10, fontWeight: 600, textAlign: 'left', color: '#fff',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {att.name ?? '?'}
+                </div>
+                {att.my_reaction && (
+                  <div style={{ position: 'absolute', top: 3, right: 4, fontSize: 14, lineHeight: 1,
+                    filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    {REACTION_EMOJI[att.my_reaction as ReactionKind]}
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
 
-          {attendeeError ? (
-            <div className="empty" style={{ marginTop: 20 }}>
-              <div style={{ fontSize: 40 }}>⚠️</div>
-              <p className="muted" style={{ marginBottom: 8 }}>{t('error_loading')}</p>
-              <button className="btn ghost" style={{ width: 'auto', padding: '8px 20px' }} onClick={() => void loadData()}>
-                {t('try_again')}
-              </button>
-            </div>
-          ) : attendees.length === 0 ? (
-            <div className="empty" style={{ marginTop: 20 }}>
-              <div style={{ fontSize: 40 }}>🎵</div>
-              <p className="muted" style={{ marginBottom: 4 }}>
-                {genderFilter ? t('no_attendees_compatible') : t('no_attendees')}
-              </p>
-              <p className="muted" style={{ fontSize: 13 }}>
-                {genderFilter ? t('no_attendees_compatible_hint') : t('no_attendees_hint')}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                {attendees.map((att, i) => (
-                  <button key={att.user_id} onClick={() => setSelected(att)}
-                    style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden',
-                      background: 'linear-gradient(135deg, var(--card), var(--bg-elev))', border: 'none', padding: 0, cursor: 'pointer' }}>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: 32, opacity: 0.5 }} aria-hidden>👤</div>
-                    {att.photo_url && (
-                      <img src={att.photo_url} alt={att.name ?? 'Foto'}
-                        loading={i < 9 ? 'eager' : 'lazy'}
-                        fetchPriority={i < 9 ? 'high' : 'auto'}
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-                      padding: '16px 6px 5px', fontSize: 11, fontWeight: 600, textAlign: 'left', color: '#fff' }}>
-                      {att.name ?? '?'}{att.age ? `, ${att.age}` : ''}
-                    </div>
-                    {att.my_reaction && (
-                      <div style={{ position: 'absolute', top: 4, right: 5, fontSize: 18, lineHeight: 1,
-                        filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
-                        {REACTION_EMOJI[att.my_reaction as ReactionKind]}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {hasMore && (
-                <button className="btn ghost"
-                  style={{ width: 'auto', padding: '10px 24px', margin: '16px auto 0', display: 'block' }}
-                  disabled={loadingMore} onClick={() => void loadMore()}>
-                  {loadingMore ? t('checking_in') : t('load_more')}
-                </button>
-              )}
-            </>
+          {hasMore && (
+            <button className="btn ghost"
+              style={{ width: 'auto', padding: '10px 24px', margin: '16px auto 0', display: 'block' }}
+              disabled={loadingMore} onClick={() => void loadMore()}>
+              {loadingMore ? t('checking_in') : t('load_more')}
+            </button>
           )}
         </>
       )}
 
-      {/* ── DECK TAB ────────────────────────────────────────── */}
-      {tab === 'deck' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Must be checked in */}
-          {!isCheckedIn ? (
-            <div className="empty" style={{ marginTop: 40 }}>
-              <span className="glow-emoji" style={{ fontSize: 48 }}>💋</span>
-              <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 'var(--text-lg)', marginTop: 12 }}>
-                {t('deck_need_checkin_title')}
-              </p>
-              <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 4 }}>
-                {t('deck_need_checkin_hint')}
-              </p>
-              <button className="btn" style={{ marginTop: 16, maxWidth: 240 }}
-                disabled={checkingIn} onClick={() => void toggleCheckIn()}>
-                {checkingIn ? t('checking_in') : t('check_in')}
-              </button>
+      {/* Deck match celebration */}
+      {deckMatch && (
+        <div className="match-modal-bg" role="dialog" aria-modal="true">
+          <div className="card" style={{ width: '100%', maxWidth: 380, padding: '28px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 60, marginBottom: 8 }}>
+              {REACTION_EMOJI[deckMatch.mine]}
             </div>
-          ) : deckLoading ? (
-            <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 380 }}>
-              <div className="skeleton" style={{ width: '100%', aspectRatio: '3/4', borderRadius: 18 }} aria-hidden />
-            </div>
-          ) : deckEmpty ? (
-            <div className="empty" style={{ marginTop: 40 }}>
-              <span className="glow-emoji" style={{ fontSize: 56 }}>🌙</span>
-              <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 'var(--text-lg)', marginTop: 12 }}>
-                {t('deck_empty_title')}
-              </p>
-              <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 4 }}>
-                {t('deck_empty_hint')}
-              </p>
-              <button className="btn ghost" style={{ marginTop: 16, maxWidth: 240 }}
-                onClick={() => setTab('grid')}>
-                {t('tabs.grid')}
-              </button>
-            </div>
-          ) : deckCard ? (
-            <div style={{ width: '100%', maxWidth: 380 }}>
-              {/* Card */}
-              <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-                aspectRatio: '3/4', background: 'var(--card)', boxShadow: 'var(--shadow-lg)',
-                border: '1px solid var(--hairline)', marginBottom: 16 }}>
-                {deckCard.photo_url ? (
-                  <img src={deckCard.photo_url} alt={deckCard.name ?? ''}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 72,
-                    background: 'linear-gradient(135deg, var(--card), var(--bg-elev))' }}>👤</div>
-                )}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.82))',
-                  padding: '48px 20px 20px' }}>
-                  <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26 }}>
-                    {deckCard.name ?? t('someone')}{deckCard.age ? `, ${deckCard.age}` : ''}
-                  </div>
-                </div>
-
-                {/* progress crumbs */}
-                {deck.length > 0 && (
-                  <div style={{ position: 'absolute', top: 12, left: 12, right: 12,
-                    display: 'flex', gap: 4 }}>
-                    {deck.map((_, i) => (
-                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 2,
-                        background: i < deckIdx ? 'rgba(255,255,255,0.8)'
-                          : i === deckIdx ? 'linear-gradient(90deg, var(--pink), var(--hot))'
-                          : 'rgba(255,255,255,0.25)',
-                        boxShadow: i === deckIdx ? '0 0 8px var(--pink-glow)' : 'none',
-                        transition: 'background var(--dur-base) var(--ease-out)' }} />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                {DECK_ACTIONS.map(({ kind, icon, label, color }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    disabled={deckActing}
-                    onClick={() => void deckAct(kind)}
-                    aria-label={label}
-                    style={{
-                      flex: kind === null ? '0 0 52px' : 1,
-                      height: 52,
-                      borderRadius: kind === null ? '50%' : 'var(--radius-pill)',
-                      background: 'var(--card)',
-                      border: `1.5px solid ${color}`,
-                      color,
-                      fontSize: kind === null ? 18 : 20,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: 'var(--shadow)',
-                      transition: 'transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <span>{icon}</span>
-                    {kind !== null && <span style={{ fontSize: 13 }}>{label}</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Deck match celebration */}
-          {deckMatch && (
-            <div className="match-modal-bg" role="dialog" aria-modal="true">
-              <div className="card" style={{ width: '100%', maxWidth: 380, padding: '28px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 60, marginBottom: 8 }}>
-                  {REACTION_EMOJI[deckMatch.mine]}
-                </div>
-                <h2 style={{ margin: '0 0 6px', fontSize: 24 }}>{t('it_s_a_match')}</h2>
-                <p className="muted" style={{ marginTop: 0, marginBottom: 20 }}>
-                  {t('match_with', { name: deckMatch.profile.name ?? t('someone') })}
-                </p>
-                <button className="btn" style={{ marginBottom: 10 }}
-                  onClick={() => nav(`/chat/${deckMatch.matchId}`)}>
-                  {t('send_message')}
-                </button>
-                <button className="btn ghost" onClick={() => setDeckMatch(null)}>
-                  {t('keep_exploring')}
-                </button>
-              </div>
-            </div>
-          )}
+            <h2 style={{ margin: '0 0 6px', fontSize: 24 }}>{t('it_s_a_match')}</h2>
+            <p className="muted" style={{ marginTop: 0, marginBottom: 20 }}>
+              {t('match_with', { name: deckMatch.profile.name ?? t('someone') })}
+            </p>
+            <button className="btn" style={{ marginBottom: 10 }}
+              onClick={() => nav(`/chat/${deckMatch.matchId}`)}>
+              {t('send_message')}
+            </button>
+            <button className="btn ghost" onClick={() => setDeckMatch(null)}>
+              {t('keep_exploring')}
+            </button>
+          </div>
         </div>
       )}
 

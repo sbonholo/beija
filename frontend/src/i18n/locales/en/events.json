@@ -28,10 +28,11 @@
     "deck": "Swipe"
   },
   "try_again": "Try again",
+  "deck_section_title": "Swipe 💋",
   "deck_need_checkin_title": "Check in first",
   "deck_need_checkin_hint": "Join the event to see who's here.",
   "deck_empty_title": "You saw everyone!",
-  "deck_empty_hint": "Check the grid for more people at the event.",
+  "deck_empty_hint": "Everyone is in the grid below.",
   "someone": "Someone",
   "send_message": "Send message",
   "keep_exploring": "Keep exploring",
