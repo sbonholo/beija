@@ -976,6 +976,21 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); cursor: grabbing; }
 input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); cursor: grabbing; }
 
+/* ── Route/tab transition ────────────────────────────────── */
+/* Re-keyed on pathname change so each tab cross-fades in cleanly.
+ * Subtle lift (6px) + fade prevents the jarring white-flash on tab switch. */
+@keyframes routeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.route-transition {
+  animation: routeIn 0.2s var(--ease-out);
+  will-change: opacity, transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-transition { animation: none; }
+}
+
 /* ── Tab bar (EventDetailScreen) ──────────────────────────── */
 .tab-bar {
   display: flex;

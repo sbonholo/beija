@@ -132,11 +132,16 @@ function AdminGuard() {
 
 /**
  * Layout for the 3 main tabs (discover / matches / profile): adds bottom nav.
+ * Wraps the Outlet in a keyed div so route changes trigger the CSS route-in
+ * animation — a subtle fade+lift that eliminates white flashes between tabs.
  */
 function TabLayout() {
+  const location = useLocation();
   return (
     <>
-      <Outlet />
+      <div key={location.pathname} className="route-transition">
+        <Outlet />
+      </div>
       <BottomNav />
     </>
   );
