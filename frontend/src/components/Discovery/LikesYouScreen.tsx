@@ -201,13 +201,14 @@ export function LikesYouScreen() {
                   position: 'absolute',
                   top: 8,
                   left: 8,
-                  background: 'rgba(58, 168, 255, 0.9)',
+                  background: 'var(--aurora)',
                   color: '#fff',
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-pill)',
                   padding: '3px 9px',
                   fontSize: 11,
                   fontWeight: 700,
                   zIndex: 2,
+                  boxShadow: '0 0 12px var(--aurora-glow)',
                 }}
               >
                 ⭐ Super

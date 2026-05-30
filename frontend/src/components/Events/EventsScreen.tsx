@@ -203,12 +203,14 @@ export function EventsScreen() {
                   </div>
                 )}
 
-                {/* Time */}
+                {/* Time — "happening now" reads as heat, not online status.
+                    --online (aqua) is reserved for the user-online dot. */}
                 <div
                   style={{
                     fontSize: 13,
-                    color: happening ? 'var(--online)' : 'var(--muted)',
+                    color: happening ? 'var(--fire)' : 'var(--muted)',
                     marginBottom: 12,
+                    fontWeight: happening ? 600 : 400,
                   }}
                 >
                   {formatEventTime(ev, t)}
