@@ -119,6 +119,8 @@ export interface Event {
   category:    EventCategory;
   starts_at:   string;
   ends_at:     string | null;
+  expires_at:  string | null;
+  created_by:  string | null;
   image_url:   string | null;
   is_verified: boolean;
   is_active:   boolean;
