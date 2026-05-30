@@ -2,12 +2,15 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUnread } from '../state/UnreadContext';
 
+// `fallback` doubles as a defaultValue for t() — if i18n is somehow still
+// initialising on first paint (mobile cold starts, slow CPU), the user
+// sees the proper PT-BR word instead of the raw "nav.discover" key.
 const tabs = [
-  { to: '/discover', icon: '🔥', key: 'discover' as const },
-  { to: '/events',   icon: '🎪', key: 'events'   as const },
-  { to: '/matches',  icon: '💋', key: 'matches'  as const },
-  { to: '/profile',  icon: '👤', key: 'profile'  as const },
-  { to: '/settings', icon: '⚙', key: 'settings' as const },
+  { to: '/discover', icon: '🔥', key: 'discover' as const, fallback: 'Descobrir' },
+  { to: '/events',   icon: '🎪', key: 'events'   as const, fallback: 'Eventos' },
+  { to: '/matches',  icon: '💋', key: 'matches'  as const, fallback: 'Matches' },
+  { to: '/profile',  icon: '👤', key: 'profile'  as const, fallback: 'Perfil' },
+  { to: '/settings', icon: '⚙', key: 'settings' as const, fallback: 'Ajustes' },
 ];
 
 export function BottomNav() {
@@ -15,10 +18,10 @@ export function BottomNav() {
   const { t } = useTranslation('common');
 
   return (
-    <nav className="bottom-nav" aria-label={t('nav.discover')}>
+    <nav className="bottom-nav" aria-label={t('nav.bottom_aria', { defaultValue: 'Navegação principal' })}>
       {tabs.map((tab) => {
         const showBadge = tab.to === '/matches' && unreadMatches > 0;
-        const label = t(`nav.${tab.key}` as const);
+        const label = t(`nav.${tab.key}` as const, { defaultValue: tab.fallback });
         return (
           <NavLink
             key={tab.to}

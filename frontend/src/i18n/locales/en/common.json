@@ -21,7 +21,8 @@
     "matches": "Matches",
     "profile": "Profile",
     "settings": "Settings",
-    "skip_to_main": "Skip to main content"
+    "skip_to_main": "Skip to main content",
+    "bottom_aria": "Main navigation"
   },
   "loading": "Loading…",
   "error_generic": "Something went wrong",

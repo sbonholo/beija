@@ -24,7 +24,7 @@ import { initSentry } from './lib/sentry';
 import { initAnalytics, track } from './lib/analytics';
 import { startWebVitals } from './lib/vitals';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
-import './i18n';
+import { i18nReady } from './i18n';
 import './index.css';
 
 // Boot observability before anything React-related so initial errors are
@@ -47,20 +47,28 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      {SUPABASE_CONFIGURED ? (
-        <BrowserRouter basename={ROUTER_BASENAME}>
-          <AuthProvider>
-            <UnreadProvider>
-              <App />
-            </UnreadProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      ) : (
-        <MissingConfigScreen />
-      )}
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+// Wait for i18next to finish initialising before the first render. With
+// bundled resources this resolves on the next microtask, so the splash
+// stays for a single frame at most — but it guarantees that no component
+// (BottomNav, skip-link, etc.) ever paints with a raw "namespace.key"
+// string. i18nReady never rejects in practice; on the off-chance it
+// does, we still render the tree so the app isn't bricked.
+void i18nReady.finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        {SUPABASE_CONFIGURED ? (
+          <BrowserRouter basename={ROUTER_BASENAME}>
+            <AuthProvider>
+              <UnreadProvider>
+                <App />
+              </UnreadProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        ) : (
+          <MissingConfigScreen />
+        )}
+      </ErrorBoundary>
+    </React.StrictMode>
+  );
+});

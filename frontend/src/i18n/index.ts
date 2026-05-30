@@ -72,7 +72,14 @@ const resources = {
   },
 };
 
-void i18n
+/**
+ * Resolves when i18next has finished initialising. main.tsx awaits this
+ * before calling ReactDOM.render so that no component ever mounts with
+ * t() returning a raw "namespace.key" string. Combined with
+ * useSuspense:false, this rules out the BottomNav raw-key leak observed
+ * on production iOS where init was completing AFTER the first paint.
+ */
+export const i18nReady: Promise<unknown> = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -93,9 +100,6 @@ void i18n
     },
     returnNull: false,
     nonExplicitSupportedLngs: true, // 'en-US' falls back to 'en'
-    // Suspense during async init can leave the first paint showing raw keys
-    // (e.g. the skip-link in App.tsx renders before init resolves). Resources
-    // are bundled synchronously so this only delays one frame in practice.
     react: { useSuspense: false },
   });
 
