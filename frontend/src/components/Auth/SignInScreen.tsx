@@ -7,6 +7,11 @@ import { track } from '../../lib/analytics';
 import { useToast } from '../Toast';
 import { FlameHeartLogo } from '../FlameHeartLogo';
 
+// Flip to true once the Apple provider is enabled in Supabase Auth
+// (Apple Developer credentials + Services ID + return URL configured).
+// Until then we hide the button entirely so no one hits a 400.
+const APPLE_SIGNIN_ENABLED = false;
+
 type Provider = 'apple' | 'google';
 
 export function SignInScreen() {
@@ -65,19 +70,21 @@ export function SignInScreen() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button
-          className="btn"
-          style={{
-            background: '#000',
-            boxShadow: '0 6px 24px rgba(0, 0, 0, 0.5)',
-            color: '#fff',
-          }}
-          disabled={loading !== null}
-          onClick={() => handleSignIn('apple')}
-          aria-label="Continuar com Apple"
-        >
-          {loading === 'apple' ? 'Entrando...' : ' Continuar com Apple'}
-        </button>
+        {APPLE_SIGNIN_ENABLED && (
+          <button
+            className="btn"
+            style={{
+              background: '#000',
+              boxShadow: '0 6px 24px rgba(0, 0, 0, 0.5)',
+              color: '#fff',
+            }}
+            disabled={loading !== null}
+            onClick={() => handleSignIn('apple')}
+            aria-label="Continuar com Apple"
+          >
+            {loading === 'apple' ? 'Entrando...' : ' Continuar com Apple'}
+          </button>
+        )}
 
         <button
           className="btn"

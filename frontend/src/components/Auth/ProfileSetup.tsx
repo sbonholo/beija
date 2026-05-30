@@ -14,14 +14,52 @@ const ModerationFeedbackModal = lazy(
   () => import('../Moderation/ModerationFeedbackModal'),
 );
 
-const MAX_BIO = 300;
+const MAX_BIO = 280;
 
-const INTERESTS = [
-  'viagem', 'fitness', 'leitura', 'música', 'cinema',
-  'gastronomia', 'arte', 'esportes', 'dança', 'fotografia',
-  'natureza', 'animais', 'gaming', 'tecnologia', 'moda',
-  'espiritualidade', 'política', 'voluntariado', 'festas', 'conversas',
-] as const;
+type GenderUI = 'woman' | 'man' | 'non-binary' | 'prefer_not_to_say';
+type SeekingUI = 'women' | 'men' | 'all';
+
+const ALL_GENDERS: GenderUI[] = ['woman', 'man', 'non-binary', 'prefer_not_to_say'];
+
+const GENDER_OPTIONS: { value: GenderUI; label: string }[] = [
+  { value: 'woman', label: 'Mulher' },
+  { value: 'man', label: 'Homem' },
+  { value: 'non-binary', label: 'Não-binário' },
+  { value: 'prefer_not_to_say', label: 'Prefiro não dizer' },
+];
+
+const SEEKING_OPTIONS: { value: SeekingUI; label: string }[] = [
+  { value: 'women', label: 'Mulheres' },
+  { value: 'men', label: 'Homens' },
+  { value: 'all', label: 'Todos' },
+];
+
+function seekingToArray(s: SeekingUI): string[] {
+  if (s === 'women') return ['woman'];
+  if (s === 'men') return ['man'];
+  return [...ALL_GENDERS];
+}
+
+// Inverse of seekingToArray. Used to seed the UI from what's in the DB —
+// onboarding writes one of the three canonical shapes, so this just inverts
+// it. Any non-matching shape (legacy data) falls back to 'all'.
+function arrayToSeeking(arr: string[] | null | undefined): SeekingUI {
+  if (!arr || arr.length === 0) return 'all';
+  if (arr.length === 1 && arr[0] === 'woman') return 'women';
+  if (arr.length === 1 && arr[0] === 'man') return 'men';
+  return 'all';
+}
+
+function ageFromBirthdate(birthdate: string | null): number | null {
+  if (!birthdate) return null;
+  const d = new Date(birthdate);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age >= 0 ? age : null;
+}
 
 export function ProfileSetup() {
   const nav = useNavigate();
@@ -29,8 +67,11 @@ export function ProfileSetup() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [name, setName] = useState<string>('');
+  const [age, setAge] = useState<number | null>(null);
+  const [gender, setGender] = useState<GenderUI | null>(null);
+  const [seeking, setSeeking] = useState<SeekingUI>('all');
   const [bio, setBio] = useState('');
-  const [interests, setInterests] = useState<string[]>([]);
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(50);
   const [maxDistance, setMaxDistance] = useState(50);
@@ -64,13 +105,17 @@ export function ProfileSetup() {
         const [{ data: profile }] = await Promise.all([
           supabase
             .from('profiles')
-            .select('bio, min_age, max_age, max_distance_km')
+            .select('name, birthdate, gender, interested_in, bio, min_age, max_age, max_distance_km')
             .eq('id', uid)
             .maybeSingle(),
           refreshPhoto(uid),
         ]);
         if (cancelled) return;
         if (profile) {
+          setName(profile.name ?? '');
+          setAge(ageFromBirthdate(profile.birthdate));
+          setGender((profile.gender as GenderUI | null) ?? null);
+          setSeeking(arrayToSeeking(profile.interested_in));
           setBio(profile.bio ?? '');
           setMinAge(profile.min_age ?? 18);
           setMaxAge(profile.max_age ?? 50);
@@ -123,14 +168,12 @@ export function ProfileSetup() {
     }
   }
 
-  function toggleInterest(interest: string) {
-    setInterests((cur) =>
-      cur.includes(interest) ? cur.filter((x) => x !== interest) : [...cur, interest],
-    );
-  }
-
   async function save() {
     if (!userId) return;
+    if (!gender) {
+      toast({ kind: 'info', text: 'Escolha como você se identifica.' });
+      return;
+    }
     if (minAge > maxAge) {
       toast({ kind: 'info', text: 'Idade mínima maior que a máxima.' });
       return;
@@ -140,6 +183,8 @@ export function ProfileSetup() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          gender,
+          interested_in: seekingToArray(seeking),
           bio: bio.trim() || null,
           min_age: minAge,
           max_age: maxAge,
@@ -165,9 +210,25 @@ export function ProfileSetup() {
   }
 
   return (
-    <div className="screen" style={{ paddingBottom: 120 }}>
-      <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Seu perfil</h2>
+    <div
+      style={{
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        padding: 'env(safe-area-inset-top) 0 0 0',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Slim header: just the settings cog */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: 'var(--space-3) var(--space-5) 0',
+          flexShrink: 0,
+        }}
+      >
         <Link
           to="/settings"
           aria-label="Configurações"
@@ -175,12 +236,12 @@ export function ProfileSetup() {
             display: 'inline-flex',
             width: 36,
             height: 36,
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 'var(--radius-pill)',
+            border: '1px solid var(--hairline)',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 18,
-            color: 'var(--fg, #fff)',
+            color: 'var(--text)',
             textDecoration: 'none',
           }}
         >
@@ -188,15 +249,16 @@ export function ProfileSetup() {
         </Link>
       </div>
 
-      <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-        Sua foto
-      </div>
-      <div
+      {/* HERO — ~1/3 of viewport. Photo as the inviting centerpiece. */}
+      <section
         style={{
+          flex: '0 0 32vh',
           display: 'flex',
-          gap: 14,
+          flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: 22,
+          justifyContent: 'center',
+          gap: 'var(--space-3)',
+          padding: 'var(--space-2) var(--space-5)',
         }}
       >
         <button
@@ -206,34 +268,45 @@ export function ProfileSetup() {
           aria-label={photoUrl ? 'Trocar foto' : 'Adicionar foto'}
           style={{
             position: 'relative',
-            width: 120,
-            height: 120,
-            flexShrink: 0,
+            width: 'min(40vw, 168px)',
+            aspectRatio: '1 / 1',
             borderRadius: '50%',
             padding: 0,
             backgroundImage: photoUrl ? `url("${photoUrl}")` : undefined,
             backgroundColor: photoUrl ? undefined : 'var(--card)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            border: photoUrl ? '2px solid transparent' : '2px dashed rgba(255, 59, 154, 0.35)',
+            border: photoUrl
+              ? '3px solid var(--card-raised)'
+              : '2px dashed rgba(255, 59, 154, 0.35)',
             cursor: busy ? 'wait' : 'pointer',
             opacity: busy ? 0.5 : 1,
-            boxShadow: photoUrl ? 'var(--shadow)' : undefined,
+            boxShadow: photoUrl
+              ? 'var(--shadow-lg), 0 0 32px var(--aurora-glow)'
+              : undefined,
           }}
         >
           {!photoUrl && (
-            <span style={{ fontSize: 36, color: 'var(--muted)' }}>+</span>
+            <span style={{ fontSize: 42, color: 'var(--muted)' }}>+</span>
           )}
         </button>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button
             type="button"
             className="btn ghost"
             onClick={onChangePhoto}
             disabled={busy}
-            style={{ padding: '8px 14px', fontSize: 13 }}
+            style={{
+              padding: '6px 14px',
+              fontSize: 'var(--text-sm)',
+              borderRadius: 'var(--radius-pill)',
+              maxWidth: 'unset',
+              width: 'auto',
+              height: 'auto',
+            }}
           >
-            {photoUrl ? 'Trocar foto' : 'Adicionar foto'}
+            {photoUrl ? 'Trocar' : 'Adicionar foto'}
           </button>
           {photoUrl && (
             <button
@@ -241,101 +314,166 @@ export function ProfileSetup() {
               className="btn ghost"
               onClick={onRemovePhoto}
               disabled={busy}
-              style={{ padding: '8px 14px', fontSize: 13, color: 'var(--danger)' }}
+              style={{
+                padding: '6px 14px',
+                fontSize: 'var(--text-sm)',
+                borderRadius: 'var(--radius-pill)',
+                color: 'var(--danger)',
+                maxWidth: 'unset',
+                width: 'auto',
+                height: 'auto',
+              }}
             >
               Remover
             </button>
           )}
         </div>
-      </div>
 
-      <label htmlFor="profile-bio" className="muted" style={{ fontSize: 13, display: 'block' }}>Bio</label>
-      <textarea
-        id="profile-bio"
-        value={bio}
-        onChange={(e) => setBio(e.target.value)}
-        rows={3}
-        maxLength={MAX_BIO}
-        placeholder="Diz algo sobre você"
-      />
-      <p className="muted" style={{ fontSize: 11, textAlign: 'right' }}>
-        {bio.length}/{MAX_BIO}
-      </p>
+        {name && (
+          <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
+            <strong style={{ fontSize: 'var(--text-lg)', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
+              {name}
+            </strong>
+            {age != null && (
+              <span style={{ color: 'var(--muted)', fontSize: 'var(--text-base)' }}>
+                {' '}· {age}
+              </span>
+            )}
+          </div>
+        )}
+      </section>
 
-      <div id="profile-interests-label" className="muted" style={{ fontSize: 13, marginTop: 14, marginBottom: 8 }}>
-        Interesses
-      </div>
-      <div className="row" role="group" aria-labelledby="profile-interests-label" style={{ flexWrap: 'wrap', gap: 8 }}>
-        {INTERESTS.map((it) => (
-          <button
-            key={it}
-            type="button"
-            className={`chip ${interests.includes(it) ? 'selected' : ''}`}
-            onClick={() => toggleInterest(it)}
-          >
-            {it}
-          </button>
-        ))}
-      </div>
-      <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-        (Interesses ainda não são salvos no servidor — campo virá num update do schema.)
-      </p>
-
-      <label className="muted" style={{ fontSize: 13, marginTop: 18, display: 'block' }}>
-        Faixa etária: <span style={{ color: 'var(--text)' }}>{minAge} – {maxAge}</span>
-      </label>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
-        <input
-          type="range"
-          min={18}
-          max={99}
-          value={minAge}
-          onChange={(e) => setMinAge(Math.min(parseInt(e.target.value, 10), maxAge))}
-          aria-label="Idade mínima"
-        />
-        <input
-          type="range"
-          min={18}
-          max={99}
-          value={maxAge}
-          onChange={(e) => setMaxAge(Math.max(parseInt(e.target.value, 10), minAge))}
-          aria-label="Idade máxima"
-        />
-      </div>
-
-      <label className="muted" style={{ fontSize: 13, marginTop: 18, display: 'block' }}>
-        Distância máxima: <span style={{ color: 'var(--text)' }}>{maxDistance} km</span>
-      </label>
-      <input
-        type="range"
-        min={1}
-        max={100}
-        value={maxDistance}
-        onChange={(e) => setMaxDistance(parseInt(e.target.value, 10))}
-        style={{ marginTop: 6 }}
-        aria-label="Distância máxima em km"
-      />
-
-      <div
+      {/* EDIT BLOCK — fills remaining vertical space, no scroll on 390×844 */}
+      <section
         style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          padding: '12px 18px calc(12px + env(safe-area-inset-bottom))',
-          background: 'rgba(10, 0, 20, 0.92)',
-          backdropFilter: 'blur(14px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 'var(--space-3)',
+          padding: '0 var(--space-5) var(--space-3)',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 540 }}>
-          <button className="btn" disabled={saving} onClick={save}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </button>
+        {/* Gender */}
+        <div>
+          <div id="profile-gender-label" className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
+            Você é
+          </div>
+          <div
+            role="group"
+            aria-labelledby="profile-gender-label"
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
+          >
+            {GENDER_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className={`chip ${gender === o.value ? 'selected' : ''}`}
+                onClick={() => setGender(o.value)}
+                style={{ fontSize: 'var(--text-sm)', minHeight: 30, padding: '4px 12px' }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Seeking */}
+        <div>
+          <div id="profile-seeking-label" className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
+            Quer conhecer
+          </div>
+          <div
+            role="group"
+            aria-labelledby="profile-seeking-label"
+            style={{ display: 'flex', gap: 6 }}
+          >
+            {SEEKING_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className={`chip ${seeking === o.value ? 'selected' : ''}`}
+                onClick={() => setSeeking(o.value)}
+                style={{ flex: 1, fontSize: 'var(--text-sm)', minHeight: 30, padding: '4px 12px' }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bio — compact 2 rows */}
+        <div>
+          <label htmlFor="profile-bio" className="muted" style={{ fontSize: 'var(--text-xs)', display: 'block', marginBottom: 4 }}>
+            Bio
+          </label>
+          <textarea
+            id="profile-bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={2}
+            maxLength={MAX_BIO}
+            placeholder="Diz algo sobre você"
+            style={{ resize: 'none', fontSize: 'var(--text-sm)' }}
+          />
+        </div>
+
+        {/* Age range */}
+        <div>
+          <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 2 }}>
+            Idade <span style={{ color: 'var(--text)' }}>{minAge}–{maxAge}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <input
+              type="range"
+              min={18}
+              max={99}
+              value={minAge}
+              onChange={(e) => setMinAge(Math.min(parseInt(e.target.value, 10), maxAge))}
+              aria-label="Idade mínima"
+            />
+            <input
+              type="range"
+              min={18}
+              max={99}
+              value={maxAge}
+              onChange={(e) => setMaxAge(Math.max(parseInt(e.target.value, 10), minAge))}
+              aria-label="Idade máxima"
+            />
+          </div>
+        </div>
+
+        {/* Distance */}
+        <div>
+          <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 2 }}>
+            Distância <span style={{ color: 'var(--text)' }}>{maxDistance} km</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            value={maxDistance}
+            onChange={(e) => setMaxDistance(parseInt(e.target.value, 10))}
+            aria-label="Distância máxima em km"
+          />
+        </div>
+      </section>
+
+      {/* Save bar */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: 'var(--space-3) var(--space-5) calc(var(--space-3) + env(safe-area-inset-bottom))',
+          background: 'rgba(10, 0, 20, 0.92)',
+          backdropFilter: 'blur(14px)',
+          borderTop: '1px solid var(--hairline)',
+        }}
+      >
+        <button className="btn" disabled={saving} onClick={save}>
+          {saving ? 'Salvando...' : 'Salvar'}
+        </button>
       </div>
+
       {moderationReasons && (
         <Suspense fallback={null}>
           <ModerationFeedbackModal
