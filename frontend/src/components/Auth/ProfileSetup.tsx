@@ -67,6 +67,10 @@ export function ProfileSetup() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  // Bumped after every successful upload/remove so the <img>/background-image
+  // refreshes — the storage path is stable (userId/avatar.jpg) so without a
+  // cache-buster the URL string is identical and React/CDN both serve stale.
+  const [photoBust, setPhotoBust] = useState(0);
   const [name, setName] = useState<string>('');
   const [age, setAge] = useState<number | null>(null);
   const [gender, setGender] = useState<GenderUI | null>(null);
@@ -140,6 +144,7 @@ export function ProfileSetup() {
         .upsert({ user_id: userId, url: publicUrl }, { onConflict: 'user_id' });
       if (error) throw error;
       await refreshPhoto(userId);
+      setPhotoBust((v) => v + 1);
     } catch (e) {
       if (e instanceof ModerationError) {
         setModerationReasons(e.reasons);
@@ -159,6 +164,7 @@ export function ProfileSetup() {
       await deletePhoto(userId);
       await supabase.from('photos').delete().eq('user_id', userId);
       await refreshPhoto(userId);
+      setPhotoBust((v) => v + 1);
     } catch (e) {
       toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao remover foto' });
     } finally {
@@ -280,7 +286,7 @@ export function ProfileSetup() {
             aspectRatio: '1 / 1',
             borderRadius: '50%',
             padding: 0,
-            backgroundImage: photoUrl ? `url("${photoUrl}")` : undefined,
+            backgroundImage: photoUrl ? `url("${photoUrl}${photoBust ? `?v=${photoBust}` : ''}")` : undefined,
             backgroundColor: photoUrl ? undefined : 'var(--card)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',

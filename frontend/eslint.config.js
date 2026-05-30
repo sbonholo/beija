@@ -23,6 +23,7 @@ export default [
         Image: 'readonly', Blob: 'readonly', FormData: 'readonly', File: 'readonly', FileReader: 'readonly',
         HTMLElement: 'readonly', HTMLInputElement: 'readonly', HTMLTextAreaElement: 'readonly',
         HTMLDivElement: 'readonly', HTMLImageElement: 'readonly', HTMLButtonElement: 'readonly',
+        HTMLCanvasElement: 'readonly',
         PointerEvent: 'readonly',
         KeyboardEvent: 'readonly', GeolocationPosition: 'readonly', alert: 'readonly', confirm: 'readonly',
         atob: 'readonly', btoa: 'readonly', Uint8Array: 'readonly', AbortController: 'readonly',

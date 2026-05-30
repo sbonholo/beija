@@ -4,7 +4,8 @@ import { ModerationError, moderatePhotoPreUpload } from './moderation';
 import { track } from './analytics';
 
 const BUCKET = 'profile-photos';
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 2 * 1024 * 1024;   // 2 MB target after compression
+const MAX_INPUT_BYTES = 30 * 1024 * 1024; // 30 MB hard ceiling on input — anything larger is almost certainly not a real phone photo
 const MAX_DIMENSION = 1080;
 const MIN_DIMENSION = 400;
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -57,11 +58,14 @@ export async function uploadProfilePhoto(
   }
 
   let blob = base64ToBlob(base64, mime);
-  if (blob.size > MAX_BYTES) {
+  // Sanity guard only — real phone photos top out around 20 MB. Don't reject
+  // anything in the normal range; resizeAndCompress below scales everything
+  // down to MAX_DIMENSION and re-encodes under MAX_BYTES.
+  if (blob.size > MAX_INPUT_BYTES) {
     throw new Error('file_too_large');
   }
 
-  blob = await validateAndResize(blob);
+  blob = await resizeAndCompress(blob);
   track('photo_upload_attempted');
 
   // Pre-upload moderation (Apple Guideline 1.2). Fails OPEN on provider
@@ -131,7 +135,7 @@ function base64ToBlob(base64: string, mime: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
-async function validateAndResize(blob: Blob): Promise<Blob> {
+async function resizeAndCompress(blob: Blob): Promise<Blob> {
   const url = URL.createObjectURL(blob);
   try {
     const img = await loadImage(url);
@@ -140,8 +144,7 @@ async function validateAndResize(blob: Blob): Promise<Blob> {
       throw new Error('image_too_small');
     }
     const longest = Math.max(width, height);
-    if (longest <= MAX_DIMENSION) return blob;
-    const scale = MAX_DIMENSION / longest;
+    const scale = longest > MAX_DIMENSION ? MAX_DIMENSION / longest : 1;
     const w = Math.round(width * scale);
     const h = Math.round(height * scale);
     const canvas = document.createElement('canvas');
@@ -150,16 +153,26 @@ async function validateAndResize(blob: Blob): Promise<Blob> {
     const ctx = canvas.getContext('2d');
     if (!ctx) return blob;
     ctx.drawImage(img, 0, 0, w, h);
-    return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('resize_failed'))),
-        'image/jpeg',
-        0.85,
-      ),
-    );
+
+    // Iteratively step quality down until we're under MAX_BYTES. Always
+    // re-encodes (even when no resize happened) so HEIC/PNG inputs end up
+    // as JPEG and the upload path is uniform.
+    for (const q of [0.85, 0.75, 0.65, 0.55, 0.45]) {
+      const out = await canvasToBlob(canvas, 'image/jpeg', q);
+      if (out.size <= MAX_BYTES) return out;
+    }
+    // Last resort — return the smallest we produced rather than throwing,
+    // so we never block the user on a slightly-oversized photo.
+    return await canvasToBlob(canvas, 'image/jpeg', 0.4);
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode_failed'))), mime, quality),
+  );
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
