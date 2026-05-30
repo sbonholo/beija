@@ -153,7 +153,7 @@ export function App() {
     <ToastProvider>
       <RouteMemory />
       <a href="#beija-main" className="skip-link">
-        {t('nav.skip_to_main')}
+        {t('nav.skip_to_main', { defaultValue: 'Pular para o conteúdo principal' })}
       </a>
       <div className="app" id="beija-main">
         <Routes>

@@ -6,5 +6,6 @@
   },
   "not_authenticated": "Session expired. Please sign in again.",
   "load_failed": "Failed to load.",
-  "network": "No connection. Check your internet."
+  "network": "No connection. Check your internet.",
+  "generic": "Something went wrong."
 }

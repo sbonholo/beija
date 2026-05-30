@@ -20,7 +20,16 @@
   "links": {
     "delete_account": "Deletar conta",
     "privacy_policy": "Política de privacidade",
-    "terms": "Termos de uso"
+    "terms": "Termos de uso",
+    "blocked_users": "Usuários bloqueados"
+  },
+  "blocked": {
+    "title": "Usuários bloqueados",
+    "empty": "Você não bloqueou ninguém ainda.",
+    "deleted_user": "Conta removida",
+    "unblock": "Desbloquear",
+    "unblocking": "Aguarde…",
+    "unblocked": "Desbloqueado."
   },
   "version": "Beija v{{version}}",
   "save_error": "Erro ao salvar"

@@ -20,7 +20,16 @@
   "links": {
     "delete_account": "Delete account",
     "privacy_policy": "Privacy policy",
-    "terms": "Terms of use"
+    "terms": "Terms of use",
+    "blocked_users": "Blocked users"
+  },
+  "blocked": {
+    "title": "Blocked users",
+    "empty": "You haven't blocked anyone yet.",
+    "deleted_user": "Account removed",
+    "unblock": "Unblock",
+    "unblocking": "One moment…",
+    "unblocked": "Unblocked."
   },
   "version": "Beija v{{version}}",
   "save_error": "Failed to save"

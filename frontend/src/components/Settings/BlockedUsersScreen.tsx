@@ -12,7 +12,7 @@ interface BlockedRow {
 }
 
 export function BlockedUsersScreen() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('settings');
   const nav = useNavigate();
   const toast = useToast();
   const [rows, setRows] = useState<BlockedRow[]>([]);
@@ -26,7 +26,7 @@ export function BlockedUsersScreen() {
       .select('blocked_id, created_at, profile:profiles!blocks_blocked_id_fkey(id, name)')
       .order('created_at', { ascending: false });
     if (error) {
-      toast({ kind: 'info', text: t('errors.generic', { defaultValue: 'Algo deu errado.' }) });
+      toast({ kind: 'info', text: t('errors:generic', { defaultValue: 'Algo deu errado.' }) });
       setRows([]);
     } else {
       setRows((data ?? []) as unknown as BlockedRow[]);
@@ -44,7 +44,7 @@ export function BlockedUsersScreen() {
       .delete()
       .eq('blocked_id', userId);
     if (error) {
-      toast({ kind: 'info', text: t('errors.generic', { defaultValue: 'Não foi possível desbloquear.' }) });
+      toast({ kind: 'info', text: t('errors:generic', { defaultValue: 'Não foi possível desbloquear.' }) });
     } else {
       setRows((rs) => rs.filter((r) => r.blocked_id !== userId));
       toast({ kind: 'info', text: t('blocked.unblocked', { defaultValue: 'Desbloqueado.' }) });
@@ -57,7 +57,7 @@ export function BlockedUsersScreen() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button
           onClick={() => nav(-1)}
-          aria-label={t('common.back', { defaultValue: 'Voltar' })}
+          aria-label={t('common:actions.back', { defaultValue: 'Voltar' })}
           style={{ fontSize: 22, padding: '4px 10px', color: 'var(--text)' }}
         >
           ←

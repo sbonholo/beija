@@ -93,6 +93,10 @@ void i18n
     },
     returnNull: false,
     nonExplicitSupportedLngs: true, // 'en-US' falls back to 'en'
+    // Suspense during async init can leave the first paint showing raw keys
+    // (e.g. the skip-link in App.tsx renders before init resolves). Resources
+    // are bundled synchronously so this only delays one frame in practice.
+    react: { useSuspense: false },
   });
 
 export default i18n;

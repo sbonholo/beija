@@ -6,5 +6,6 @@
   },
   "not_authenticated": "Sessão expirada. Faça login novamente.",
   "load_failed": "Falha ao carregar.",
-  "network": "Sem conexão. Verifique sua internet."
+  "network": "Sem conexão. Verifique sua internet.",
+  "generic": "Algo deu errado."
 }
