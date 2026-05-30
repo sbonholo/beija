@@ -123,9 +123,10 @@ export function EventsScreen() {
     e.stopPropagation();
     if (checking.has(event.id)) return;
 
+    const wasCheckedIn = event.is_checked_in;
     setChecking((prev) => new Set(prev).add(event.id));
 
-    if (event.is_checked_in) {
+    if (wasCheckedIn) {
       const { error } = await supabase.rpc('leave_event_room', { p_event_id: event.id });
       if (error) {
         toast({ kind: 'info', text: t('error_checkin') });
@@ -151,6 +152,10 @@ export function EventsScreen() {
       ),
     );
     setChecking((prev) => { const s = new Set(prev); s.delete(event.id); return s; });
+
+    // On successful join, enter the room immediately — clicking "Estou aqui!"
+    // and then having to tap the card was the blocker reported by Simão.
+    if (!wasCheckedIn) nav(`/events/${event.id}`);
   }
 
   async function handleCreateRoom() {
