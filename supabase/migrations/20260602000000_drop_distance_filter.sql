@@ -11,6 +11,14 @@
 -- stays for backwards compatibility — it still returns the real geographic
 -- distance for any UI bit that wants to display "X km away" cosmetically,
 -- but it no longer filters.
+--
+-- Idempotency note: CREATE OR REPLACE FUNCTION cannot change a function's
+-- RETURNS TABLE shape (Postgres errors with 42P13). Whenever we touch the
+-- output columns we must DROP first. Drop every plausible historical
+-- overload so this migration re-runs cleanly on any drifted live DB.
+
+drop function if exists find_potential_matches(uuid, int);
+drop function if exists find_potential_matches(uuid);
 
 create or replace function find_potential_matches(
   p_user_id uuid,
