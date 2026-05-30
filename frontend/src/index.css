@@ -368,7 +368,7 @@ a { color: var(--pink-glow); }
 }
 
 /* Unread badge — slow 2s halo pulse to draw the eye without thrashing. */
-.unread-badge { animation: unreadPulse 2s ease-in-out infinite; }
+.unread-badge { animation: unreadPulse 2s ease-in-out infinite; will-change: box-shadow; }
 @keyframes unreadPulse {
   0%, 100% { box-shadow: 0 0 12px var(--pink-glow); }
   50%       { box-shadow: 0 0 20px var(--pink-glow); }
@@ -839,6 +839,7 @@ a { color: var(--pink-glow); }
 .empty .big, .glow-emoji {
   display: inline-block;
   animation: emptyGlow 3.2s ease-in-out infinite;
+  will-change: transform, filter;
 }
 @keyframes emptyGlow {
   0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 8px transparent); }
