@@ -226,10 +226,9 @@ export function ProfileSetup() {
   return (
     <div
       style={{
-        height: '100dvh',
+        minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
         padding: 'env(safe-area-inset-top) 0 0 0',
         boxSizing: 'border-box',
       }}
@@ -357,15 +356,17 @@ export function ProfileSetup() {
         )}
       </section>
 
-      {/* EDIT BLOCK — fills remaining vertical space, no scroll on 390×844 */}
+      {/* EDIT BLOCK — natural flow, scrolls when content exceeds viewport.
+       * The Save bar below is position:sticky so it always reaches the
+       * bottom; padding-bottom here keeps the last input (age slider)
+       * tappable above the sticky bar. */}
       <section
         style={{
           flex: 1,
-          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: 'var(--space-3)',
-          padding: '0 var(--space-5) var(--space-3)',
+          padding: '0 var(--space-5) calc(var(--space-5) + 72px)',
         }}
       >
         {/* Gender */}
@@ -459,10 +460,14 @@ export function ProfileSetup() {
 
       </section>
 
-      {/* Save bar */}
+      {/* Save bar — sticky so it always sits at the viewport bottom but
+       * the page can scroll above it (otherwise the age slider would
+       * overlap the button on shorter viewports). */}
       <div
         style={{
-          flexShrink: 0,
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 5,
           padding: 'var(--space-3) var(--space-5) calc(var(--space-3) + env(safe-area-inset-bottom))',
           background: 'rgba(10, 0, 20, 0.92)',
           backdropFilter: 'blur(14px)',
