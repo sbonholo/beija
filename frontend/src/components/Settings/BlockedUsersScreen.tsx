@@ -68,8 +68,16 @@ export function BlockedUsersScreen() {
       </div>
 
       {loading && (
-        <div className="empty">
-          <p className="muted">{t('common.loading', { defaultValue: 'Carregando…' })}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14 }}>
+              <div className="skeleton circle" style={{ width: 44, height: 44, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton" style={{ height: 14, width: '50%', marginBottom: 6 }} />
+                <div className="skeleton" style={{ height: 12, width: '30%' }} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

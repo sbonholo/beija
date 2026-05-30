@@ -201,7 +201,18 @@ export function ProfileSetup() {
   if (loading) {
     return (
       <div className="screen">
-        <p className="muted">Carregando perfil...</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <div className="skeleton circle" style={{ width: 96, height: 96 }} />
+          <div className="skeleton" style={{ height: 20, width: 120 }} />
+          <div className="skeleton" style={{ height: 14, width: 80 }} />
+        </div>
+        <div className="skeleton" style={{ height: 56, marginBottom: 12 }} />
+        <div className="skeleton" style={{ height: 80, marginBottom: 12 }} />
+        <div className="skeleton" style={{ height: 56, marginBottom: 12 }} />
+        <div className="skeleton" style={{ height: 56 }} />
       </div>
     );
   }
