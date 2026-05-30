@@ -1,53 +1,63 @@
--- Collapse photos from 6-slots-per-user to 1-per-user.
+-- Collapse photos to 1-per-user, resilient against schema drift.
+--
+-- HISTORY: an earlier version of this migration referenced `photos.slot`
+-- unconditionally and failed on prod with `ERROR 42703: column "slot" does
+-- not exist` — the live photos table is (id, user_id, url, blur_hash,
+-- created_at) and never had the slot column. This rewrite handles BOTH
+-- shapes (with and without slot) and is safe to re-run start-to-finish.
 --
 -- Product decision: a single profile photo is enough; we never want to
 -- accumulate stale uploads. Replacing the photo means overwriting the
 -- canonical object key in storage (<uid>/avatar.jpg with upsert: true).
 --
 -- This migration:
---   1. Keeps the lowest-slot photo per user (deterministic), deletes the rest
---      from the photos table only. Storage object cleanup runs at step 4.
---   2. Swaps the (user_id, slot) unique constraint for a (user_id)-only one,
---      drops the slot check, then drops the slot column itself.
---   3. (No drop of blur_hash — kept for future progressive-loading work.)
---   4. One-time storage cleanup: removes <uid>/<not-avatar.jpg> objects from
---      the profile-photos bucket where <uid> belongs to a real profile.
---      Wrapped in DO with an exception guard so insufficient_privilege on
---      storage.objects (e.g. local stack run) doesn't abort the migration.
+--   1. Deduplicates photos rows to ONE per user, keeping the most-recent
+--      row by created_at (id as tiebreak). Works whether slot exists or not.
+--   2. Ensures a UNIQUE constraint on photos(user_id) so the app's
+--      upsert(..., onConflict: 'user_id') always has something to conflict
+--      on. Drops the legacy (user_id, slot) unique if present.
+--   3. Drops the slot column if it exists.
+--   4. Keeps blur_hash for future progressive loading.
+--   5. One-time safe storage cleanup: removes <uid>/<not-avatar.jpg> objects
+--      from profile-photos where <uid> belongs to a real profile.
 --
 -- Fully idempotent. Re-running is a no-op.
 
--- 1. De-duplicate photos rows to one per user (lowest slot wins).
+-- 1. Dedupe to one row per user, keeping the most-recent.
+--    created_at + id as tiebreak — works in both schema shapes.
 delete from photos
-where id not in (
-  select distinct on (user_id) id
-  from photos
-  order by user_id, slot asc
+where id in (
+  select id from (
+    select
+      id,
+      row_number() over (
+        partition by user_id
+        order by created_at desc nulls last, id desc
+      ) as rn
+    from photos
+  ) ranked
+  where rn > 1
 );
 
--- 2. Replace constraints.
+-- 2. Constraint swap.
+--    The legacy (user_id, slot) unique was named photos_user_id_slot_key by
+--    Postgres convention in environments that ever had the slot column;
+--    drop it if present so the new (user_id)-only unique can be added.
 alter table photos drop constraint if exists photos_user_id_slot_key;
 alter table photos drop constraint if exists photos_slot_check;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'photos_user_id_key'
-      and conrelid = 'public.photos'::regclass
-  ) then
-    alter table photos add constraint photos_user_id_key unique (user_id);
-  end if;
-end $$;
+-- Replace any existing photos_user_id_key (its definition might differ across
+-- environments) so the next ADD is unambiguous.
+alter table photos drop constraint if exists photos_user_id_key;
+alter table photos add constraint photos_user_id_key unique (user_id);
 
+-- 3. Slot column — drop only if it exists. blur_hash retained intentionally.
 alter table photos drop column if exists slot;
 
--- 3. blur_hash retained intentionally.
-
--- 4. One-time storage cleanup: any object that isn't <uid>/avatar.jpg and
---    whose <uid> prefix matches an existing profile gets removed. We never
---    touch objects whose prefix doesn't resolve to a profile — those are
---    handled by the existing orphan-cleanup cron in 20260524700000.
+-- 4. One-time storage cleanup. Wrapped in DO so insufficient_privilege on
+--    storage.objects (e.g. local stack run, or running as a role without
+--    storage admin) doesn't abort. Only deletes objects whose <uid> prefix
+--    matches a real profile — never touches accidental other content.
 do $$
 begin
   delete from storage.objects o
