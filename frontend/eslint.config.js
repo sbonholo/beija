@@ -27,6 +27,7 @@ export default [
         PointerEvent: 'readonly',
         KeyboardEvent: 'readonly', GeolocationPosition: 'readonly', alert: 'readonly', confirm: 'readonly',
         atob: 'readonly', btoa: 'readonly', Uint8Array: 'readonly', AbortController: 'readonly',
+        Notification: 'readonly', PushManager: 'readonly', clients: 'readonly', Request: 'readonly',
         process: 'readonly',
         React: 'readonly',
         JSX: 'readonly',

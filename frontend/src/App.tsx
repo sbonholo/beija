@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './state/AuthContext';
 import { ToastProvider } from './components/Toast';
+import { usePushSubscription } from './hooks/usePushSubscription';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SignInScreen } from './components/Auth/SignInScreen';
 import { ReactivationScreen } from './components/Auth/ReactivationScreen';
@@ -98,6 +99,8 @@ function RouteMemory() {
 function Protected() {
   const { session, loading, needsReactivation } = useAuth();
   const location = useLocation();
+  // Subscribe to web push for logged-in users (no-op if VAPID key not configured)
+  usePushSubscription(session?.user?.id ?? null);
   if (loading) return <Splash />;
   if (!session) return <Navigate to="/signin" replace state={{ from: location }} />;
   // Soft-deleted but inside the 30-day window — force the reactivation prompt

@@ -1,8 +1,6 @@
-/* Beija service worker — minimal cache-first strategy for static assets.
- * Bump CACHE_VERSION on each release so old caches are wiped on activate.
- */
+/* Beija service worker — cache-first strategy + web push notifications. */
 
-const CACHE_VERSION = 'beija-v1';
+const CACHE_VERSION = 'beija-v2';
 const PRECACHE = [
   './',
   './index.html',
@@ -73,4 +71,37 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match(request).then((c) => c || caches.match('./index.html'))),
     );
   }
+});
+
+// ─── Push notifications ───────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { /* malformed payload */ }
+
+  const title = data.title ?? 'Beija 💋';
+  const body  = data.body  ?? '';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon:  './icons/icon-192.png',
+      badge: './icons/icon-96.png',
+      data:  { url: data.url ?? '/events' },
+      tag:   data.tag ?? 'beija',
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? '/events';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) { client.focus(); return; }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    }),
+  );
 });
