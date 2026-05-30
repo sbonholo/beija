@@ -185,7 +185,7 @@ a { color: var(--pink-glow); }
               box-shadow var(--dur-base) var(--ease-out);
   width: 100%;
 }
-.btn:active { transform: scale(0.98); }
+.btn:active { transform: scale(0.96); }
 .btn:hover:not(:disabled) { box-shadow: var(--shadow-pink), var(--shadow-glow); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn.ghost { background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; }
@@ -343,13 +343,16 @@ a { color: var(--pink-glow); }
   transition: transform var(--dur-fast) var(--ease-out),
               box-shadow var(--dur-base) var(--ease-out);
 }
-.swipe-action:active { transform: scale(0.92); }
+.swipe-action:active { transform: scale(0.88); }
 .swipe-action.nope  { color: var(--danger); }
 .swipe-action.super { color: var(--aurora); width: 54px; height: 54px; font-size: 24px; }
 .swipe-action.like  { color: var(--pink-glow); }
-.swipe-action.nope:hover  { box-shadow: var(--shadow), 0 0 20px var(--danger); }
-.swipe-action.super:hover { box-shadow: var(--shadow), 0 0 20px var(--aurora-glow); }
-.swipe-action.like:hover  { box-shadow: var(--shadow), 0 0 20px var(--pink-glow); }
+.swipe-action.nope:hover   { box-shadow: var(--shadow), 0 0 20px var(--danger); }
+.swipe-action.super:hover  { box-shadow: var(--shadow), 0 0 20px var(--aurora-glow); }
+.swipe-action.like:hover   { box-shadow: var(--shadow), 0 0 20px var(--pink-glow); }
+.swipe-action.nope:active  { background: rgba(255, 69, 69, 0.15); }
+.swipe-action.like:active  { background: rgba(255, 59, 154, 0.15); }
+.swipe-action.super:active { background: rgba(139, 92, 246, 0.15); }
 
 /* Header icon buttons (close, more, etc) — used in ProfileDetailModal.
  * Hover lifts with a soft pink-glow halo. */
@@ -498,6 +501,8 @@ a { color: var(--pink-glow); }
   cursor: pointer;
   transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
 }
+.chip:active { transform: scale(0.96); }
+
 .chip.selected {
   background: linear-gradient(120deg, var(--pink), var(--hot));
   border-color: transparent;
@@ -658,6 +663,20 @@ a { color: var(--pink-glow); }
   gap: 10px;
 }
 
+/* ── Scale-in entrance (modals, cards) ───────────────────── */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+/* Emoji pop — attach class, remove after animationend */
+@keyframes emojiPop {
+  0%   { transform: scale(1);   }
+  35%  { transform: scale(1.45); }
+  65%  { transform: scale(0.88); }
+  100% { transform: scale(1);   }
+}
+.emoji-pop { animation: emojiPop 0.32s var(--ease-spring) forwards; }
+
 .match-modal-bg {
   position: fixed;
   inset: 0;
@@ -674,6 +693,11 @@ a { color: var(--pink-glow); }
   text-align: center;
   max-width: 360px;
   width: 100%;
+  animation: scaleIn 0.3s var(--ease-spring);
+}
+/* Cards/sheets rendered inside the match-modal-bg overlay (EventDetailScreen) */
+.match-modal-bg > .card {
+  animation: scaleIn 0.28s var(--ease-spring);
 }
 .match-modal .title {
   font-size: 44px;
@@ -712,6 +736,21 @@ a { color: var(--pink-glow); }
 @media (prefers-reduced-motion: reduce) {
   .match-modal .photos .ph { animation: none; }
 }
+/* Staggered photo entrance — each avatar scales + fades in */
+@keyframes phEnter {
+  from { opacity: 0; transform: scale(0.5) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);       }
+}
+.match-modal .ph-wrap:nth-child(1) .ph {
+  animation: phEnter 0.42s 0.1s var(--ease-spring) both, matchGlow 2.5s 0.52s ease-in-out infinite;
+}
+.match-modal .ph-wrap:nth-child(2) .ph {
+  animation: phEnter 0.42s 0.22s var(--ease-spring) both, matchGlow 2.5s 0.64s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-modal .ph-wrap .ph { animation: none; }
+}
+
 .match-modal .ph-reaction {
   position: absolute;
   bottom: -4px;
@@ -975,6 +1014,24 @@ input[type="range"]::-moz-range-thumb {
 }
 input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); cursor: grabbing; }
 input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); cursor: grabbing; }
+
+/* ── Settings row link ───────────────────────────────────── */
+.settings-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.settings-link:first-child { border-top: none; }
+.settings-link:active { background: rgba(255, 255, 255, 0.04); }
+.settings-link:hover { color: var(--pink-glow); }
 
 /* ── Route/tab transition ────────────────────────────────── */
 /* Re-keyed on pathname change so each tab cross-fades in cleanly.
