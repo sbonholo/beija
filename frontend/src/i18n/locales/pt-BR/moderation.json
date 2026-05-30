@@ -26,12 +26,22 @@
     "subtitle": "O que você quer fazer?",
     "report": "Denunciar",
     "block": "Bloquear",
+    "report_and_block": "Denunciar e Bloquear",
+    "report_and_block_hint": "Envia uma denúncia por assédio e bloqueia em uma ação.",
+    "report_and_block_confirm_title": "Denunciar e bloquear {{name}}?",
+    "report_and_block_confirm_body": "Nossa equipe revisará a denúncia. Vocês não se verão mais.",
+    "report_and_block_working": "Processando...",
+    "report_and_block_toast": "Denúncia enviada e pessoa bloqueada.",
+    "report_and_block_error": "Erro ao processar. Tente denunciar e bloquear separadamente.",
     "cancel": "Cancelar",
     "blocking": "Bloqueando...",
     "block_toast": "Pessoa bloqueada.",
     "block_error": "Erro ao bloquear.",
     "block_confirm_title": "Bloquear {{name}}?",
-    "block_confirm_body": "Vocês não se verão mais. Matches e mensagens entre vocês serão removidos."
+    "block_confirm_body": "Vocês não se verão mais. Matches e mensagens entre vocês serão removidos.",
+    "leave_discreet": "Sair discretamente",
+    "leave_discreet_hint": "Sai do evento sem notificar ninguém.",
+    "leave_discreet_toast": "Você saiu do evento."
   },
   "report": {
     "title": "Denunciar {{name}}",

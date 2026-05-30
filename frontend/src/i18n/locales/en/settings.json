@@ -15,7 +15,9 @@
     "show_age": "Show my age",
     "show_age_hint": "Show your age on the Discover card.",
     "allow_analytics": "Share anonymous data for improvements",
-    "allow_analytics_hint": "Usage events (no name, photo, or chat content). Turn off any time."
+    "allow_analytics_hint": "Usage events (no name, photo, or chat content). Turn off any time.",
+    "restrict_reactions": "Restrict reactions to me",
+    "restrict_reactions_hint": "Only your matches can send you reactions in events. Off = any attendee."
   },
   "links": {
     "delete_account": "Delete account",

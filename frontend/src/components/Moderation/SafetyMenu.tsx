@@ -8,20 +8,13 @@ interface Props {
   targetUserId: string;
   targetName?: string;
   onClose: () => void;
-  /** Called after a successful block or report so callers can remove the
-   *  person from a list / navigate away. */
   onDone?: () => void;
 }
 
-/**
- * Shared report/block action sheet, reused everywhere a person appears
- * (swipe card, event attendee, chat, profile detail). Block goes through the
- * atomic block_user RPC; report through ReportModal (report_user RPC).
- */
 export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props) {
   const { t } = useTranslation('moderation');
   const toast = useToast();
-  const [view, setView] = useState<'menu' | 'block'>('menu');
+  const [view, setView] = useState<'menu' | 'block' | 'report_and_block'>('menu');
   const [reporting, setReporting] = useState(false);
   const [working, setWorking] = useState(false);
 
@@ -38,6 +31,27 @@ export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props)
       onClose();
     } catch (e) {
       toast({ kind: 'info', text: e instanceof Error ? e.message : t('safety.block_error') });
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function confirmReportAndBlock() {
+    if (working) return;
+    setWorking(true);
+    try {
+      const { error } = await supabase.rpc('report_user', {
+        p_reported_id: targetUserId,
+        p_reason: 'harassment',
+        p_details: null,
+        p_also_block: true,
+      });
+      if (error) throw error;
+      toast({ kind: 'info', text: t('safety.report_and_block_toast') });
+      onDone?.();
+      onClose();
+    } catch (e) {
+      toast({ kind: 'info', text: e instanceof Error ? e.message : t('safety.report_and_block_error') });
     } finally {
       setWorking(false);
     }
@@ -70,7 +84,7 @@ export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props)
           padding: '18px 20px calc(18px + env(safe-area-inset-bottom))',
         }}
       >
-        {view === 'menu' ? (
+        {view === 'menu' && (
           <>
             <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>{name}</h2>
             <p className="muted" style={{ marginTop: 0, marginBottom: 16, fontSize: 13 }}>
@@ -90,11 +104,23 @@ export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props)
             >
               🚫 {t('safety.block')}
             </button>
+            <button
+              className="btn ghost"
+              style={{ marginBottom: 10, color: 'var(--danger)', fontWeight: 700 }}
+              onClick={() => setView('report_and_block')}
+            >
+              🚨 {t('safety.report_and_block')}
+            </button>
+            <p className="muted" style={{ fontSize: 11, margin: '-4px 0 12px', paddingLeft: 2 }}>
+              {t('safety.report_and_block_hint')}
+            </p>
             <button className="btn ghost" onClick={onClose}>
               {t('safety.cancel')}
             </button>
           </>
-        ) : (
+        )}
+
+        {view === 'block' && (
           <>
             <h2 style={{ margin: '0 0 8px' }}>{t('safety.block_confirm_title', { name })}</h2>
             <p className="muted" style={{ marginTop: 0, marginBottom: 18 }}>
@@ -107,6 +133,31 @@ export function SafetyMenu({ targetUserId, targetName, onClose, onDone }: Props)
               onClick={() => void confirmBlock()}
             >
               {working ? t('safety.blocking') : t('safety.block')}
+            </button>
+            <button
+              className="btn ghost"
+              style={{ marginTop: 10 }}
+              disabled={working}
+              onClick={() => setView('menu')}
+            >
+              {t('safety.cancel')}
+            </button>
+          </>
+        )}
+
+        {view === 'report_and_block' && (
+          <>
+            <h2 style={{ margin: '0 0 8px' }}>{t('safety.report_and_block_confirm_title', { name })}</h2>
+            <p className="muted" style={{ marginTop: 0, marginBottom: 18 }}>
+              {t('safety.report_and_block_confirm_body')}
+            </p>
+            <button
+              className="btn"
+              style={{ background: 'var(--danger)' }}
+              disabled={working}
+              onClick={() => void confirmReportAndBlock()}
+            >
+              {working ? t('safety.report_and_block_working') : t('safety.report_and_block')}
             </button>
             <button
               className="btn ghost"

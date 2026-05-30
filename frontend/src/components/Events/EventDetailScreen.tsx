@@ -265,6 +265,18 @@ export function EventDetailScreen() {
     setCheckingIn(false);
   }
 
+  async function leaveDiscreetly() {
+    if (checkingIn || !me || !eventId || !isCheckedIn) return;
+    setCheckingIn(true);
+    const { error } = await supabase.rpc('leave_event_room', { p_event_id: eventId });
+    setCheckingIn(false);
+    if (!error) {
+      setIsCheckedIn(false);
+      setEvent((ev) => ev ? { ...ev, attendee_count: Math.max(0, ev.attendee_count - 1), is_checked_in: false } : ev);
+      // Silent — no toast to the user, no broadcast to others.
+    }
+  }
+
   async function sendReaction(kind: ReactionKind) {
     if (!selected || reacting || !me || !eventId) return;
     if (!isCheckedIn) { toast({ kind: 'info', text: t('need_check_in') }); return; }
@@ -391,22 +403,43 @@ export function EventDetailScreen() {
           {formatEventTime(event)}
         </div>
 
-        <button
-          className={isCheckedIn ? 'btn' : 'btn ghost'}
-          style={{ width: '100%', background: isCheckedIn ? 'var(--pink)' : undefined, fontSize: 15 }}
-          disabled={checkingIn}
-          onClick={() => void toggleCheckIn()}
-        >
-          {checkingIn
-            ? t('checking_in')
-            : isCheckedIn
-            ? `${t('checked_in')} (${event.attendee_count})`
-            : `${t('check_in')} · ${
-                event.attendee_count === 0
-                  ? t('no_one_yet')
-                  : t(event.attendee_count === 1 ? 'people_here' : 'people_here_plural', { count: event.attendee_count })
-              }`}
-        </button>
+        {isCheckedIn ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn"
+              style={{ flex: 1, background: 'var(--pink)', fontSize: 15 }}
+              disabled={checkingIn}
+              onClick={() => void toggleCheckIn()}
+            >
+              {checkingIn ? t('checking_in') : `${t('checked_in')} (${event.attendee_count})`}
+            </button>
+            <button
+              className="btn ghost"
+              disabled={checkingIn}
+              onClick={() => void leaveDiscreetly()}
+              aria-label={t('common:actions.leave_discreet', { defaultValue: 'Sair discretamente' })}
+              title={t('common:actions.leave_discreet', { defaultValue: 'Sair discretamente' })}
+              style={{ padding: '0 14px', fontSize: 18, minWidth: 44, flexShrink: 0 }}
+            >
+              🚪
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn ghost"
+            style={{ width: '100%', fontSize: 15 }}
+            disabled={checkingIn}
+            onClick={() => void toggleCheckIn()}
+          >
+            {checkingIn
+              ? t('checking_in')
+              : `${t('check_in')} · ${
+                  event.attendee_count === 0
+                    ? t('no_one_yet')
+                    : t(event.attendee_count === 1 ? 'people_here' : 'people_here_plural', { count: event.attendee_count })
+                }`}
+          </button>
+        )}
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────── */}

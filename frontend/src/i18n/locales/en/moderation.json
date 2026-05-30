@@ -26,12 +26,22 @@
     "subtitle": "What would you like to do?",
     "report": "Report",
     "block": "Block",
+    "report_and_block": "Report & Block",
+    "report_and_block_hint": "Files a harassment report and blocks in one action.",
+    "report_and_block_confirm_title": "Report and block {{name}}?",
+    "report_and_block_confirm_body": "Our team will review the report. You won't see each other anymore.",
+    "report_and_block_working": "Processing...",
+    "report_and_block_toast": "Report submitted and person blocked.",
+    "report_and_block_error": "Couldn't process. Try reporting and blocking separately.",
     "cancel": "Cancel",
     "blocking": "Blocking...",
     "block_toast": "Person blocked.",
     "block_error": "Couldn't block.",
     "block_confirm_title": "Block {{name}}?",
-    "block_confirm_body": "You won't see each other anymore. Matches and messages between you will be removed."
+    "block_confirm_body": "You won't see each other anymore. Matches and messages between you will be removed.",
+    "leave_discreet": "Leave discreetly",
+    "leave_discreet_hint": "Exit the event without notifying others.",
+    "leave_discreet_toast": "You've left the event."
   },
   "report": {
     "title": "Report {{name}}",

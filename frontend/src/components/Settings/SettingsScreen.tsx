@@ -13,6 +13,7 @@ interface Prefs {
   show_age: boolean;
   allow_analytics: boolean;
   locale: SupportedLocale;
+  reactions_from: 'everyone' | 'matches_only';
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -21,6 +22,7 @@ const DEFAULT_PREFS: Prefs = {
   show_age: true,
   allow_analytics: true,
   locale: 'pt-BR',
+  reactions_from: 'everyone',
 };
 
 export default function SettingsScreen() {
@@ -43,7 +45,7 @@ export default function SettingsScreen() {
       }
       const { data } = await supabase
         .from('profiles')
-        .select('mute_notifications, hide_distance, show_age, allow_analytics, locale')
+        .select('mute_notifications, hide_distance, show_age, allow_analytics, locale, reactions_from')
         .eq('id', me)
         .maybeSingle();
       if (cancelled) return;
@@ -59,6 +61,7 @@ export default function SettingsScreen() {
         show_age: data?.show_age !== false,
         allow_analytics: data?.allow_analytics !== false,
         locale: effectiveLocale,
+        reactions_from: (data?.reactions_from === 'matches_only' ? 'matches_only' : 'everyone'),
       });
       track('settings_opened');
       setLoading(false);
@@ -144,6 +147,13 @@ export default function SettingsScreen() {
           saving={saving === 'allow_analytics'}
           onChange={(v) => void update('allow_analytics', v)}
           hint={t('toggles.allow_analytics_hint')}
+        />
+        <Toggle
+          label={t('toggles.restrict_reactions')}
+          checked={prefs.reactions_from === 'matches_only'}
+          saving={saving === 'reactions_from'}
+          onChange={(v) => void update('reactions_from', v ? 'matches_only' : 'everyone')}
+          hint={t('toggles.restrict_reactions_hint')}
         />
         <Link to="/privacy" className="settings-link">
           {t('links.privacy_policy')} →

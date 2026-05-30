@@ -15,7 +15,9 @@
     "show_age": "Mostrar minha idade",
     "show_age_hint": "Mostra sua idade no card do Discover.",
     "allow_analytics": "Compartilhar dados anônimos para melhorias",
-    "allow_analytics_hint": "Eventos de uso (sem nome, foto ou conteúdo de chat). Pode desligar a qualquer momento."
+    "allow_analytics_hint": "Eventos de uso (sem nome, foto ou conteúdo de chat). Pode desligar a qualquer momento.",
+    "restrict_reactions": "Restringir reações a mim",
+    "restrict_reactions_hint": "Só seus matches podem te enviar reações em eventos. Desativado = qualquer participante."
   },
   "links": {
     "delete_account": "Deletar conta",
