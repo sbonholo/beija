@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { pickPhoto, uploadProfilePhoto } from '../../lib/storage';
 import { ModerationError } from '../../lib/moderation';
 import { track } from '../../lib/analytics';
+import { useAuth } from '../../state/AuthContext';
 import { useToast } from '../Toast';
 
 const ModerationFeedbackModal = lazy(
@@ -59,6 +60,7 @@ function calcAge(birthdate: string): number | null {
 export function OnboardingFlow() {
   const nav = useNavigate();
   const toast = useToast();
+  const { refresh } = useAuth();
 
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
@@ -139,15 +141,18 @@ export function OnboardingFlow() {
       const userId = auth.user?.id;
       if (!userId) throw new Error('not_authenticated');
 
-      const { error: profileErr } = await supabase.from('profiles').upsert({
-        id: userId,
-        name: name.trim(),
-        birthdate,
-        gender,
-        interested_in: seekingToArray(seeking),
-        bio: bio.trim() || null,
-        last_active_at: new Date().toISOString(),
-      });
+      const { error: profileErr } = await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          name: name.trim(),
+          birthdate,
+          gender,
+          interested_in: seekingToArray(seeking),
+          bio: bio.trim() || null,
+          last_active_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+      );
       if (profileErr) throw profileErr;
 
       const { publicUrl } = await uploadProfilePhoto(userId, photoBase64);
@@ -159,6 +164,10 @@ export function OnboardingFlow() {
 
       track('profile_setup_completed');
       track('signup_completed');
+      // Refresh AuthContext so hasProfile reflects the new row before we
+      // navigate — otherwise <NeedsProfile> sees the stale boot snapshot
+      // and bounces the user straight back here.
+      await refresh();
       nav('/discover', { replace: true });
     } catch (e) {
       if (e instanceof ModerationError) {
