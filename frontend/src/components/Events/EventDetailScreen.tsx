@@ -319,7 +319,17 @@ export function EventDetailScreen() {
 
       {/* Hero: event image when present, gradient band as graceful fallback */}
       {event.image_url ? (
-        <div style={{ position: 'relative', height: 170, borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
+        <div
+          style={{
+            position: 'relative',
+            height: 190,
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+            marginBottom: 16,
+            border: '1px solid var(--hairline)',
+            boxShadow: 'var(--shadow-lg)',
+          }}
+        >
           <img
             src={event.image_url}
             alt={event.name}

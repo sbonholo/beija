@@ -60,8 +60,10 @@ export function SignInScreen() {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8vh' }}>
-        <div className="flame-hero">
-          <FlameHeartLogo size={96} />
+        <div style={{ filter: 'drop-shadow(0 0 32px var(--aurora-glow))' }}>
+          <div className="flame-hero">
+            <FlameHeartLogo size={96} />
+          </div>
         </div>
         <h1 className="brand-title" style={{ fontSize: 56, marginBottom: 12 }}>Beija</h1>
         <p className="brand-sub" style={{ textAlign: 'center', maxWidth: 320 }}>
@@ -88,16 +90,11 @@ export function SignInScreen() {
 
         <button
           className="btn"
-          style={{
-            background: '#fff',
-            color: '#1c0a2b',
-            boxShadow: '0 6px 24px rgba(0, 0, 0, 0.35)',
-          }}
           disabled={loading !== null}
           onClick={() => handleSignIn('google')}
           aria-label="Continuar com Google"
         >
-          {loading === 'google' ? 'Entrando...' : 'G  Continuar com Google'}
+          {loading === 'google' ? 'Entrando...' : 'Continuar com Google'}
         </button>
 
         <p className="muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 18 }}>

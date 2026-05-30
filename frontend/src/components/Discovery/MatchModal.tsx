@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, type Profile } from '../../lib/supabase';
 
 const CONFETTI_PIECES = 32;
-const CONFETTI_COLORS = ['#e01070', '#ff8420', '#ffd040', '#ff3b9a', '#8b5cf6', '#3dffc0'];
+// Brand celebration palette only — pink, hot, pink-glow, gold, aurora.
+// Aqua (--online) is reserved for the online-status dot semantic; off-brand
+// in a match celebration. Tokens kept inline because hex is what the
+// inline style consumes.
+const CONFETTI_COLORS = ['#e01070', '#ff6530', '#ff3b9a', '#ffd040', '#8b5cf6'];
 
 interface Props {
   matchId: string;
@@ -73,7 +77,7 @@ export function MatchModal({ matchId, other, onClose }: Props) {
         {Array.from({ length: CONFETTI_PIECES }).map((_, i) => {
           const left = (i / CONFETTI_PIECES) * 100 + Math.random() * 4 - 2;
           const delay = Math.random() * 0.6;
-          const duration = 2 + Math.random() * 1.4;
+          const duration = 3 + Math.random() * 1.8;
           const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
           const size = 8 + Math.random() * 6;
           return (
