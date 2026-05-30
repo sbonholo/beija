@@ -7,10 +7,8 @@ import { track } from '../../lib/analytics';
 import { useToast } from '../Toast';
 import { FlameHeartLogo } from '../FlameHeartLogo';
 
-// Flip to true once the Apple provider is enabled in Supabase Auth
-// (Apple Developer credentials + Services ID + return URL configured).
-// Until then we hide the button entirely so no one hits a 400.
-const APPLE_SIGNIN_ENABLED = false;
+// Apple OAuth is live: Services ID app.beija.web, key DT97PFFYN2.
+const APPLE_SIGNIN_ENABLED = true;
 
 type Provider = 'apple' | 'google';
 
