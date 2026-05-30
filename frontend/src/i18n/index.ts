@@ -101,16 +101,6 @@ export const i18nReady: Promise<unknown> = i18n
       lookupLocalStorage: 'beija_locale',
     },
     returnNull: false,
-    nonExplicitSupportedLngs: true, // 'en-US' falls back to 'en'
-    partialBundledLanguages: true,
-    saveMissing: true,
-    missingKeyHandler: (lngs, ns, key) => {
-      // Surface raw-key leaks in dev console + Sentry so they never reach
-      // production unnoticed again (Simão's events screen regression).
-      if (typeof window !== 'undefined') {
-        console.warn(`[i18n] missing key: ${ns}:${key} (lng=${lngs.join(',')})`);
-      }
-    },
     react: { useSuspense: false },
   });
 
