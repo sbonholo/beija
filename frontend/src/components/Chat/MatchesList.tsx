@@ -69,8 +69,7 @@ export function MatchesList() {
           supabase
             .from('photos')
             .select('user_id, url')
-            .in('user_id', otherIds)
-            .eq('slot', 0),
+            .in('user_id', otherIds),
           // last message per match — fetch newest for each match (small list, fine to over-fetch)
           supabase
             .from('messages')

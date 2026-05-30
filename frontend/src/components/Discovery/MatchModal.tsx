@@ -26,7 +26,6 @@ export function MatchModal({ matchId, other, onClose }: Props) {
         .from('photos')
         .select('url')
         .eq('user_id', auth.user.id)
-        .eq('slot', 0)
         .maybeSingle();
       if (!cancelled) setMePhoto(data?.url ?? null);
     })();

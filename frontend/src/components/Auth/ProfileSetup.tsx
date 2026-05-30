@@ -3,10 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
   deletePhoto,
-  listUserPhotos,
+  getUserPhoto,
   pickPhoto,
   uploadProfilePhoto,
-  type PhotoSlot,
 } from '../../lib/storage';
 import { ModerationError } from '../../lib/moderation';
 import { useToast } from '../Toast';
@@ -15,7 +14,6 @@ const ModerationFeedbackModal = lazy(
   () => import('../Moderation/ModerationFeedbackModal'),
 );
 
-const TOTAL_SLOTS = 6;
 const MAX_BIO = 300;
 
 const INTERESTS = [
@@ -30,25 +28,23 @@ export function ProfileSetup() {
   const toast = useToast();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<PhotoSlot[]>(
-    Array.from({ length: TOTAL_SLOTS }, (_, i) => ({ slot: i, publicUrl: null })),
-  );
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(50);
   const [maxDistance, setMaxDistance] = useState(50);
-  const [busySlot, setBusySlot] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
   const [moderationReasons, setModerationReasons] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const refreshPhotos = useCallback(async (uid: string) => {
+  const refreshPhoto = useCallback(async (uid: string) => {
     try {
-      const slots = await listUserPhotos(uid);
-      setPhotos(slots);
+      const { publicUrl } = await getUserPhoto(uid);
+      setPhotoUrl(publicUrl);
     } catch {
-      /* keep current slots on transient list error */
+      /* keep current photo on transient list error */
     }
   }, []);
 
@@ -71,7 +67,7 @@ export function ProfileSetup() {
             .select('bio, min_age, max_age, max_distance_km')
             .eq('id', uid)
             .maybeSingle(),
-          refreshPhotos(uid),
+          refreshPhoto(uid),
         ]);
         if (cancelled) return;
         if (profile) {
@@ -87,20 +83,20 @@ export function ProfileSetup() {
     return () => {
       cancelled = true;
     };
-  }, [nav, refreshPhotos]);
+  }, [nav, refreshPhoto]);
 
-  async function onAddPhoto(slot: number) {
-    if (!userId || busySlot !== null) return;
-    setBusySlot(slot);
+  async function onChangePhoto() {
+    if (!userId || busy) return;
+    setBusy(true);
     try {
       const base64 = await pickPhoto();
       if (!base64) return;
-      const { publicUrl } = await uploadProfilePhoto(userId, base64, slot);
+      const { publicUrl } = await uploadProfilePhoto(userId, base64);
       const { error } = await supabase
         .from('photos')
-        .upsert({ user_id: userId, slot, url: publicUrl }, { onConflict: 'user_id,slot' });
+        .upsert({ user_id: userId, url: publicUrl }, { onConflict: 'user_id' });
       if (error) throw error;
-      await refreshPhotos(userId);
+      await refreshPhoto(userId);
     } catch (e) {
       if (e instanceof ModerationError) {
         setModerationReasons(e.reasons);
@@ -108,22 +104,22 @@ export function ProfileSetup() {
         toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao enviar foto' });
       }
     } finally {
-      setBusySlot(null);
+      setBusy(false);
     }
   }
 
-  async function onRemovePhoto(slot: number) {
-    if (!userId || busySlot !== null) return;
-    if (!confirm('Remover essa foto?')) return;
-    setBusySlot(slot);
+  async function onRemovePhoto() {
+    if (!userId || busy) return;
+    if (!confirm('Remover sua foto?')) return;
+    setBusy(true);
     try {
-      await deletePhoto(userId, slot);
-      await supabase.from('photos').delete().eq('user_id', userId).eq('slot', slot);
-      await refreshPhotos(userId);
+      await deletePhoto(userId);
+      await supabase.from('photos').delete().eq('user_id', userId);
+      await refreshPhoto(userId);
     } catch (e) {
       toast({ kind: 'info', text: e instanceof Error ? e.message : 'Erro ao remover foto' });
     } finally {
-      setBusySlot(null);
+      setBusy(false);
     }
   }
 
@@ -192,65 +188,65 @@ export function ProfileSetup() {
         </Link>
       </div>
 
-      <label className="muted" style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
-        Fotos ({photos.filter((p) => p.publicUrl).length}/{TOTAL_SLOTS})
-      </label>
+      <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+        Sua foto
+      </div>
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gridTemplateRows: 'repeat(3, auto)',
-          gap: 10,
+          display: 'flex',
+          gap: 14,
+          alignItems: 'center',
           marginBottom: 22,
         }}
       >
-        {photos.map((p) => (
+        <button
+          type="button"
+          onClick={onChangePhoto}
+          disabled={busy}
+          aria-label={photoUrl ? 'Trocar foto' : 'Adicionar foto'}
+          style={{
+            position: 'relative',
+            width: 120,
+            height: 120,
+            flexShrink: 0,
+            borderRadius: '50%',
+            padding: 0,
+            backgroundImage: photoUrl ? `url("${photoUrl}")` : undefined,
+            backgroundColor: photoUrl ? undefined : 'var(--card)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: photoUrl ? '2px solid transparent' : '2px dashed rgba(255, 59, 154, 0.35)',
+            cursor: busy ? 'wait' : 'pointer',
+            opacity: busy ? 0.5 : 1,
+            boxShadow: photoUrl ? 'var(--shadow)' : undefined,
+          }}
+        >
+          {!photoUrl && (
+            <span style={{ fontSize: 36, color: 'var(--muted)' }}>+</span>
+          )}
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
-            key={p.slot}
             type="button"
-            onClick={() => (p.publicUrl ? onRemovePhoto(p.slot) : onAddPhoto(p.slot))}
-            disabled={busySlot !== null}
-            aria-label={p.publicUrl ? `Remover foto ${p.slot + 1}` : `Adicionar foto ${p.slot + 1}`}
-            style={{
-              position: 'relative',
-              aspectRatio: '3 / 4',
-              width: '100%',
-              borderRadius: 'var(--radius)',
-              backgroundImage: p.publicUrl ? `url("${p.publicUrl}")` : undefined,
-              backgroundColor: p.publicUrl ? undefined : 'var(--card)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              border: p.publicUrl ? '2px solid transparent' : '2px dashed rgba(255, 59, 154, 0.35)',
-              padding: 0,
-              cursor: busySlot === p.slot ? 'wait' : 'pointer',
-              opacity: busySlot === p.slot ? 0.5 : 1,
-            }}
+            className="btn ghost"
+            onClick={onChangePhoto}
+            disabled={busy}
+            style={{ padding: '8px 14px', fontSize: 13 }}
           >
-            {!p.publicUrl && (
-              <span style={{ fontSize: 32, color: 'var(--muted)' }}>+</span>
-            )}
-            {p.publicUrl && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  width: 26,
-                  height: 26,
-                  borderRadius: 999,
-                  background: 'rgba(0,0,0,0.65)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                }}
-              >
-                ×
-              </span>
-            )}
+            {photoUrl ? 'Trocar foto' : 'Adicionar foto'}
           </button>
-        ))}
+          {photoUrl && (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={onRemovePhoto}
+              disabled={busy}
+              style={{ padding: '8px 14px', fontSize: 13, color: 'var(--danger)' }}
+            >
+              Remover
+            </button>
+          )}
+        </div>
       </div>
 
       <label htmlFor="profile-bio" className="muted" style={{ fontSize: 13, display: 'block' }}>Bio</label>

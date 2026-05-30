@@ -18,7 +18,10 @@
 --   Drift caught: an early migration named the column `last_active`; the
 --   cron-jobs migration renamed it to `last_active_at` and added `is_inactive`.
 --   Always use last_active_at + is_inactive in seed code.
--- photos columns we touch:           user_id, slot, url           (unchanged)
+-- photos columns we touch:           user_id, url
+--   Schema drift caught: migration 20260601200000 dropped the `slot` column
+--   and swapped the (user_id, slot) unique constraint for (user_id) only.
+--   The seed now inserts exactly one photo per user (DiceBear avatar).
 -- check_ins columns we touch:        user_id, event_id            (unchanged)
 -- event_reactions columns we touch:  sender_id, receiver_id, event_id, kind
 --                                                                 (unchanged)
@@ -202,16 +205,17 @@ on conflict (id) do update set
   is_inactive    = false,
   is_seed        = true;
 
--- 4. Seed avatars (2 photos per profile, DiceBear illustrated) ---------------
--- DiceBear's 'lorelei' style is clearly synthetic line art — no real people,
--- deterministic per seed string. Renders crisply at any size.
-insert into photos (user_id, slot, url)
+-- 4. Seed avatars (1 photo per profile, DiceBear illustrated) ---------------
+-- Single canonical avatar per user (post-migration 20260601200000). DiceBear's
+-- 'lorelei' style is clearly synthetic line art — no real people, deterministic
+-- per seed string. Renders crisply at any size.
+insert into photos (user_id, url)
 select
-  user_id, slot,
+  user_id,
   'https://api.dicebear.com/9.x/lorelei/png?seed=beija-' || lpad(n::text, 3, '0')
-    || '-' || slot || '&size=600&backgroundColor=ffd5dc,ffdfbf,e1bee7,b39ddb,c5cae9'
-from seed_spec, generate_series(0, 1) as slot
-on conflict (user_id, slot) do update set url = excluded.url;
+    || '&size=600&backgroundColor=ffd5dc,ffdfbf,e1bee7,b39ddb,c5cae9'
+from seed_spec
+on conflict (user_id) do update set url = excluded.url;
 
 -- 5. Check-ins — spread the 100 across your 5 events -------------------------
 -- Picks the 5 earliest-starting active events.

@@ -95,7 +95,7 @@ export function ChatScreen() {
 
         const [{ data: profile }, { data: photoRow }, { data: msgs }] = await Promise.all([
           supabase.from('profiles').select('id, name').eq('id', otherId).maybeSingle(),
-          supabase.from('photos').select('url').eq('user_id', otherId).eq('slot', 0).maybeSingle(),
+          supabase.from('photos').select('url').eq('user_id', otherId).maybeSingle(),
           supabase
             .from('messages')
             .select('id, match_id, sender_id, content, read_at, created_at, deleted_at')

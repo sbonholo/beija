@@ -7,14 +7,14 @@ const BUCKET = 'profile-photos';
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_DIMENSION = 1080;
 const MIN_DIMENSION = 400;
-const MAX_SLOTS = 6;
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 type AllowedMime = (typeof ALLOWED_MIMES)[number];
 
-export interface PhotoSlot {
-  slot: number;
-  publicUrl: string | null;
+const AVATAR_FILENAME = 'avatar.jpg';
+
+function avatarPath(userId: string): string {
+  return `${userId}/${AVATAR_FILENAME}`;
 }
 
 /**
@@ -33,9 +33,6 @@ export async function pickPhoto(): Promise<string | null> {
     });
     return photo.base64String ?? null;
   } catch (e) {
-    // A user cancel is not an error — return null quietly. Surface anything
-    // else (permission denied, missing web shim, plugin failure) so the caller
-    // can show feedback instead of a silent no-op.
     const msg = e instanceof Error ? e.message.toLowerCase() : String(e).toLowerCase();
     if (msg.includes('cancel')) return null;
     throw e;
@@ -43,18 +40,14 @@ export async function pickPhoto(): Promise<string | null> {
 }
 
 /**
- * Upload a profile photo for a given user into the requested slot (0..5).
- * Validates format, size, minimum dimensions, and resizes if the longest
- * edge exceeds 1080px. Throws on validation failure.
+ * Upload (or replace) the single profile photo for the given user. Writes to
+ * the canonical key <userId>/avatar.jpg with upsert: true, so a new upload
+ * atomically replaces the previous bytes — we never accumulate stale files.
  */
 export async function uploadProfilePhoto(
   userId: string,
   base64: string,
-  slot: number,
 ): Promise<{ publicUrl: string }> {
-  if (slot < 0 || slot >= MAX_SLOTS) {
-    throw new Error('invalid_slot');
-  }
   if (!userId) throw new Error('missing_user_id');
   if (!base64) throw new Error('missing_image_data');
 
@@ -69,54 +62,43 @@ export async function uploadProfilePhoto(
   }
 
   blob = await validateAndResize(blob);
-  track('photo_upload_attempted', { slot });
+  track('photo_upload_attempted');
 
   // Pre-upload moderation (Apple Guideline 1.2). Fails OPEN on provider
   // errors — server-side photo_moderation_hook is the backstop.
   const resizedBase64 = await blobToBase64(blob);
   const decision = await moderatePhotoPreUpload(resizedBase64, blob.type);
   if (!decision.approved) {
-    track('photo_upload_blocked', { slot, reasons: decision.reasons });
+    track('photo_upload_blocked', { reasons: decision.reasons });
     throw new ModerationError(decision.reasons, decision.scores);
   }
 
-  const path = `${userId}/${slot}.jpg`;
+  const path = avatarPath(userId);
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(path, blob, { upsert: true, contentType: blob.type });
   if (error) throw error;
-  track('photo_upload_success', { slot });
+  track('photo_upload_success');
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { publicUrl: data.publicUrl };
 }
 
-/** Remove a photo from a user's slot. */
-export async function deletePhoto(userId: string, slot: number): Promise<void> {
-  if (slot < 0 || slot >= MAX_SLOTS) throw new Error('invalid_slot');
-  const path = `${userId}/${slot}.jpg`;
-  const { error } = await supabase.storage.from(BUCKET).remove([path]);
+/** Remove the user's single profile photo. */
+export async function deletePhoto(userId: string): Promise<void> {
+  if (!userId) throw new Error('missing_user_id');
+  const { error } = await supabase.storage.from(BUCKET).remove([avatarPath(userId)]);
   if (error) throw error;
 }
 
-/** Returns the 6 photo slots for a user, with publicUrl set when the slot is filled. */
-export async function listUserPhotos(userId: string): Promise<PhotoSlot[]> {
+/** Returns the user's single avatar publicUrl, or null if none exists. */
+export async function getUserPhoto(userId: string): Promise<{ publicUrl: string | null }> {
   const { data, error } = await supabase.storage.from(BUCKET).list(userId);
   if (error) throw error;
-  const taken = new Set((data ?? []).map((f) => f.name));
-  const slots: PhotoSlot[] = [];
-  for (let i = 0; i < MAX_SLOTS; i++) {
-    const filename = `${i}.jpg`;
-    if (taken.has(filename)) {
-      const { data: urlData } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(`${userId}/${filename}`);
-      slots.push({ slot: i, publicUrl: urlData.publicUrl });
-    } else {
-      slots.push({ slot: i, publicUrl: null });
-    }
-  }
-  return slots;
+  const has = (data ?? []).some((f) => f.name === AVATAR_FILENAME);
+  if (!has) return { publicUrl: null };
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(avatarPath(userId));
+  return { publicUrl: urlData.publicUrl };
 }
 
 // --- internals ---
@@ -134,7 +116,6 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.onloadend = () => {
       const result = reader.result;
       if (typeof result !== 'string') return reject(new Error('read_failed'));
-      // strip "data:image/jpeg;base64," prefix
       const comma = result.indexOf(',');
       resolve(comma >= 0 ? result.slice(comma + 1) : result);
     };

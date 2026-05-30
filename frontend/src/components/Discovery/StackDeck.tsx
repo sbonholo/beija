@@ -104,9 +104,8 @@ export function StackDeck() {
       const ids = profiles.map((p) => p.id);
       const { data: photos } = await supabase
         .from('photos')
-        .select('user_id, slot, url')
-        .in('user_id', ids)
-        .order('slot', { ascending: true });
+        .select('user_id, url')
+        .in('user_id', ids);
       const photosByUser = new Map<string, string[]>();
       for (const row of photos ?? []) {
         const arr = photosByUser.get(row.user_id) ?? [];
