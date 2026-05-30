@@ -14,8 +14,14 @@ interface Kpis {
   profiles_completed: number;
   dau: number;
   wau: number;
+  mau: number;
+  yau: number;
   total_checkins: number;
   total_matches: number;
+  matches_24h: number;
+  matches_7d: number;
+  matches_30d: number;
+  matches_365d: number;
   reactions_kiss: number;
   reactions_heart: number;
   reactions_fire: number;
@@ -25,6 +31,8 @@ interface Kpis {
   banned_users: number;
   total_events: number;
   active_events: number;
+  seed_users: number;
+  seed_matches: number;
 }
 
 interface EventCheckins {
@@ -48,9 +56,15 @@ interface PendingReport {
   reported_report_count: number;
 }
 
+// Growth/engagement metrics — surfaced separately above the catch-all grid
+// because these are the numbers an acquirer's due diligence anchors on.
+const ACTIVE_USER_KEYS = ['dau', 'wau', 'mau', 'yau'] as const;
+const MATCH_WINDOW_KEYS = ['matches_24h', 'matches_7d', 'matches_30d', 'matches_365d'] as const;
+
+// Everything else (catch-all detail grid below the growth section).
 const KPI_ORDER: (keyof Kpis)[] = [
   'total_users', 'new_24h', 'new_7d', 'new_30d', 'profiles_completed',
-  'dau', 'wau', 'total_checkins', 'total_matches',
+  'total_checkins', 'total_matches',
   'reactions_kiss', 'reactions_heart', 'reactions_fire',
   'reports_pending', 'reports_actioned', 'total_blocks', 'banned_users',
   'total_events', 'active_events',
@@ -92,6 +106,9 @@ function KpisPanel() {
   const [events, setEvents] = useState<EventCheckins[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // Default: real users only. Acquirer-friendly. Toggle adds seed rows back in
+  // for testing / pre-launch sanity checks.
+  const [includeSeeds, setIncludeSeeds] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,8 +138,116 @@ function KpisPanel() {
     );
   }
 
+  // For the active-user windows we already have seed-excluded counts from the
+  // RPC; toggling "include seeds" adds the single seed_users delta. Active-user
+  // seeds aren't time-windowed, so the toggle widens every window by the same
+  // constant — pragmatic shortcut, doesn't pretend to be more precise than it
+  // is, and lines up with the seed_users / seed_matches stamp shown below.
+  const seedDelta = includeSeeds ? kpis.seed_users : 0;
+  const activeValue = (key: (typeof ACTIVE_USER_KEYS)[number]) => kpis[key] + seedDelta;
+  const matchValue = (key: (typeof MATCH_WINDOW_KEYS)[number]) =>
+    kpis[key] + (includeSeeds ? kpis.seed_matches : 0);
+
+  // Match conversion: matches/1k MAU over the last 30 days. Trivial derived
+  // figure — the kind of single-number engagement stat an acquirer asks for.
+  // Anchored on MAU since that's the standard denominator; guard div-by-zero.
+  const mauDisplay = activeValue('mau');
+  const matches30 = matchValue('matches_30d');
+  const matchesPerKMau = mauDisplay > 0
+    ? Math.round((matches30 * 1000) / mauDisplay)
+    : null;
+
   return (
     <>
+      {/* MAU hero — the single number an acquirer anchors on. */}
+      <div
+        className="card"
+        style={{
+          padding: '18px 20px',
+          borderTop: '2px solid var(--aurora)',
+          marginBottom: 14,
+        }}
+      >
+        <div className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          {t('kpis.mau_hero')}
+        </div>
+        <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, marginTop: 4 }}>
+          {mauDisplay.toLocaleString('pt-BR')}
+        </div>
+        {matchesPerKMau !== null && (
+          <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+            {t('kpis.matches_per_k_mau', { count: matchesPerKMau })}
+          </div>
+        )}
+      </div>
+
+      {/* Seed toggle */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        <h3 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>
+          {t('kpis.growth_section')}
+        </h3>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={includeSeeds}
+            onChange={(e) => setIncludeSeeds(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: 'var(--pink)' }}
+          />
+          <span className="muted">
+            {includeSeeds ? t('kpis.include_seeds') : t('kpis.real_users_only')}
+          </span>
+        </label>
+      </div>
+
+      {/* Active users row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+        {ACTIVE_USER_KEYS.map((key) => (
+          <div
+            key={key}
+            className="card"
+            style={{ padding: '12px 10px', borderTop: '2px solid var(--aurora)' }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{activeValue(key).toLocaleString('pt-BR')}</div>
+            <div className="muted" style={{ fontSize: 11 }}>{t(`kpis.${key}`)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Match velocity row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 6 }}>
+        {MATCH_WINDOW_KEYS.map((key) => (
+          <div
+            key={key}
+            className="card"
+            style={{ padding: '12px 10px', borderTop: '2px solid var(--pink)' }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{matchValue(key).toLocaleString('pt-BR')}</div>
+            <div className="muted" style={{ fontSize: 11 }}>{t(`kpis.${key}`)}</div>
+          </div>
+        ))}
+      </div>
+
+      {includeSeeds && (
+        <p className="muted" style={{ fontSize: 11, marginTop: 6, marginBottom: 14 }}>
+          {t('kpis.seed_stamp', {
+            users: kpis.seed_users.toLocaleString('pt-BR'),
+            matches: kpis.seed_matches.toLocaleString('pt-BR'),
+          })}
+        </p>
+      )}
+
+      {/* Catch-all detail grid */}
+      <h3 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted)', margin: '24px 0 10px' }}>
+        {t('kpis.detail_section')}
+      </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {KPI_ORDER.map((key) => (
           <div key={key} className="card" style={{ padding: '12px 14px' }}>
