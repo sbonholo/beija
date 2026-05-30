@@ -171,7 +171,7 @@ export default function SettingsScreen() {
         <Link to="/terms" className="settings-link">
           {t('links.terms')} →
         </Link>
-        <p className="muted" style={{ fontSize: 12, marginTop: 8, padding: '0 4px' }}>
+        <p className="muted" style={{ fontSize: 12, marginTop: 8, paddingLeft: 4 }}>
           {t('version', { version: APP_VERSION })}
         </p>
       </Section>
@@ -191,6 +191,7 @@ function LanguagePicker({
   const { t } = useTranslation('common');
   return (
     <label
+      className="settings-row"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -233,13 +234,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
           color: 'var(--muted)',
-          margin: '0 0 8px 4px',
+          margin: '0 0 8px 0',
+          paddingLeft: 4,
         }}
       >
         {title}
       </h3>
       <div
-        className="card"
+        className="card settings-card"
         style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
         {children}
@@ -263,13 +265,13 @@ function Toggle({
 }) {
   return (
     <label
+      className="settings-row"
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
         padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
         cursor: 'pointer',
       }}
     >

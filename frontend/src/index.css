@@ -143,6 +143,14 @@ a { color: var(--pink-glow); }
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* Centre the column on wider viewports (tablet, desktop, landscape iPad)
+   * so the app doesn't stretch edge-to-edge. Phone widths (≤480px) are
+   * unaffected — the max-width is larger than the viewport. */
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .flame-hero {
@@ -1016,22 +1024,31 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); cursor: grabbing; }
 input[type="range"]:active::-moz-range-thumb { transform: scale(1.15); cursor: grabbing; }
 
-/* ── Settings row link ───────────────────────────────────── */
+/* ── Settings rows (links + toggles) ─────────────────────── */
+/* Single hairline rule for every direct child of .settings-card. Border
+ * sits at the TOP and the first child opts out — that way Toggle and
+ * settings-link can be mixed in any order and the separators stay
+ * consistent (no doubled / dangling hairlines). */
+.settings-card > * + * {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.settings-row,
+.settings-link {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
 .settings-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text);
-  text-decoration: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out);
 }
-.settings-link:first-child { border-top: none; }
-.settings-link:active { background: rgba(255, 255, 255, 0.04); }
+.settings-link:active,
+.settings-row:active { background: rgba(255, 255, 255, 0.04); }
 .settings-link:hover { color: var(--pink-glow); }
 
 /* ── Route/tab transition ────────────────────────────────── */
